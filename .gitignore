@@ -1,0 +1,45 @@
+## .NET
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+artifacts/
+TestResults/
+*.trx
+*.coverage
+*.coverlet.json
+coverage*.xml
+coverage*.json
+
+## Rider / VS / VS Code
+.vs/
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+## App data — never commit a live company database
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+logs/
+appsettings.Local.json
+appsettings.Development.json
+
+## Secrets — GST portal / NIC IRP credentials must never be committed
+*.pfx
+*.p12
+secrets.json
+.env
+.env.*
+
+## Claude Code local state
+.claude/settings.local.json
+specs/session-log.md

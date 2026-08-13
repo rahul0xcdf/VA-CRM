@@ -1,0 +1,21 @@
+# Normalise text files to LF in the repository, check out CRLF on Windows.
+* text=auto
+
+*.cs        text diff=csharp
+*.xaml      text
+*.csproj    text
+*.sln       text eol=crlf
+*.props     text
+*.targets   text
+*.json      text
+*.md        text
+*.yml       text
+*.ps1       text eol=crlf
+
+# FastReport templates and binary assets (Phase 3+)
+*.frx       text
+*.png       binary
+*.jpg       binary
+*.ico       binary
+*.pfx       binary
+*.db        binary
