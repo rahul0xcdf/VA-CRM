@@ -159,6 +159,10 @@ public sealed class AuditLogEntry
             BeforeJson ?? string.Empty,
             AfterJson ?? string.Empty);
 
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
+        // Lower-case hex, as spec §11.5 documents. Convert.ToHexString returns upper-case, and
+        // although VerifyHash compares case-insensitively, the stored form is what an auditor
+        // reads and what any external re-verification would be written against.
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)))
+            .ToLowerInvariant();
     }
 }
