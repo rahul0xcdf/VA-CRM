@@ -1,9 +1,7 @@
 ﻿<Application x:Class="MotorPumpSuite.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:MotorPumpSuite.App"
-             StartupUri="MainWindow.xaml">
-    <Application.Resources>
-         
-    </Application.Resources>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- No StartupUri: the generic host owns the composition root and decides which window opens,
+         so that no view is constructed before configuration, logging and the schema are ready. -->
+    <Application.Resources />
 </Application>
