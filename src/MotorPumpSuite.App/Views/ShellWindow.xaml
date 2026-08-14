@@ -18,23 +18,24 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- Brand green to blue, sampled from Assets\logo.png (#38AE71 / #1B7EB7). -->
         <Border Grid.Row="0" Padding="24,18">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#FF101B3D" Offset="0.0" />
-                    <GradientStop Color="#FF0E4A52" Offset="1.0" />
+                    <GradientStop Color="#FF38AE71" Offset="0.0" />
+                    <GradientStop Color="#FF1B7EB7" Offset="1.0" />
                 </LinearGradientBrush>
             </Border.Background>
 
             <StackPanel>
                 <TextBlock Text="{Binding Title}"
                            FontSize="24"
-                           FontWeight="Light"
-                           Foreground="#FFF6F9FC" />
+                           FontWeight="SemiBold"
+                           Foreground="White" />
                 <TextBlock Text="{Binding Tagline}"
                            Margin="0,4,0,0"
                            FontSize="12"
-                           Foreground="#99E4EEF6" />
+                           Foreground="#CCFFFFFF" />
             </StackPanel>
         </Border>
 

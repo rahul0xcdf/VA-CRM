@@ -27,30 +27,37 @@ public partial class SplashWindow : Window
         Tagline.Text = options.Tagline;
         Monogram.Text = BuildMonogram(options.DisplayName);
 
-        TryApplyLogo(options.LogoPath);
+        if (TryApplyLogo(options.LogoPath))
+        {
+            // The artwork already carries the trading name, so showing the drawn wordmark too
+            // would print "Vinayaka Agencies" twice on the same screen.
+            FallbackMark.Visibility = Visibility.Collapsed;
+            LogoImage.Visibility = Visibility.Visible;
+        }
     }
 
     /// <summary>Updates the line under the progress sheen. Must be called on the UI thread.</summary>
     public void ReportStatus(string status) => StatusText.Text = status;
 
     /// <summary>
-    /// Swaps the drawn monogram for the owner's artwork when it is present.
+    /// Loads the owner's artwork, returning <c>false</c> when there is none to show.
     /// </summary>
     /// <remarks>
-    /// The logo has not been supplied yet, so a missing file is the expected case, not an error —
-    /// hence the silent fallback to the monogram rather than a throw or a broken-image box.
+    /// A missing file is a supported state, not an error — the drawn monogram stands in until
+    /// artwork exists, so a fresh clone still launches. An unreadable file costs the logo, never
+    /// the launch.
     /// </remarks>
-    private void TryApplyLogo(string? relativePath)
+    private bool TryApplyLogo(string? relativePath)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
         {
-            return;
+            return false;
         }
 
         var fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
         if (!File.Exists(fullPath))
         {
-            return;
+            return false;
         }
 
         try
@@ -65,15 +72,15 @@ public partial class SplashWindow : Window
             bitmap.Freeze();
 
             LogoImage.Source = bitmap;
-            LogoImage.Visibility = Visibility.Visible;
-            Monogram.Visibility = Visibility.Collapsed;
+            return true;
         }
         catch (NotSupportedException)
         {
-            // An unreadable or corrupt image file should cost us the logo, not the launch.
+            return false;
         }
         catch (IOException)
         {
+            return false;
         }
     }
 
