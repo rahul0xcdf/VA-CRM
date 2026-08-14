@@ -43,3 +43,6 @@ secrets.json
 ## Claude Code local state
 .claude/settings.local.json
 specs/session-log.md
+
+## Claude Code agent worktrees — transient, never committed
+.claude/worktrees/
