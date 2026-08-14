@@ -3,17 +3,37 @@
 ```yaml
 Phase: 1
 Title: Accounting Core
-Status: Draft
+Status: Approved
+Approved by: Project owner, 14 Aug 2026
 Source: project.md §4.1, §4.6, §10 (Phase 1)
 Depends on: Phase 0
 Blocks: Phases 2–10
-Decisions recorded: ADR-0001 (layering), ADR-0002 (append-only journal)
+Decisions recorded: ADR-0001 (layering), ADR-0002 (append-only journal), ADR-0003 (money storage)
 ```
 
-> **Draft.** This file is now expanded to what the architect believes is an approvable state.
-> `Status` is the project owner's call, not the architect's — see §14 for the list of questions that
-> must be answered before it can move to `Approved`. The spec gate blocks `src/` and `tests/` edits
-> until then.
+> **Approved 14 Aug 2026 by the project owner**, who instructed that implementation proceed on the
+> defaults this spec proposes, to be corrected after they have used the running application. The
+> `Status` change is recorded here as the owner's decision, not the architect's.
+>
+> **What was decided, and what was deferred to first use.** Two blocking items were answered
+> outright: money storage (**ADR-0003 accepted** — scaled 64-bit integer minor units, see §6) and
+> the D1–D4 decisions in §3. The remaining §16 items proceed on the defaults proposed in this
+> file — the seed ledger list in §4.5, the numbering prefixes in §7.2, and the audit-log hash chain
+> in §11 — on the explicit understanding that the owner will review them against the running
+> product and correct them.
+>
+> **Two of those defaults are cheap to change now and expensive later**, and are flagged for
+> attention at first review rather than left silent:
+> - **Numbering prefixes** (`PMT/0001`, `RCT/0001`, `SAL/0001`, …) end up printed on documents given
+>   to customers and filed with returns. Changing them after real vouchers exist means either a gap
+>   in the series or a renumbering, and GST invoice numbering is not freely re-writable.
+> - **Seed ledgers** are simple to add later, but any that are wrong and have already been *posted
+>   to* cannot simply be deleted — the append-only journal (ADR-0002) has no delete path.
+>
+> Implementation order follows the owner's instruction to build a usable vertical slice first:
+> chart of accounts → ledger masters → Payment/Receipt/Journal entry → day book and trial balance,
+> so the journal engine and audit trail can be judged in use before the remaining voucher types and
+> statements are built out.
 
 ## 1. Goal
 
