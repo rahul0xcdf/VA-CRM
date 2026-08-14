@@ -76,6 +76,20 @@ before/after edit log is Phase 1, and these stamps are the seam it will hang off
 - Migrations are applied at startup for SQLite (single-user, Phase 1–8). A note in the Phase 9 spec
   flags that auto-migrate-on-startup must become an explicit, gated step once multiple clients connect.
 
+### 2.4.1 Branded startup screen — added at the owner's request, 14 Aug 2026
+
+The shell is preceded by a branded intro animation. This is presentation only; it adds no business
+logic and does not widen Phase 0's scope in any other respect.
+
+- Trading name **Vinayaka Agencies** and its tagline come from a `Branding` section in
+  `appsettings.json`, not from code. The solution and root namespace remain `MotorPumpSuite` —
+  the rename is still open (`open-questions.md` #7).
+- The owner's logo has not been supplied yet. `SplashWindow` draws a "VA" monogram and swaps it for
+  `Assets\logo.png` the moment that file exists; a missing or unreadable file costs the logo, never
+  the launch.
+- The splash stays up for a 2.2 s floor so a warm start does not flicker past the animation. The
+  startup work runs concurrently with it and is never delayed by it.
+
 ### 2.5 Build & CI harness
 
 - `build.ps1` — restore, build (`-warnaserror`), test with TRX + coverage output to `artifacts/`.

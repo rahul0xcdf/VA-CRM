@@ -34,7 +34,7 @@ with India GST/TDS compliance as a core requirement.
 | Excel | ClosedXML (MIT). **Never EPPlus** — paid licence since v5. |
 | Tally interop | Tally XML "Data Interchange" (file) → later XML-over-HTTP, port 9000. **Never TallyODBC.** |
 | Logging | Serilog (console + rolling file under `%LOCALAPPDATA%\MotorPumpSuite\logs`) |
-| Tests | xUnit + FluentAssertions |
+| Tests | xUnit + **Shouldly**. **Never FluentAssertions** — paid licence since v8. |
 
 ## Layout
 
