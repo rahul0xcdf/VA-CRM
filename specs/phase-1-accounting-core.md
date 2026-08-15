@@ -221,7 +221,7 @@ All tables carry `CompanyId` (§10). All `Id` values are client-generated GUIDs 
 | `VoucherNumberSeries` | `CompanyId`, `VoucherTypeId`, `Name`, `Prefix`, `Suffix`, `Width`, `StartNumber`, `ResetPolicy`, `AllowManualOverride`, `IsActive` | §7.2 |
 | `VoucherNumberSequence` | `SeriesId`, `FinancialYearId`, `LastAllocatedNumber` | Unique `(SeriesId, FinancialYearId)`. High-water mark; never decreases |
 | `Voucher` | `CompanyId`, `VoucherTypeId`, `SeriesId`, `FinancialYearId` | Immutable identity only. This GUID is the stable id Phase 8 exports to Tally |
-| `VoucherRevision` | `VoucherId`, `RevisionNumber`, `Status`, `VoucherDate` (`DateOnly`), `Number`, `NumberNormalised`, `IsManualNumber`, `Narration?`, `ReferenceNumber?`, `ReferenceDate?`, `ChangeReason?`, `SupersededByRevisionId?`, `CreatedAtUtc`, `CreatedBy` | Unique `(VoucherId, RevisionNumber)`. Filtered unique index on `(CompanyId, VoucherTypeId, SeriesId, FinancialYearId, NumberNormalised) WHERE SupersededByRevisionId IS NULL`. See ADR-0002 |
+| `VoucherRevision` | `VoucherId`, `RevisionNumber`, `Status`, `VoucherDate` (`DateOnly`), `Number`, `NumberNormalised`, `IsManualNumber`, `Narration?`, `ReferenceNumber?`, `ReferenceDate?`, `ChangeReason?`, `SupersededByRevisionId?`, `CreatedAtUtc`, `CreatedBy`, **`CompanyId`, `VoucherTypeId`, `SeriesId`, `FinancialYearId`** | Unique `(VoucherId, RevisionNumber)`. Filtered unique index on `(CompanyId, VoucherTypeId, SeriesId, FinancialYearId, NumberNormalised) WHERE SupersededByRevisionId IS NULL`. See ADR-0002. **The last three key columns are denormalised copies of the parent `Voucher`'s** — amended 15 Aug 2026 after `architect-agent` review found the index unbuildable otherwise, since neither provider can put a unique index across a join. They are set in the constructor from the parent, are `private set`, and are never mutated; all three are immutable on `Voucher`, so the copies cannot drift by construction. `FinancialYearId` is mandatory in the key, not optional: D2 resets the counter each financial year, so `PMT/0001` legitimately recurs and a company-wide unique index would reject the second year's first payment |
 | `JournalLine` | `CompanyId`, `VoucherRevisionId`, `LineNumber`, `LedgerId`, `AmountMinor`, `CostCentreId?`, `Narration?` | Insert-only. Signed amount: positive = debit, negative = credit (§8.1). Index `(CompanyId, LedgerId)` and `(VoucherRevisionId, LineNumber)` |
 | `CostCategory` | `CompanyId`, `Name`, `IsActive` | D3 — schema only, no UI |
 | `CostCentre` | `CompanyId`, `CostCategoryId?`, `Name`, `ParentCostCentreId?`, `MaterialisedPath`, `IsActive` | D3 — schema only, no UI |
@@ -535,9 +535,26 @@ Layered so that no single mistake defeats it:
 Prevention stops at the file: through Phases 1–8 the database is a local SQLite file that a
 determined user can open with any tool and, with enough effort, drop a trigger. So the log is also
 made **tamper-evident**. Each row stores `PreviousHash` and `RowHash`, where `RowHash` is
-SHA-256 over UTF-8 of the concatenation of `PreviousHash`, `Sequence`, `OccurredAtUtc` (`O`),
-`UserName`, `Action`, `EntityType`, `EntityId`, `BeforeJson` and `AfterJson`, hex-encoded lower-case.
-`Accounting.EditLog.ChainVerification` re-computes the chain and reports the first break.
+SHA-256 over UTF-8 of the unit-separated (`U+001F`) concatenation of `PreviousHash`,
+`OccurredAtUtc` (`O`, normalised to UTC), `UserName`, `MachineName`, `SaveBatchId`, `Action`
+(**its name, not its integer** — §11.3's own reasoning applies here too), `EntityType`, `EntityId`,
+`AggregateType`, `AggregateId`, `ChangedProperties`, `BeforeJson` and `AfterJson`, hex-encoded
+lower-case. `Accounting.EditLog.ChainVerification` re-computes the chain and reports the first break.
+
+> **Amended 15 Aug 2026 to the implemented field list**, after `architect-agent` review. This spec
+> originally listed `Sequence` in the hashed payload and omitted `MachineName`, `SaveBatchId`,
+> `AggregateType`, `AggregateId` and `ChangedProperties`. Hashing `Sequence` is **not implementable**:
+> it is assigned by the database on insert, the row is sealed before `base.SaveChangesAsync`, and the
+> `BEFORE UPDATE` trigger (§11.4 item 3) forbids re-sealing afterwards. The implementation in
+> `AuditLogEntry.Seal` is correct and the spec is amended to match it — the wider field list covers
+> strictly more of the row, so the guarantee is stronger, not weaker. A field separator that cannot
+> occur in a GUID, an ISO-8601 timestamp or JSON text keeps two different rows from hashing
+> identically by shifting content across a delimiter.
+>
+> One consequence for C1.16: the chain's `PreviousHash` linkage assumes rows are inserted in the
+> order they were sealed, which EF Core does not formally guarantee within a batch. The C1.16 fixture
+> must therefore include a single `SaveChanges` that writes three or more log rows, and assert the
+> chain still verifies.
 
 This does not prevent tampering; it makes tampering **provable**, which is what an auditor needs.
 Real prevention arrives with SQL Server permissions at Phase 9 and data-at-rest protection at
@@ -615,10 +632,19 @@ Explicitly not in this phase. If a task appears to need one of these, stop and f
 - **Audit-log retention or archival.** There is no purge, and Phase 10's backup work must not
   introduce one. Any future archival must be copy-never-delete, to append-only storage, and needs an
   ADR.
-- **SQL Server trigger interaction (Phase 9 note).** EF Core 8 needs
+- **SQL Server trigger interaction — resolved in Phase 1, not deferred.** EF Core 8 needs
   `.ToTable(t => t.HasTrigger(...))` for SQL Server tables carrying triggers, otherwise its
-  `OUTPUT`-clause save path breaks. The audit-log table will carry triggers on both providers. Carry
-  this into the Phase 9 spec.
+  `OUTPUT`-clause save path breaks. The audit-log table carries triggers on both providers, and
+  `AuditLogEntry.Sequence` is store-generated, so the SQL Server provider will emit
+  `INSERT … OUTPUT INSERTED.Sequence` — which SQL Server rejects on a table with enabled triggers.
+  **Amended 15 Aug 2026:** the annotation is therefore declared **now**, in the Phase 1 audit
+  configuration, naming both triggers. It is inert on SQLite, so it costs nothing today and Phase 9
+  does not break. Still carried into the Phase 9 spec as a constraint, but no longer as an open task.
+- **Migration rollback must never reach the UI (Phase 10 note).** `Down()` on the Phase 1 migration
+  drops the audit-log table. That is inherent to how migrations work and is acceptable as a developer
+  action, but Phase 10's backup/restore work must not surface migration rollback as a user-facing
+  operation — that would be an audit-trail delete path wearing a maintenance label (§11.4). Carry
+  this into the Phase 10 spec.
 
 ## 14. Checkpoint criteria
 

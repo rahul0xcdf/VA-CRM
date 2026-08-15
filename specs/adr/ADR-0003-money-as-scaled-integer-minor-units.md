@@ -98,3 +98,37 @@ where it can be audited, not in a persistence converter.
 ADR narrows it to a statement about the **domain type and its scale**, and records that the storage
 representation under SQLite is a scaled integer of that same scale. `double` and `float` remain
 forbidden everywhere, without exception.
+
+## Implementation note — accepted 15 Aug 2026
+
+Recorded during Phase 1 implementation, after `architect-agent` review found that the accepted text
+above and the implemented domain describe two different mechanisms. The **decision** is unchanged;
+the **mechanism** is narrower than this ADR first described.
+
+**What was written above:** money is persisted as a scaled integer "via an EF Core value converter"
+under SQLite, and at Phase 9 "the converter is not applied" because SQL Server gets native
+`decimal(19,4)`.
+
+**What is actually implemented, and what stands:**
+
+- Scaling happens in the **domain constructor**, via `MoneyScale.ToMinor`, not in a value converter.
+  `JournalLine.AmountMinor` is a `long` property; `Amount`, `DebitAmount` and `CreditAmount` are
+  computed, get-only projections that EF does not map. There is no converter to configure and none
+  to drop.
+- The persisted type is `INTEGER` on SQLite and `bigint` on SQL Server — **the same representation on
+  both providers.** Phase 9 does not convert the column to `decimal(19,4)`.
+- `MoneyScale.ToMinor` throws rather than rounds when a value carries more than four decimal places.
+  Rounding is a business decision (GST round-off, invoice rounding) and is made explicitly by calling
+  `MoneyScale.Round`, so it appears in the code and in review.
+
+**Why keep minor units at Phase 9 rather than moving to `decimal(19,4)`.** Converting at the
+provider boundary would rewrite every reporting query and every DTO mapping helper for no
+correctness gain — integer aggregation is already exact on both providers. The migration cost is
+real and the benefit is cosmetic.
+
+**Consequently, two statements above no longer apply as written:** "Phase 9 drops the converter" (there
+is no converter), and "every new monetary column must remember the converter" (a new monetary column
+must instead be declared as a `long` of minor units, scaled in the domain). The enforcement this ADR
+promised still applies and is stronger stated this way: a test asserts that **no mapped `decimal`
+property lands on a TEXT-affinity column**. Phase 2's quantities and rates are what that test is
+really for.
