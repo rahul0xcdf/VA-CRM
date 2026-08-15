@@ -11,8 +11,17 @@ namespace VinayakaAgencies.Domain.Accounting;
 /// they stood at any past moment remain readable. The current revision of a voucher is the one whose
 /// <see cref="SupersededByRevisionId"/> is null — and the uniqueness of a voucher number is enforced
 /// by a filtered index over exactly that condition.
+/// <para>
+/// <see cref="CompanyId"/>, <see cref="VoucherTypeId"/>, <see cref="SeriesId"/> and
+/// <see cref="FinancialYearId"/> are denormalised copies of the parent <see cref="Voucher"/>'s
+/// (spec §5). Neither SQLite nor SQL Server can build a unique index across a join, so without them
+/// the filtered index on
+/// <c>(CompanyId, VoucherTypeId, SeriesId, FinancialYearId, NumberNormalised)</c> is unbuildable.
+/// They are taken from the parent in the constructor and never mutated; all four are immutable on
+/// <see cref="Voucher"/>, so the copies cannot drift by construction.
+/// </para>
 /// </remarks>
-public sealed class VoucherRevision : Entity
+public sealed class VoucherRevision : Entity, ICreationStamped
 {
     private readonly List<JournalLine> _lines = [];
 
@@ -22,8 +31,7 @@ public sealed class VoucherRevision : Entity
     }
 
     public VoucherRevision(
-        Guid companyId,
-        Guid voucherId,
+        Voucher voucher,
         int revisionNumber,
         DateOnly voucherDate,
         string number,
@@ -34,11 +42,12 @@ public sealed class VoucherRevision : Entity
         string? changeReason = null,
         VoucherStatus status = VoucherStatus.Posted)
     {
+        ArgumentNullException.ThrowIfNull(voucher);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
 
-        if (companyId == Guid.Empty)
+        if (voucher.CompanyId == Guid.Empty)
         {
-            throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+            throw new ArgumentException("CompanyId must not be empty.", nameof(voucher));
         }
 
         if (revisionNumber < 1)
@@ -47,8 +56,13 @@ public sealed class VoucherRevision : Entity
                 nameof(revisionNumber), revisionNumber, "Revisions start at 1.");
         }
 
-        CompanyId = companyId;
-        VoucherId = voucherId;
+        // Taken from the parent rather than from separate arguments: a caller cannot then pass a
+        // voucher type or financial year that disagrees with the voucher the revision belongs to.
+        CompanyId = voucher.CompanyId;
+        VoucherId = voucher.Id;
+        VoucherTypeId = voucher.VoucherTypeId;
+        SeriesId = voucher.SeriesId;
+        FinancialYearId = voucher.FinancialYearId;
         RevisionNumber = revisionNumber;
         VoucherDate = voucherDate;
         Number = number.Trim();
@@ -64,6 +78,25 @@ public sealed class VoucherRevision : Entity
     public Guid CompanyId { get; private set; }
 
     public Guid VoucherId { get; private set; }
+
+    /// <summary>Copy of <see cref="Voucher.VoucherTypeId"/>, carried here so the number-uniqueness
+    /// index can be built without a join.</summary>
+    public Guid VoucherTypeId { get; private set; }
+
+    /// <summary>Copy of <see cref="Voucher.SeriesId"/>. Kept in the uniqueness key alongside
+    /// <see cref="VoucherTypeId"/> — which it functionally determines — because ADR-0002 §7 states
+    /// the key that way and the redundancy costs nothing.</summary>
+    public Guid SeriesId { get; private set; }
+
+    /// <summary>
+    /// Copy of <see cref="Voucher.FinancialYearId"/>, and mandatory in the uniqueness key.
+    /// </summary>
+    /// <remarks>
+    /// Decision D2 resets the series counter each financial year, so <c>PMT/0001</c> legitimately
+    /// recurs in FY 2026-27 and FY 2027-28. A key without the financial year would reject the second
+    /// year's first payment.
+    /// </remarks>
+    public Guid FinancialYearId { get; private set; }
 
     public int RevisionNumber { get; private set; }
 

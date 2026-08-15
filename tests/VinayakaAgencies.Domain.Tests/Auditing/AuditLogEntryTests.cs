@@ -1,4 +1,7 @@
+using System.Globalization;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using VinayakaAgencies.Domain.Auditing;
 using VinayakaAgencies.Domain.Common;
 
@@ -27,6 +30,35 @@ public class AuditLogEntryTests
             beforeJson: null,
             afterJson: afterJson,
             companyId: Guid.NewGuid());
+
+    /// <summary>
+    /// Recomputes a row's hash from the field list spec §11.5 documents, with the action rendered
+    /// as <paramref name="actionField"/> so the "name, not integer" rule can be asserted both ways.
+    /// </summary>
+    private static string HashOf(AuditLogEntry entry, string previousHash, string actionField)
+    {
+        // ASCII unit separator (U+001F), as spec §11.5 specifies.
+        const char separator = (char)0x1F;
+
+        var payload = string.Join(
+            separator,
+            previousHash,
+            entry.OccurredAtUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
+            entry.UserName,
+            entry.MachineName,
+            entry.SaveBatchId.ToString("N"),
+            actionField,
+            entry.EntityType,
+            entry.EntityId,
+            entry.AggregateType ?? string.Empty,
+            entry.AggregateId ?? string.Empty,
+            entry.ChangedProperties,
+            entry.BeforeJson ?? string.Empty,
+            entry.AfterJson ?? string.Empty);
+
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)))
+            .ToLowerInvariant();
+    }
 
     [Fact]
     public void Seal_ThenVerifyHash_ReturnsTrue()
@@ -97,6 +129,54 @@ public class AuditLogEntryTests
         afterJsonProperty.SetValue(entry, "{\"Name\":\"Tampered\"}");
 
         entry.VerifyHash().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Seal_HashesTheActionByName_NotByItsIntegerValue()
+    {
+        // Spec §11.3 records enums by name so a later reordering of AuditAction cannot silently
+        // change what a historical row means; §11.5 applies the same rule to the hashed payload. If
+        // the integer were hashed instead, renumbering Create from 1 to 4 would break every stored
+        // hash while leaving the row's readable content identical — an unexplainable chain failure.
+        var entry = NewEntry();
+        entry.Seal(AuditLogEntry.GenesisHash);
+
+        var byName = HashOf(entry, AuditLogEntry.GenesisHash, nameof(AuditAction.Create));
+        var byInteger = HashOf(
+            entry,
+            AuditLogEntry.GenesisHash,
+            ((int)AuditAction.Create).ToString(CultureInfo.InvariantCulture));
+
+        entry.RowHash.ShouldBe(byName);
+        entry.RowHash.ShouldNotBe(byInteger);
+    }
+
+    [Fact]
+    public void RowHash_TwoRowsDifferingOnlyByAction_Differ()
+    {
+        var occurredAt = new DateTimeOffset(2026, 8, 14, 10, 0, 0, TimeSpan.Zero);
+        var saveBatchId = Guid.NewGuid();
+        var entityId = Guid.NewGuid().ToString();
+
+        AuditLogEntry Entry(AuditAction action) => new(
+            occurredAt,
+            "rahul",
+            "WORKSTATION-1",
+            saveBatchId,
+            action,
+            entityType: "Ledger",
+            entityId: entityId,
+            changedProperties: "Name",
+            beforeJson: null,
+            afterJson: "{\"Name\":\"Cash\"}");
+
+        var created = Entry(AuditAction.Create);
+        var updated = Entry(AuditAction.Update);
+
+        created.Seal(AuditLogEntry.GenesisHash);
+        updated.Seal(AuditLogEntry.GenesisHash);
+
+        created.RowHash.ShouldNotBe(updated.RowHash);
     }
 
     [Fact]

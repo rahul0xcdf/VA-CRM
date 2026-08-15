@@ -55,7 +55,7 @@ public sealed class VoucherNumberSeries : Entity, IAuditStamped
 
         CompanyId = companyId;
         VoucherTypeId = voucherTypeId;
-        Name = name.Trim();
+        SetName(name);
         Prefix = prefix?.Trim() ?? string.Empty;
         Suffix = string.IsNullOrWhiteSpace(suffix) ? null : suffix.Trim();
         Width = width;
@@ -69,6 +69,16 @@ public sealed class VoucherNumberSeries : Entity, IAuditStamped
     public Guid VoucherTypeId { get; private set; }
 
     public string Name { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Comparison form of <see cref="Name"/>, which the unique name index is built over so that two
+    /// series cannot differ only by letter case on one provider and collide on the other. See
+    /// <see cref="NameNormaliser"/>.
+    /// </summary>
+    /// <remarks>
+    /// There is no rename path on a series, so this is written once, in the constructor.
+    /// </remarks>
+    public string NameNormalised { get; private set; } = string.Empty;
 
     public string Prefix { get; private set; } = string.Empty;
 
@@ -119,5 +129,13 @@ public sealed class VoucherNumberSeries : Entity, IAuditStamped
         Width = width;
         Suffix = string.IsNullOrWhiteSpace(suffix) ? null : suffix.Trim();
         AllowManualOverride = allowManualOverride;
+    }
+
+    /// <summary>Keeps <see cref="NameNormalised"/> in step with <see cref="Name"/>; the two are only
+    /// ever written together.</summary>
+    private void SetName(string name)
+    {
+        Name = name.Trim();
+        NameNormalised = NameNormaliser.Normalise(name);
     }
 }

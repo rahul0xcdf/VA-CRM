@@ -40,7 +40,7 @@ public sealed class Ledger : Entity, IAuditStamped
         }
 
         CompanyId = companyId;
-        Name = name.Trim();
+        SetName(name);
         AccountGroupId = accountGroupId;
         Alias = string.IsNullOrWhiteSpace(alias) ? null : alias.Trim();
         IsSystem = isSystem;
@@ -51,6 +51,13 @@ public sealed class Ledger : Entity, IAuditStamped
     public Guid CompanyId { get; private set; }
 
     public string Name { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Comparison form of <see cref="Name"/> — the unique <c>(CompanyId, NameNormalised)</c> index is
+    /// built over this, so "Cash" and "cash" collide on both providers. See
+    /// <see cref="NameNormaliser"/>.
+    /// </summary>
+    public string NameNormalised { get; private set; } = string.Empty;
 
     /// <summary>Short code or alternate name, used by the Phase 2 fast-search requirement.</summary>
     public string? Alias { get; private set; }
@@ -88,7 +95,7 @@ public sealed class Ledger : Entity, IAuditStamped
                 $"'{Name}' is fully locked and cannot be renamed.");
         }
 
-        Name = name.Trim();
+        SetName(name);
         Alias = string.IsNullOrWhiteSpace(alias) ? null : alias.Trim();
     }
 
@@ -122,4 +129,12 @@ public sealed class Ledger : Entity, IAuditStamped
     }
 
     public void Activate() => IsActive = true;
+
+    /// <summary>Keeps <see cref="NameNormalised"/> in step with <see cref="Name"/>; the two are only
+    /// ever written together.</summary>
+    private void SetName(string name)
+    {
+        Name = name.Trim();
+        NameNormalised = NameNormaliser.Normalise(name);
+    }
 }

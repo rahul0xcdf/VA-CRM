@@ -82,7 +82,7 @@ These close items that were listed as open in the Phase 1 stub and in `open-ques
 | D1 | **Financial year starts 1 April** (Indian standard). `Company.FinancialYearStartMonth` stays `4`; the column remains because the schema is multi-company-ready and the value is data, not a constant. | `open-questions.md` #9 — Confirmed |
 | D2 | **Voucher numbering:** per-voucher-type series with prefix + width; the counter **resets each financial year**; **gaps are blocked** — deleting or cancelling a voucher does not free its number; any gap that does arise is surfaced in an audit report rather than silently reused; a **manual number override is permitted and is written to the edit log**. Closest to TallyPrime's default behaviour. | §7, `open-questions.md` #11 — Confirmed |
 | D3 | **Cost centres: schema now, UI hidden.** `CostCategory`, `CostCentre` and the **nullable** `JournalLine.CostCentreId` ship in the Phase 1 migration; **no UI is built in Phase 1**. | §9, `open-questions.md` #12 — Confirmed |
-| D4 | **Product display branding is "Vinayaka Agencies."** The solution and root namespace remain `VinayakaAgencies`; a namespace rename is still an open owner decision and is cheapest before Phase 1 implementation starts. | `open-questions.md` #7 — display name confirmed, rename still Open |
+| D4 | **Product display branding is "Vinayaka Agencies."** ~~The solution and root namespace remain `MotorPumpSuite`; a namespace rename is still an open owner decision and is cheapest before Phase 1 implementation starts.~~ **Superseded 15 Aug 2026:** the owner elected to rename. The solution, root namespace and all seven projects are now `VinayakaAgencies`; the display name is unchanged at "Vinayaka Agencies". Done immediately before the Phase 1 migration was generated, which is the point §16 identified as cheapest. | `open-questions.md` #7 — **Resolved, renamed** |
 
 ## 4. Chart of accounts
 
@@ -213,11 +213,11 @@ All tables carry `CompanyId` (§10). All `Id` values are client-generated GUIDs 
 
 | Entity | Key columns | Notes |
 |---|---|---|
-| `AccountGroup` | `CompanyId`, `Name`, `ParentGroupId?`, `MaterialisedPath`, `Nature`, `AffectsGrossProfit`, `IsPrimary`, `IsSystem`, `SortOrder`, `IsActive` | Unique `(CompanyId, ParentGroupId, Name)`. Index on `(CompanyId, MaterialisedPath)` |
-| `Ledger` | `CompanyId`, `Name`, `Alias?`, `AccountGroupId`, `IsSystem`, `AllowsManualPosting`, `Description?`, `IsActive` | Unique `(CompanyId, Name)`. **No opening-balance column** — see §8.5. Whether a ledger is a bank ledger is *derived* from its group being at or under `Bank Accounts` / `Bank OD A/c`, not stored |
+| `AccountGroup` | `CompanyId`, `Name`, `ParentGroupId?`, `MaterialisedPath`, `Nature`, `AffectsGrossProfit`, `IsPrimary`, `IsSystem`, `SortOrder`, `IsActive` | Unique `(CompanyId, ParentGroupId, NameNormalised)`. Index on `(CompanyId, MaterialisedPath)`. `MaterialisedPath` is capped at 400 chars — see §4.2 and the note below this table |
+| `Ledger` | `CompanyId`, `Name`, `Alias?`, `AccountGroupId`, `IsSystem`, `AllowsManualPosting`, `Description?`, `IsActive` | Unique `(CompanyId, NameNormalised)`. **No opening-balance column** — see §8.5. Whether a ledger is a bank ledger is *derived* from its group being at or under `Bank Accounts` / `Bank OD A/c`, not stored |
 | `FinancialYear` | `CompanyId`, `StartDate` (`DateOnly`), `EndDate` (`DateOnly`), `Label`, `IsClosed` | Unique `(CompanyId, StartDate)`. Created lazily on first post into a year, derived from `Company.FinancialYearStartMonth` |
 | `PeriodLock` | `CompanyId`, `LockedThroughDate` (`DateOnly`), `Reason`, `SetBy`, `SetAtUtc` | One row per company; changing it is a master change and is edit-logged |
-| `VoucherType` | `CompanyId`, `Name`, `Kind`, `IsSystem`, `DefaultSeriesId?`, `IsActive` | Unique `(CompanyId, Name)`. See §7.1 for why `Kind` is an enum while the type itself is a data row |
+| `VoucherType` | `CompanyId`, `Name`, `Kind`, `IsSystem`, `DefaultSeriesId?`, `IsActive` | Unique `(CompanyId, NameNormalised)`. See §7.1 for why `Kind` is an enum while the type itself is a data row |
 | `VoucherNumberSeries` | `CompanyId`, `VoucherTypeId`, `Name`, `Prefix`, `Suffix`, `Width`, `StartNumber`, `ResetPolicy`, `AllowManualOverride`, `IsActive` | §7.2 |
 | `VoucherNumberSequence` | `SeriesId`, `FinancialYearId`, `LastAllocatedNumber` | Unique `(SeriesId, FinancialYearId)`. High-water mark; never decreases |
 | `Voucher` | `CompanyId`, `VoucherTypeId`, `SeriesId`, `FinancialYearId` | Immutable identity only. This GUID is the stable id Phase 8 exports to Tally |
@@ -227,6 +227,51 @@ All tables carry `CompanyId` (§10). All `Id` values are client-generated GUIDs 
 | `CostCentre` | `CompanyId`, `CostCategoryId?`, `Name`, `ParentCostCentreId?`, `MaterialisedPath`, `IsActive` | D3 — schema only, no UI |
 | `BankReconciliationMark` | `CompanyId`, `JournalLineId`, `BankDate` (`DateOnly`), `ClearedAtUtc`, `ClearedBy` | §12. Unique on `JournalLineId` |
 | `AuditLogEntry` | `Sequence`, `CompanyId?`, `OccurredAtUtc`, `UserName`, `MachineName`, `SaveBatchId`, `Action`, `EntityType`, `EntityId`, `AggregateType?`, `AggregateId?`, `ChangedProperties`, `BeforeJson?`, `AfterJson?`, `PreviousHash`, `RowHash` | §11. Insert-only at every level from the domain type up to a database trigger |
+
+**Column lengths — added 15 Aug 2026 after `architect-agent` review.** `AppDbContext.ConfigureConventions`
+defaults every non-key string to 512 characters so nothing maps to `nvarchar(max)` by accident at
+Phase 9. SQLite ignores the cap, so a wrong value is invisible through Phase 8 and only bites on the
+provider switch. Three cases must therefore be set explicitly rather than left on the default:
+
+| Property | Length | Why |
+|---|---|---|
+| `AuditLogEntry.BeforeJson`, `.AfterJson`, `.ChangedProperties` | unbounded | §11.1 stores **full row images**. At `nvarchar(512)` they would truncate at Phase 9 — silent audit-log data loss on a table whose triggers block repair. |
+| `AccountGroup.MaterialisedPath`, `CostCentre.MaterialisedPath` | 400 | §4.2 sized this for SQL Server's 900-byte index key limit. At the 512 default the `(CompanyId, MaterialisedPath)` index is 1040 bytes and **SQL Server refuses to create it**. |
+| `AuditLogEntry.PreviousHash`, `.RowHash` | 64, fixed | SHA-256 hex. |
+
+`EntityId` 64; `EntityType` / `AggregateType` 256; `UserName` / `MachineName` / `CreatedBy` /
+`ModifiedBy` 256, matching the existing `CompanyConfiguration`. `Narration` is widened to 1000 —
+512 is tight for an operator used to Tally, and the column costs nothing on SQLite.
+
+**Delete behaviour.** Every relationship in this phase is configured `DeleteBehavior.Restrict`,
+explicitly and without exception. EF Core defaults required relationships to `Cascade`, which would
+put a cascade-delete path through `JournalLine` — a delete path for posted lines, which ADR-0002
+forbids outright. `Restrict` on `Ledger → JournalLine` also gives §4.6's "hard delete only when the
+row has no journal line" a database-level backstop instead of a validation someone must remember.
+
+**Seed data does not use EF's `HasData`.** The §4.3 primary groups, §4.4 sub-groups, §4.5 ledgers and
+§7.1 voucher types with their series are written at runtime by a company-provisioning service going
+through `IUnitOfWork`, not baked into the migration. Three reasons, any one sufficient: `HasData`
+writes rows through the migration and therefore **bypasses `SaveChangesAsync` and the audit trail**,
+which §11.1 requires for every insert of every mapped entity — the creation of a system-locked row is
+exactly what an auditor asks about; it bypasses `IAuditStamped`, so `CreatedBy` would be a literal
+string; and every one of these rows is `CompanyId`-scoped while companies are created at runtime, so
+per-company seed data is not expressible as static migration data at all. Provisioning a company
+therefore produces roughly fifty audit rows, which is the correct outcome rather than a cost.
+
+**Enum columns are stored as strings** (`HasConversion<string>()`), for the reason §11.3 already
+gives about the audit log: a later enum reordering must not silently change the meaning of existing
+rows. This applies to `AccountNature`, `VoucherKind`, `VoucherStatus`, `NumberResetPolicy` and
+`AuditAction`, and applies harder because Phase 5 and Phase 8 reporting SQL filters on them.
+
+**`CompanyId` is a real foreign key with no navigation property** — `HasOne<Company>().WithMany()`.
+Referential integrity for §10's cross-company rule belongs in the database, not only in the §8.1
+post-time validation. Omitting the navigation keeps §11.3's "navigation properties are never
+serialised" trivially true. Two exceptions: `AuditLogEntry.CompanyId` gets **no** FK, because the log
+must outlive any company row; and `VoucherType.DefaultSeriesId` gets no FK, because
+`VoucherType → VoucherNumberSeries → VoucherType` is a cycle that would force EF to split the insert
+into an insert-with-null plus a later `UPDATE`, generating a spurious audit row on every company
+provisioning.
 
 ## 6. Money: exactness under SQLite — **needs ADR-0003 before implementation**
 

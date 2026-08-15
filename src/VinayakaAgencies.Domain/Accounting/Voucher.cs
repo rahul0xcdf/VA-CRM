@@ -31,6 +31,22 @@ public sealed class Voucher : Entity, IAuditStamped
             throw new ArgumentException("VoucherTypeId must not be empty.", nameof(voucherTypeId));
         }
 
+        // SeriesId and FinancialYearId are guarded for the same reason as the two above, but the
+        // consequence is sharper: VoucherRevision copies all four (§5) and they are key columns of
+        // the filtered unique index that enforces numbering. An empty GUID here would not fail
+        // loudly — it would quietly collapse every affected revision into a single uniqueness
+        // bucket, so the first two vouchers to reach it would collide on a number that is not
+        // actually a duplicate.
+        if (seriesId == Guid.Empty)
+        {
+            throw new ArgumentException("SeriesId must not be empty.", nameof(seriesId));
+        }
+
+        if (financialYearId == Guid.Empty)
+        {
+            throw new ArgumentException("FinancialYearId must not be empty.", nameof(financialYearId));
+        }
+
         CompanyId = companyId;
         VoucherTypeId = voucherTypeId;
         SeriesId = seriesId;

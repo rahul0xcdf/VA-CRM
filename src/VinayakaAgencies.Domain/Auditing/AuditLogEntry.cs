@@ -150,7 +150,11 @@ public sealed class AuditLogEntry
             UserName,
             MachineName,
             SaveBatchId.ToString("N"),
-            ((int)Action).ToString(CultureInfo.InvariantCulture),
+
+            // The action's *name*, never its integer: spec §11.3 requires enums to be recorded by
+            // name so that a later reordering of AuditAction cannot silently change what a historical
+            // row means, and that reasoning applies to the hashed payload as much as to the JSON.
+            Action.ToString(),
             EntityType,
             EntityId,
             AggregateType ?? string.Empty,

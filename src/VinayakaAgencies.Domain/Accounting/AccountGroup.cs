@@ -40,7 +40,7 @@ public sealed class AccountGroup : Entity, IAuditStamped
         }
 
         CompanyId = companyId;
-        Name = name.Trim();
+        SetName(name);
         Nature = nature;
         ParentGroupId = parentGroupId;
         AffectsGrossProfit = affectsGrossProfit;
@@ -52,6 +52,13 @@ public sealed class AccountGroup : Entity, IAuditStamped
     public Guid CompanyId { get; private set; }
 
     public string Name { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Comparison form of <see cref="Name"/> — the unique
+    /// <c>(CompanyId, ParentGroupId, NameNormalised)</c> index is built over this, so "Cash" and
+    /// "cash" collide on both providers. See <see cref="NameNormaliser"/>.
+    /// </summary>
+    public string NameNormalised { get; private set; } = string.Empty;
 
     public Guid? ParentGroupId { get; private set; }
 
@@ -110,7 +117,7 @@ public sealed class AccountGroup : Entity, IAuditStamped
     public void Rename(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        Name = name.Trim();
+        SetName(name);
     }
 
     /// <summary>
@@ -145,4 +152,12 @@ public sealed class AccountGroup : Entity, IAuditStamped
     }
 
     public void Activate() => IsActive = true;
+
+    /// <summary>Keeps <see cref="NameNormalised"/> in step with <see cref="Name"/>; the two are only
+    /// ever written together.</summary>
+    private void SetName(string name)
+    {
+        Name = name.Trim();
+        NameNormalised = NameNormaliser.Normalise(name);
+    }
 }

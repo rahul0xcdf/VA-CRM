@@ -1,4 +1,5 @@
 using VinayakaAgencies.Domain.Accounting;
+using VinayakaAgencies.Domain.Common;
 
 namespace VinayakaAgencies.Domain.Tests.Accounting;
 
@@ -10,10 +11,16 @@ namespace VinayakaAgencies.Domain.Tests.Accounting;
 /// </summary>
 public class VoucherRevisionTests
 {
+    private static Voucher NewVoucher() =>
+        new(
+            companyId: Guid.NewGuid(),
+            voucherTypeId: Guid.NewGuid(),
+            seriesId: Guid.NewGuid(),
+            financialYearId: Guid.NewGuid());
+
     private static VoucherRevision NewRevision(VoucherStatus status = VoucherStatus.Posted) =>
         new(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
+            NewVoucher(),
             revisionNumber: 1,
             voucherDate: new DateOnly(2026, 8, 14),
             number: "PMT/0001",
@@ -150,10 +157,68 @@ public class VoucherRevisionTests
     public void Constructor_RevisionNumberLessThanOne_ThrowsArgumentOutOfRangeException()
     {
         Should.Throw<ArgumentOutOfRangeException>(() => new VoucherRevision(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
+            NewVoucher(),
             revisionNumber: 0,
             voucherDate: new DateOnly(2026, 8, 14),
             number: "PMT/0001"));
+    }
+
+    [Fact]
+    public void Constructor_NullVoucher_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() => new VoucherRevision(
+            null!,
+            revisionNumber: 1,
+            voucherDate: new DateOnly(2026, 8, 14),
+            number: "PMT/0001"));
+    }
+
+    [Fact]
+    public void Constructor_FromParentVoucher_CopiesEveryKeyIdFromIt()
+    {
+        // Spec §5: the filtered unique index is
+        // (CompanyId, VoucherTypeId, SeriesId, FinancialYearId, NumberNormalised) WHERE
+        // SupersededByRevisionId IS NULL. Neither SQLite nor SQL Server can build a unique index
+        // across a join, so those ids must be present on the revision itself — and they must be the
+        // parent's, not something a caller supplied separately.
+        var voucher = NewVoucher();
+
+        var revision = new VoucherRevision(
+            voucher,
+            revisionNumber: 1,
+            voucherDate: new DateOnly(2026, 8, 14),
+            number: "PMT/0001");
+
+        revision.VoucherId.ShouldBe(voucher.Id);
+        revision.CompanyId.ShouldBe(voucher.CompanyId);
+        revision.VoucherTypeId.ShouldBe(voucher.VoucherTypeId);
+        revision.SeriesId.ShouldBe(voucher.SeriesId);
+        revision.FinancialYearId.ShouldBe(voucher.FinancialYearId);
+    }
+
+    [Fact]
+    public void Constructor_TwoRevisionsOfOneVoucher_ShareTheSameKeyIds()
+    {
+        // The copies cannot drift, because every revision reads them from the same immutable parent.
+        var voucher = NewVoucher();
+
+        var first = new VoucherRevision(
+            voucher, revisionNumber: 1, voucherDate: new DateOnly(2026, 8, 14), number: "PMT/0001");
+        var second = new VoucherRevision(
+            voucher, revisionNumber: 2, voucherDate: new DateOnly(2026, 8, 14), number: "PMT/0001");
+
+        second.CompanyId.ShouldBe(first.CompanyId);
+        second.VoucherTypeId.ShouldBe(first.VoucherTypeId);
+        second.SeriesId.ShouldBe(first.SeriesId);
+        second.FinancialYearId.ShouldBe(first.FinancialYearId);
+    }
+
+    [Fact]
+    public void VoucherRevision_ImplementsICreationStampedButNotIAuditStamped()
+    {
+        // It is append-only, so it has no Modified* pair and must not claim IAuditStamped — but it
+        // still needs an author, or CreatedBy persists as "" and the revision is unattributable.
+        typeof(VoucherRevision).IsAssignableTo(typeof(ICreationStamped)).ShouldBeTrue();
+        typeof(VoucherRevision).IsAssignableTo(typeof(IAuditStamped)).ShouldBeFalse();
     }
 }
