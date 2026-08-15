@@ -6,7 +6,6 @@ using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.Configuration;
 using VinayakaAgencies.Infrastructure.Data;
 using VinayakaAgencies.Infrastructure.Persistence;
-using VinayakaAgencies.Infrastructure.Persistence.Interceptors;
 
 namespace VinayakaAgencies.Infrastructure.DependencyInjection;
 
@@ -35,9 +34,14 @@ public static class InfrastructureServiceCollectionExtensions
                 $"Only the '{DatabaseProviders.Sqlite}' provider is supported before Phase 9.")
             .ValidateOnStart();
 
-        services.AddSingleton<AuditStampInterceptor>();
-
         // Scoped, so one unit of work owns one context and therefore one change tracker.
+        //
+        // There is deliberately no audit interceptor registered here. The audit stamps and the
+        // edit-log capture both live in AppDbContext.SaveChangesAsync, with IClock and ICurrentUser
+        // as required constructor parameters, because spec §11.2 rules out an interceptor by name:
+        // an interceptor can be dropped from this method by a future edit and nothing would fail —
+        // the product would simply stop keeping an audit trail. A required constructor parameter
+        // cannot be dropped without the build breaking.
         services.AddDbContext<AppDbContext>((provider, builder) =>
         {
             var options = provider.GetRequiredService<
@@ -46,8 +50,6 @@ public static class InfrastructureServiceCollectionExtensions
             builder.UseSqlite(
                 SqliteConnectionStringResolver.Resolve(options),
                 sqlite => sqlite.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
-
-            builder.AddInterceptors(provider.GetRequiredService<AuditStampInterceptor>());
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();

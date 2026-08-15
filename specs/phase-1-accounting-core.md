@@ -249,6 +249,16 @@ put a cascade-delete path through `JournalLine` — a delete path for posted lin
 forbids outright. `Restrict` on `Ledger → JournalLine` also gives §4.6's "hard delete only when the
 row has no journal line" a database-level backstop instead of a validation someone must remember.
 
+**Phase 1 ships two migrations, not one.** The architect's review called for a single migration
+covering all fourteen tables. In implementation the audit-log table, its indexes and its two
+`RAISE(ABORT)` triggers landed first, as `AddAuditLogTable`, because the audit capture in
+`SaveChangesAsync` cannot be tested at all until the table it writes to exists — and §11's defences
+are the last thing that should ship untested. The accounting tables follow in a second migration.
+Nothing in the review's reasoning is violated: its hard rule was that no column on `JournalLine` or
+`VoucherRevision` may be deferred (§9, §13), and neither is. §15's evidence requirement is read as
+covering the DDL of **both** Phase 1 migrations. Isolating the edit log's DDL arguably helps the
+reviewer who has to satisfy themselves that the triggers exist and that no balance column does.
+
 **Seed data does not use EF's `HasData`.** The §4.3 primary groups, §4.4 sub-groups, §4.5 ledgers and
 §7.1 voucher types with their series are written at runtime by a company-provisioning service going
 through `IUnitOfWork`, not baked into the migration. Three reasons, any one sufficient: `HasData`

@@ -22,4 +22,20 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!--
+      The canonical audit encoding (spec §11.3) is hashed into a tamper-evidence chain, so its rules
+      — decimal as a 4-dp invariant string, enums by name, ordinal property order — need direct unit
+      tests. They cannot be reached through Company, the only entity mapped so far, which has no
+      decimal and no enum property.
+
+      This grants the test assembly nothing else it should use: composition still goes through the
+      public AddInfrastructure entry point (see SqliteTestHost), and the §11.4 tamper-guard tests
+      deliberately reach AppDbContext through the container and the public DbContext surface rather
+      than through this attribute, because that guard exists to catch exactly the code that already
+      holds the context.
+    -->
+    <InternalsVisibleTo Include="VinayakaAgencies.Infrastructure.Tests" />
+  </ItemGroup>
+
 </Project>

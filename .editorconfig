@@ -55,3 +55,10 @@ dotnet_diagnostic.CS1591.severity = none      # XML docs not mandatory
 
 [tests/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none      # underscores in test names are intentional
+
+# EF Core writes these files, and `dotnet ef migrations add` rewrites them on demand, so any
+# hand-edit to satisfy an analyzer is undone by the next scaffold. Style rules are therefore scoped
+# off here rather than fought. Correctness rules stay on: a migration is DDL that runs against a
+# customer's books, and CA1861 is about allocating an array twice, which is not a correctness claim.
+[src/**/Persistence/Migrations/*.cs]
+dotnet_diagnostic.CA1861.severity = none      # generated: composite index columns are `new[] { … }`
