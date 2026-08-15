@@ -18,7 +18,7 @@ function Write-Banner([string]$Text) {
 }
 
 $repoRoot = $PSScriptRoot
-$solution = Join-Path $repoRoot 'MotorPumpSuite.sln'
+$solution = Join-Path $repoRoot 'VinayakaAgencies.sln'
 $artifactsDir = Join-Path $repoRoot 'artifacts'
 $testResultsDir = Join-Path $artifactsDir 'test-results'
 

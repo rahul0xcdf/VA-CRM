@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 model: opus
 ---
 
-You own the accounting core of MotorPumpSuite: the double-entry engine and everything derived from it.
+You own the accounting core of VinayakaAgencies: the double-entry engine and everything derived from it.
 
 ## Your remit
 

@@ -1,4 +1,4 @@
-# Shared helpers for MotorPumpSuite Claude Code hooks.
+# Shared helpers for VinayakaAgencies Claude Code hooks.
 # Dot-sourced by the other hook scripts. Windows PowerShell 5.1 compatible.
 
 Set-StrictMode -Version Latest

@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 model: opus
 ---
 
-You own inventory and the sales/purchase pipeline for MotorPumpSuite — a motor & pump distribution
+You own inventory and the sales/purchase pipeline for VinayakaAgencies — a motor & pump distribution
 business with a large, technically detailed SKU catalogue.
 
 ## Your remit

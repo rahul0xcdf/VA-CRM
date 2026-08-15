@@ -82,7 +82,7 @@ These close items that were listed as open in the Phase 1 stub and in `open-ques
 | D1 | **Financial year starts 1 April** (Indian standard). `Company.FinancialYearStartMonth` stays `4`; the column remains because the schema is multi-company-ready and the value is data, not a constant. | `open-questions.md` #9 — Confirmed |
 | D2 | **Voucher numbering:** per-voucher-type series with prefix + width; the counter **resets each financial year**; **gaps are blocked** — deleting or cancelling a voucher does not free its number; any gap that does arise is surfaced in an audit report rather than silently reused; a **manual number override is permitted and is written to the edit log**. Closest to TallyPrime's default behaviour. | §7, `open-questions.md` #11 — Confirmed |
 | D3 | **Cost centres: schema now, UI hidden.** `CostCategory`, `CostCentre` and the **nullable** `JournalLine.CostCentreId` ship in the Phase 1 migration; **no UI is built in Phase 1**. | §9, `open-questions.md` #12 — Confirmed |
-| D4 | **Product display branding is "Vinayaka Agencies."** The solution and root namespace remain `MotorPumpSuite`; a namespace rename is still an open owner decision and is cheapest before Phase 1 implementation starts. | `open-questions.md` #7 — display name confirmed, rename still Open |
+| D4 | **Product display branding is "Vinayaka Agencies."** The solution and root namespace remain `VinayakaAgencies`; a namespace rename is still an open owner decision and is cheapest before Phase 1 implementation starts. | `open-questions.md` #7 — display name confirmed, rename still Open |
 
 ## 4. Chart of accounts
 
@@ -369,7 +369,7 @@ else is a rewrite of this invariant and needs its own ADR.
 
 All reporting reads go through `ISqlQueryExecutor` with a named `SqlQueryKey` resolved per provider
 by `ISqlDialect` (ADR-0001 §3). **No SQL string appears in Application or App.** The keys Phase 1
-adds, declared in `MotorPumpSuite.Application/Reporting/AccountingQueryKeys.cs`:
+adds, declared in `VinayakaAgencies.Application/Reporting/AccountingQueryKeys.cs`:
 
 | `SqlQueryKey` | Purpose | Parameters |
 |---|---|---|
@@ -479,7 +479,7 @@ volume that is the right trade.
 ### 11.2 Where it is captured
 
 In `AppDbContext.SaveChangesAsync`, at the same interception point Phase 0 built for `IAuditStamped`
-(`src/MotorPumpSuite.Domain/Common/IAuditStamped.cs`). The change tracker is walked *before*
+(`src/VinayakaAgencies.Domain/Common/IAuditStamped.cs`). The change tracker is walked *before*
 `base.SaveChangesAsync`, and the log rows are inserted in the **same transaction** as the change they
 describe: either both commit or neither does.
 
@@ -665,6 +665,6 @@ Phase 1 stub. C1.8 onward are added here. Criteria may be extended, never weaken
 - [ ] **Seed ledger list (§4.5) approved line by line** by the project owner — in particular L7–L9, which are marked "Owner decides".
 - [ ] **Numbering series defaults confirmed** — the prefix and width for each of the eight voucher types (`open-questions.md` #14).
 - [ ] **Hash chain (§11.5) confirmed in or out of Phase 1** — cheap now, awkward later.
-- [ ] `open-questions.md` #7 resolved: rename the root namespace to match "Vinayaka Agencies", or keep `MotorPumpSuite`. Cheapest immediately before Phase 1 implementation starts; expensive after.
+- [ ] `open-questions.md` #7 resolved: rename the root namespace to match "Vinayaka Agencies", or keep `VinayakaAgencies`. Cheapest immediately before Phase 1 implementation starts; expensive after.
 - [ ] Project owner has read §13 and agrees nothing in it is needed at launch.
 - [ ] `Status` of this file changed to `Approved` **by the project owner**, and `CURRENT_PHASE` advanced to `1`.

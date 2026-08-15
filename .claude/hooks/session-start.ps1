@@ -11,13 +11,13 @@ try {
 
     $phase = Get-CurrentPhase -RepoRoot $root
     if ($null -eq $phase) {
-        Write-Output "MotorPumpSuite: specs\CURRENT_PHASE is missing or unreadable. Set it to the phase number in flight before doing any work."
+        Write-Output "VinayakaAgencies: specs\CURRENT_PHASE is missing or unreadable. Set it to the phase number in flight before doing any work."
         exit 0
     }
 
     $spec = Get-PhaseSpecPath -RepoRoot $root -Phase $phase
     if ($null -eq $spec) {
-        Write-Output "MotorPumpSuite: CURRENT_PHASE is $phase but no specs\phase-$phase-*.md exists. Write that spec before any implementation."
+        Write-Output "VinayakaAgencies: CURRENT_PHASE is $phase but no specs\phase-$phase-*.md exists. Write that spec before any implementation."
         exit 0
     }
 
@@ -26,7 +26,7 @@ try {
     if ([string]::IsNullOrWhiteSpace($status)) { $status = '(no Status field found)' }
 
     $lines = @()
-    $lines += "=== MotorPumpSuite — active phase ==="
+    $lines += "=== VinayakaAgencies — active phase ==="
     $lines += "Current phase : $phase"
     $lines += "Spec          : $rel"
     $lines += "Spec status   : $status"
@@ -64,6 +64,6 @@ try {
 }
 catch {
     # A hook failure must never break the session.
-    Write-Output "MotorPumpSuite SessionStart hook error: $($_.Exception.Message)"
+    Write-Output "VinayakaAgencies SessionStart hook error: $($_.Exception.Message)"
     exit 0
 }

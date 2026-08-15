@@ -1,5 +1,5 @@
 # CI harness — specs/phase-0-foundations.md §2.5.
-# windows-latest is required: MotorPumpSuite.App targets net8.0-windows with UseWPF, which
+# windows-latest is required: VinayakaAgencies.App targets net8.0-windows with UseWPF, which
 # cannot build on Linux/macOS runners.
 name: CI
 

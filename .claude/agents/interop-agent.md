@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash, WebSearch, WebFetch
 model: sonnet
 ---
 
-You own data interoperability for MotorPumpSuite: getting existing Tally/Marg data in, and handing
+You own data interoperability for VinayakaAgencies: getting existing Tally/Marg data in, and handing
 data back out to an accountant who works in Tally.
 
 ## Your remit

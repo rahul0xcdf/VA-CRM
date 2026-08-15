@@ -1,4 +1,4 @@
-# MotorPumpSuite — Accounting, Billing & Inventory for a Motor & Pump Trading Business
+# Vinayaka Agencies — Accounting, Billing & Inventory for a Motor & Pump Trading Business
 
 Windows-native (.NET 8 + WPF) accounting / billing / inventory suite, Tally- and Marg-class,
 with India GST/TDS compliance as a core requirement.
@@ -15,7 +15,7 @@ with India GST/TDS compliance as a core requirement.
    user, timestamp, and before/after values. No user, including admin, may switch it off (MCA Rule 3(1)).
 4. **Ledger balances are always derived**, never stored as an independently-mutable column.
 5. **All DB access goes through the repository / unit-of-work abstraction** — never a bare `DbContext`
-   outside `MotorPumpSuite.Infrastructure`. Phase 9 migrates SQLite → SQL Server Express; that must not be a rewrite.
+   outside `VinayakaAgencies.Infrastructure`. Phase 9 migrates SQLite → SQL Server Express; that must not be a rewrite.
 6. **Nothing tax-related is hardcoded.** HSN/SAC codes, GST rates, TDS/TCS sections, rates and thresholds
    are data-driven config rows.
 7. **Evidence, not assertion.** A phase is done when `qa-agent` produces test output / API responses /
@@ -33,16 +33,16 @@ with India GST/TDS compliance as a core requirement.
 | Reports / printing | FastReport .NET WPF (runtime designer — end users edit templates) |
 | Excel | ClosedXML (MIT). **Never EPPlus** — paid licence since v5. |
 | Tally interop | Tally XML "Data Interchange" (file) → later XML-over-HTTP, port 9000. **Never TallyODBC.** |
-| Logging | Serilog (console + rolling file under `%LOCALAPPDATA%\MotorPumpSuite\logs`) |
+| Logging | Serilog (console + rolling file under `%LOCALAPPDATA%\VinayakaAgencies\logs`) |
 | Tests | xUnit + **Shouldly**. **Never FluentAssertions** — paid licence since v8. |
 
 ## Layout
 
 ```
-src/MotorPumpSuite.Domain          entities + abstractions, zero external deps
-src/MotorPumpSuite.Application     services, DTOs, use-cases; depends on Domain only
-src/MotorPumpSuite.Infrastructure  EF Core, DbContext, repositories, UoW, Dapper, migrations
-src/MotorPumpSuite.App             WPF host: DI, Serilog, navigation shell, views/viewmodels
+src/VinayakaAgencies.Domain          entities + abstractions, zero external deps
+src/VinayakaAgencies.Application     services, DTOs, use-cases; depends on Domain only
+src/VinayakaAgencies.Infrastructure  EF Core, DbContext, repositories, UoW, Dapper, migrations
+src/VinayakaAgencies.App             WPF host: DI, Serilog, navigation shell, views/viewmodels
 tests/…                            mirrors src
 specs/                             one file per phase + ADRs + session-log.md
 .claude/agents/                    8 subagents (see project.md §7)
@@ -57,16 +57,16 @@ Application never references EF Core. Only Infrastructure knows the database exi
 ```powershell
 .\build.ps1                 # restore + build + test  (what the Stop hook runs)
 .\build.ps1 -NoTest         # restore + build only
-dotnet build MotorPumpSuite.sln -c Debug
-dotnet test  MotorPumpSuite.sln
-dotnet run --project src\MotorPumpSuite.App
+dotnet build VinayakaAgencies.sln -c Debug
+dotnet test  VinayakaAgencies.sln
+dotnet run --project src\VinayakaAgencies.App
 ```
 
 EF Core migrations (always target the Infrastructure project, start from the App project):
 
 ```powershell
-dotnet ef migrations add <Name> -p src\MotorPumpSuite.Infrastructure -s src\MotorPumpSuite.App -o Persistence\Migrations
-dotnet ef database update  -p src\MotorPumpSuite.Infrastructure -s src\MotorPumpSuite.App
+dotnet ef migrations add <Name> -p src\VinayakaAgencies.Infrastructure -s src\VinayakaAgencies.App -o Persistence\Migrations
+dotnet ef database update  -p src\VinayakaAgencies.Infrastructure -s src\VinayakaAgencies.App
 ```
 
 ## Conventions

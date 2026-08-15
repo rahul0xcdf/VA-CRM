@@ -95,9 +95,9 @@ try {
     $out.Add('```powershell')
     $out.Add('.\build.ps1                 # restore + build + test (what the Stop hook runs)')
     $out.Add('.\build.ps1 -NoTest         # restore + build only')
-    $out.Add('dotnet test MotorPumpSuite.sln')
-    $out.Add('dotnet run --project src\MotorPumpSuite.App')
-    $out.Add('dotnet ef migrations list -p src\MotorPumpSuite.Infrastructure -s src\MotorPumpSuite.App')
+    $out.Add('dotnet test VinayakaAgencies.sln')
+    $out.Add('dotnet run --project src\VinayakaAgencies.App')
+    $out.Add('dotnet ef migrations list -p src\VinayakaAgencies.Infrastructure -s src\VinayakaAgencies.App')
     $out.Add('```')
     $out.Add("")
     $out.Add("After compaction: re-read the phase spec above before continuing. Work only within its scope.")
@@ -109,6 +109,6 @@ try {
     exit 0
 }
 catch {
-    Write-Output "MotorPumpSuite PreCompact hook error: $($_.Exception.Message)"
+    Write-Output "VinayakaAgencies PreCompact hook error: $($_.Exception.Message)"
     exit 0
 }
