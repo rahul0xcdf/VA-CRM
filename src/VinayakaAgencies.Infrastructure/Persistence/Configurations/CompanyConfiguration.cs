@@ -46,8 +46,13 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
 
         // Filtered so that several companies may sit un-registered with a null GSTIN, while a real
         // GSTIN can only ever belong to one company in this install.
+        //
+        // The predicate goes through IndexFilters rather than being written out here: an index
+        // filter is dialect SQL, and ADR-0001 keeps dialect SQL in one place so Phase 9 has one file
+        // to edit. IndexFilters.IsNotNull emits the same text this line held before, so the model is
+        // unchanged and the InitialCreate migration is not disturbed.
         builder.HasIndex(c => c.Gstin)
             .IsUnique()
-            .HasFilter("[Gstin] IS NOT NULL");
+            .HasFilter(IndexFilters.IsNotNull(nameof(Company.Gstin)));
     }
 }
