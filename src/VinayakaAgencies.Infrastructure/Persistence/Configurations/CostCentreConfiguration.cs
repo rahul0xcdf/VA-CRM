@@ -44,6 +44,13 @@ internal sealed class CostCentreConfiguration : IEntityTypeConfiguration<CostCen
         builder.Property(centre => centre.CreatedBy).IsRequired().HasMaxLength(ColumnLengths.UserName);
         builder.Property(centre => centre.ModifiedBy).HasMaxLength(ColumnLengths.UserName);
 
+        // Company-wide, and deliberately not scoped by the nullable CostCategoryId or
+        // ParentCostCentreId: that would reintroduce the NULL-semantics trap the AccountGroup pair
+        // above exists to avoid, and Phase 8's Tally import matches cost centres by name alone.
+        // open-questions.md #18.
+        builder.HasIndex(centre => new { centre.CompanyId, centre.NameNormalised })
+            .IsUnique();
+
         builder.HasOne<Company>()
             .WithMany()
             .HasForeignKey(centre => centre.CompanyId)

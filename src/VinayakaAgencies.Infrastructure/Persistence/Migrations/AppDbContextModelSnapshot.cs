@@ -84,8 +84,13 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId", "MaterialisedPath");
 
+                    b.HasIndex("CompanyId", "NameNormalised")
+                        .IsUnique()
+                        .HasFilter("[ParentGroupId] IS NULL");
+
                     b.HasIndex("CompanyId", "ParentGroupId", "NameNormalised")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ParentGroupId] IS NOT NULL");
 
                     b.ToTable("AccountGroups", (string)null);
                 });
@@ -167,7 +172,8 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
+                    b.HasIndex("CompanyId", "NameNormalised")
+                        .IsUnique();
 
                     b.ToTable("CostCategories", (string)null);
                 });
@@ -221,11 +227,12 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
-
                     b.HasIndex("CostCategoryId");
 
                     b.HasIndex("ParentCostCentreId");
+
+                    b.HasIndex("CompanyId", "NameNormalised")
+                        .IsUnique();
 
                     b.ToTable("CostCentres", (string)null);
                 });
@@ -549,9 +556,10 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
-
                     b.HasIndex("VoucherTypeId");
+
+                    b.HasIndex("CompanyId", "VoucherTypeId", "NameNormalised")
+                        .IsUnique();
 
                     b.ToTable("VoucherNumberSeries", (string)null);
                 });

@@ -12,17 +12,15 @@ namespace VinayakaAgencies.Infrastructure.Data;
 /// different SQL; report code, which only ever holds a key, does not change. A key with no
 /// statement is a startup-time bug, so <see cref="Resolve"/> throws rather than returning null.
 /// See ADR-0001.
+/// <para>
+/// The statements themselves are contributed by <see cref="ISqlStatementSource"/> implementations,
+/// one per reporting area, and composed here. The dialect owns resolution; it does not own the SQL.
+/// </para>
 /// </remarks>
 internal sealed class SqliteDialect : ISqlDialect
 {
-    private static readonly Dictionary<SqlQueryKey, string> Statements =
-        new()
-        {
-            // Phase 0 registers a single statement so that the Dapper seam is genuinely exercised
-            // end to end rather than merely wired up. The real reporting queries — trial balance,
-            // day book, P&L — arrive with Phase 1.
-            [ReportQueries.CompanyCount] = "SELECT COUNT(*) FROM Companies;",
-        };
+    private static readonly IReadOnlyDictionary<SqlQueryKey, string> Statements =
+        SqlStatementSources.For(DatabaseProviders.Sqlite);
 
     public string Name => DatabaseProviders.Sqlite;
 

@@ -53,6 +53,11 @@ internal sealed class VoucherNumberSeriesConfiguration : IEntityTypeConfiguratio
         builder.Property(series => series.CreatedBy).IsRequired().HasMaxLength(ColumnLengths.UserName);
         builder.Property(series => series.ModifiedBy).HasMaxLength(ColumnLengths.UserName);
 
+        // Scoped to the voucher type rather than to the company alone: a series called "Default"
+        // under both Sales and Payment is normal, and rejecting it would be wrong (spec §5).
+        builder.HasIndex(series => new { series.CompanyId, series.VoucherTypeId, series.NameNormalised })
+            .IsUnique();
+
         builder.HasOne<Company>()
             .WithMany()
             .HasForeignKey(series => series.CompanyId)

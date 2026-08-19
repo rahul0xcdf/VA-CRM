@@ -37,6 +37,9 @@ internal sealed class CostCategoryConfiguration : IEntityTypeConfiguration<CostC
         builder.Property(category => category.CreatedBy).IsRequired().HasMaxLength(ColumnLengths.UserName);
         builder.Property(category => category.ModifiedBy).HasMaxLength(ColumnLengths.UserName);
 
+        builder.HasIndex(category => new { category.CompanyId, category.NameNormalised })
+            .IsUnique();
+
         builder.HasOne<Company>()
             .WithMany()
             .HasForeignKey(category => category.CompanyId)

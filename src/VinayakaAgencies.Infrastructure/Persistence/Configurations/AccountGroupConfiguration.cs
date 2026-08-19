@@ -55,8 +55,20 @@ internal sealed class AccountGroupConfiguration : IEntityTypeConfiguration<Accou
 
         // Company-scoped, and over the normalised name so that "Cash" and "cash" collide on both
         // providers rather than depending on the collation (§10).
+        // Two filtered indexes rather than one over the nullable ParentGroupId, because the two
+        // providers disagree about NULL inside a unique index in opposite directions: SQLite treats
+        // two NULLs as distinct and accepts the duplicate, SQL Server treats them as equal and
+        // rejects it. A single unfiltered index would therefore permit two top-level groups both
+        // named "Cash" today, and those rows would make the Phase 9 CREATE UNIQUE INDEX fail on real
+        // data with no good fix left. Spec §5, "Nullable columns in a unique index"; C1.20 enforces
+        // the rule over the whole model.
         builder.HasIndex(group => new { group.CompanyId, group.ParentGroupId, group.NameNormalised })
-            .IsUnique();
+            .IsUnique()
+            .HasFilter(IndexFilters.IsNotNull(nameof(AccountGroup.ParentGroupId)));
+
+        builder.HasIndex(group => new { group.CompanyId, group.NameNormalised })
+            .IsUnique()
+            .HasFilter(IndexFilters.IsNull(nameof(AccountGroup.ParentGroupId)));
 
         // Supports the §4.2 roll-up range predicate: path >= @prefix AND path < @prefixUpperBound.
         builder.HasIndex(group => new { group.CompanyId, group.MaterialisedPath });
