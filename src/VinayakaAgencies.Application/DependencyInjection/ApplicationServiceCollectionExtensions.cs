@@ -22,6 +22,10 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<ICompanyProvisioningService, CompanyProvisioningService>();
 
+        // Scoped, so the resolved company is cached for one operation and re-read for the next: a
+        // singleton would outlive the company row it cached (spec §10).
+        services.AddScoped<ICompanyContext, SingleCompanyContext>();
+
         return services;
     }
 }
