@@ -109,3 +109,84 @@ which are Phase 1 obligations:
 **Revisit if.** Phase 5 finds that GST amendments require reversal postings for statutory reasons
 (option B) — that would be an *addition* alongside revisions, for documents already filed, and needs
 its own ADR rather than a change to this one.
+
+## Amendment 1 — 15 Aug 2026: how supersession is written
+
+**Status:** accepted by `architect-agent`; amends §4, §5 and §7 above without changing them.
+**Raised by:** the Phase 1 implementing agent, who found that `SupersededByRevisionId` cannot carry a
+foreign key. **Applies to:** the journal engine, before it is written.
+
+### The conflict
+
+Decision §7 puts a *filtered unique* index on the current revision's number. Decision §4 makes an
+alteration insert a successor carrying the same number and stamp the predecessor. Those two produce
+contradictory statement orderings the moment `SupersededByRevisionId` is also a foreign key:
+
+- the foreign key makes the predecessor's `UPDATE` depend on the successor's row, so the `INSERT`
+  must come first — at which instant both rows have `SupersededByRevisionId IS NULL` and the same
+  number, and the filtered unique index rejects the insert;
+- the opposite order points the `UPDATE` at a row that does not exist yet, and fails the foreign key.
+
+Neither provider can rescue this. SQL Server has no deferred constraint checking at all, and no
+provider defers *unique index* checking, so a constraint that is violated between two statements of
+one transaction is violated, full stop. **This is not an EF Core artefact and it is not fixed by
+splitting `SaveChangesAsync`** — with the foreign key present, no ordering of any number of saves
+works.
+
+### Decision
+
+1. **`SupersededByRevisionId` carries no foreign key.** It is the last of the three exceptions Phase 1
+   spec §5 grants to "every reference is a declared foreign key", alongside `AuditLogEntry.CompanyId`
+   and `VoucherType.DefaultSeriesId`. The constraint that has to survive is the one the books depend
+   on — at most one current revision per voucher number — and between the two, the unique index wins.
+
+2. **Removing the foreign key is necessary but not sufficient, and the ordering must not be left to
+   EF Core.** Without an FK edge, EF has no declared dependency between the two commands; and while
+   EF does add ordering edges for unique-index *value* handoffs, it has no model of a *filtered*
+   index's predicate, so it cannot know that the predecessor's update is what frees the number. The
+   order it currently emits is a property of its command comparer, not a guarantee. Relying on it
+   would leave a `UNIQUE constraint failed` that appears intermittently, in production, on the one
+   operation an auditor cares most about.
+
+3. **Supersession is therefore written in its own `SaveChangesAsync`, before the successor exists,
+   inside one `IUnitOfWork` transaction.** A save boundary is a hard ordering guarantee; it is the
+   only one available here. The procedure is specified verbatim in Phase 1 spec §8.2.
+
+4. **The transaction is mandatory, not advisory.** Between the two saves the voucher has *no* current
+   revision: its number is free and it is invisible to every report in §8.4. Committing that state
+   would lose a voucher from the books, which is worse than the failure it replaces. The alteration
+   therefore lives behind **one method on the posting service** that owns the transaction, rather than
+   as a sequence any caller could assemble in the wrong order.
+
+5. **What the lost foreign key was protecting is replaced by three tests**, not by a comment: the
+   model-shape guard, the statement-order guard and the one-current-revision invariant (Phase 1 spec
+   §14, C1.17–C1.19).
+
+### Consequences
+
+**Positive.** ADR-0002's central operation becomes writable, deterministically, on both providers, in
+an order that is stated in the spec rather than inferred from a library's internals. The filtered
+unique index survives intact, so the numbering rule keeps its database-level enforcement — which
+Phase 9 needs, because under concurrency that index stops being a formality and becomes the last line
+of defence.
+
+**Negative, and accepted.** The revision chain has no declared referential integrity; a stale
+`SupersededByRevisionId` is now possible in principle, catchable only by C1.19. And an alteration
+spans two saves, so it produces two `SaveBatchId` values and reads as two rows in the edit log rather
+than one. That is mitigated, not removed: `VoucherRevision` and `JournalLine` **must** implement
+`IBelongsToAggregate` returning `("Voucher", VoucherId)`, which §11.1 requires anyway, so the
+edit-log viewer groups an alteration by the voucher it belongs to. Widening `SaveBatchId` to mean
+"one transaction" instead of "one save" was considered and rejected for now: it would make the
+identifier depend on ambient state, and grouping by aggregate answers the auditor's question already.
+
+**Watch for.** Anyone "fixing" the missing foreign key. C1.17 exists to fail loudly when they do, and
+the reason must stay in the comment at
+`src/VinayakaAgencies.Infrastructure/Persistence/Configurations/VoucherRevisionConfiguration.cs`.
+
+**Revisit if.** Phase 9's concurrency work, or a defect, shows the two-save ordering discipline is not
+holding. The documented fallback is to move number uniqueness off the revision entirely, onto a
+`VoucherNumberAllocation` row keyed `(CompanyId, VoucherTypeId, SeriesId, FinancialYearId,
+NumberNormalised)` and pointing at the `Voucher`. An ordinary alteration then touches no unique key at
+all, the foreign key can be restored, and one save suffices. It was not chosen now because it
+duplicates the voucher number into a second table — drift on the field that identifies a document to
+a tax officer — to buy an ordering property that a save boundary already buys for free.

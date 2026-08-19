@@ -20,6 +20,7 @@ public static class ApplicationServiceCollectionExtensions
         services.TryAddSingleton<ICurrentUser, EnvironmentCurrentUser>();
 
         services.AddScoped<ICompanyService, CompanyService>();
+        services.AddScoped<ICompanyProvisioningService, CompanyProvisioningService>();
 
         return services;
     }
