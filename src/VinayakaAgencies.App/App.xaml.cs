@@ -9,7 +9,9 @@ using Microsoft.Extensions.Logging;
 using VinayakaAgencies.App.Branding;
 using VinayakaAgencies.App.ViewModels;
 using VinayakaAgencies.App.Views;
+using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.DependencyInjection;
+using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.DependencyInjection;
 using VinayakaAgencies.Infrastructure.Persistence;
 using Serilog;
@@ -69,8 +71,14 @@ public partial class App : System.Windows.Application
                 : $"Applied {applied.Count} migration(s).");
 
             var shell = _shellScope.ServiceProvider.GetRequiredService<ShellWindow>();
-            var viewModel = (ShellViewModel)shell.DataContext;
-            await viewModel.RefreshCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+            // Exercise both database paths at startup exactly as the Phase 0 shell did (C0.7): the
+            // diagnostics view model reads the company count through EF Core and through Dapper,
+            // and both must agree before the user sees a screen.
+            await new DiagnosticsViewModel(
+                _shellScope.ServiceProvider.GetRequiredService<ICompanyService>(),
+                _shellScope.ServiceProvider.GetRequiredService<ISqlQueryExecutor>())
+                .RefreshCommand.ExecuteAsync(null).ConfigureAwait(true);
 
             var elapsed = DateTimeOffset.UtcNow - startedAt;
             if (elapsed < MinimumSplashDuration)

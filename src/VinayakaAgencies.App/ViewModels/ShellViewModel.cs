@@ -1,27 +1,24 @@
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Options;
 using VinayakaAgencies.App.Branding;
-using VinayakaAgencies.Application.Companies;
-using VinayakaAgencies.Domain.Abstractions;
+using VinayakaAgencies.App.Navigation;
 
 namespace VinayakaAgencies.App.ViewModels;
 
 /// <summary>
-/// Backs the shell window.
+/// Backs the shell window: the navigation pane and the content host.
 /// </summary>
 /// <remarks>
-/// Phase 0's shell has no features — it exists to prove the composition root works end to end.
-/// It reads the company count twice on purpose: once through
-/// <see cref="ICompanyService"/> (EF Core, via <c>IUnitOfWork</c>) and once through
-/// <see cref="ISqlQueryExecutor"/> (Dapper, via a named <see cref="SqlQueryKey"/>). Both paths are
-/// load-bearing from Phase 1 — writes through one, reports through the other — so both are
-/// exercised now rather than discovered broken later. Checkpoint C0.7.
+/// Phase 0's shell existed to prove the composition root; that proof now lives on the Diagnostics
+/// screen (<see cref="DiagnosticsViewModel"/>, checkpoint C0.7) and the shell only navigates.
+/// Screens come from <see cref="IScreenModule"/> implementations discovered by reflection, so a
+/// new screen is one file and no registration edit. The service provider is the shell's scope —
+/// screen view models are built through it, so they share the shell's unit-of-work lifetime.
 /// </remarks>
 public sealed partial class ShellViewModel : ObservableObject
 {
-    private readonly ICompanyService _companyService;
-    private readonly ISqlQueryExecutor _queryExecutor;
+    private readonly IServiceProvider _services;
 
     [ObservableProperty]
     private string _title = "Vinayaka Agencies";
@@ -30,53 +27,60 @@ public sealed partial class ShellViewModel : ObservableObject
     private string _tagline = string.Empty;
 
     [ObservableProperty]
-    private int _companyCountViaRepository;
+    private IReadOnlyList<NavigationItem> _screens = [];
 
     [ObservableProperty]
-    private long _companyCountViaDapper;
+    private NavigationItem? _selectedScreen;
 
+    /// <summary>The content-host payload: the selected screen's view, bound to its view model.</summary>
     [ObservableProperty]
-    private string _status = "Ready.";
-
-    [ObservableProperty]
-    private bool _isBusy;
+    private object? _activeView;
 
     public ShellViewModel(
-        ICompanyService companyService,
-        ISqlQueryExecutor queryExecutor,
-        IOptions<BrandingOptions> branding)
+        IServiceProvider services,
+        IOptions<BrandingOptions> branding,
+        IReadOnlyList<IScreenModule>? modules = null)
     {
+        ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(branding);
 
-        _companyService = companyService ?? throw new ArgumentNullException(nameof(companyService));
-        _queryExecutor = queryExecutor ?? throw new ArgumentNullException(nameof(queryExecutor));
+        _services = services;
 
         Title = branding.Value.DisplayName;
         Tagline = branding.Value.Tagline;
+
+        // Caller-supplied module lists get the same ordering the catalog applies, so the pane
+        // never depends on how modules happen to arrive.
+        Screens = (modules ?? ScreenModuleCatalog.Discover())
+            .OrderBy(module => module.Order)
+            .ThenBy(module => module.Name, StringComparer.OrdinalIgnoreCase)
+            .SelectMany(module => module.Screens.Select(screen => new NavigationItem(module.Name, screen)))
+            .ToList();
+
+        if (Screens.Count > 0)
+        {
+            SelectedScreen = Screens[0];
+        }
     }
 
-    [RelayCommand]
-    private async Task RefreshAsync(CancellationToken cancellationToken)
+    partial void OnSelectedScreenChanged(NavigationItem? value)
     {
-        IsBusy = true;
-
-        try
+        if (value is null)
         {
-            CompanyCountViaRepository = await _companyService
-                .CountAsync(cancellationToken)
-                .ConfigureAwait(true);
-
-            CompanyCountViaDapper = await _queryExecutor
-                .ExecuteScalarAsync<long>(ReportQueries.CompanyCount, cancellationToken: cancellationToken)
-                .ConfigureAwait(true);
-
-            Status = CompanyCountViaRepository == CompanyCountViaDapper
-                ? "Repository and reporting paths agree."
-                : "Mismatch between the repository and reporting counts.";
+            ActiveView = null;
+            return;
         }
-        finally
+
+        var viewModel = value.Screen.CreateViewModel(_services);
+        var view = Activator.CreateInstance(value.Screen.ViewType);
+
+        // A real view is a FrameworkElement; test doubles for the view type are not, and simply
+        // skip the data-context wiring.
+        if (view is FrameworkElement element)
         {
-            IsBusy = false;
+            element.DataContext = viewModel;
         }
+
+        ActiveView = view;
     }
 }
