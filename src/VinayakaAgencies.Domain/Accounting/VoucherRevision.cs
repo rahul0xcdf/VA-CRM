@@ -21,7 +21,7 @@ namespace VinayakaAgencies.Domain.Accounting;
 /// <see cref="Voucher"/>, so the copies cannot drift by construction.
 /// </para>
 /// </remarks>
-public sealed class VoucherRevision : Entity, ICreationStamped
+public sealed class VoucherRevision : Entity, ICreationStamped, IBelongsToAggregate
 {
     private readonly List<JournalLine> _lines = [];
 
@@ -135,6 +135,18 @@ public sealed class VoucherRevision : Entity, ICreationStamped
     public IReadOnlyList<JournalLine> Lines => _lines;
 
     public bool IsCurrent => SupersededByRevisionId is null;
+
+    /// <summary>The voucher this revision belongs under in the edit log (§11.1).</summary>
+    /// <remarks>
+    /// An alteration is two saves (ADR-0002 Amendment 1), so a superseded revision's edit-log rows
+    /// land in a different <c>SaveBatchId</c> than its successor's. The aggregate declaration is
+    /// what lets the viewer group the whole history under one voucher anyway.
+    /// </remarks>
+    string IBelongsToAggregate.AggregateType => nameof(Voucher);
+
+    /// <summary>Formatted "D" to match how <c>CanonicalAuditJson</c> records every other GUID, so a
+    /// viewer can join an aggregate id to an entity id textually.</summary>
+    string IBelongsToAggregate.AggregateId => VoucherId.ToString("D");
 
     /// <summary>Sum of every line in minor units. Must be zero for the revision to be postable.</summary>
     public long NetMinor => _lines.Sum(l => l.AmountMinor);

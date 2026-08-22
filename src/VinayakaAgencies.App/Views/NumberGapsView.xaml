@@ -1,0 +1,43 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.NumberGapsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="560" d:DesignWidth="760">
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Voucher-number gaps — reported, never backfilled (decision D2, spec 8.7)"
+                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
+            <Button Content="Load lists" Padding="12,5" Command="{Binding LoadListsCommand}" />
+            <TextBlock Text="Series:" VerticalAlignment="Center" Margin="16,0,6,0" Foreground="#FF5A6B85" />
+            <ComboBox Width="150" ItemsSource="{Binding SeriesChoices}"
+                      SelectedItem="{Binding SelectedSeries}" DisplayMemberPath="Name" />
+            <TextBlock Text="Year:" VerticalAlignment="Center" Margin="16,0,6,0" Foreground="#FF5A6B85" />
+            <ComboBox Width="120" ItemsSource="{Binding YearsOnRecord}"
+                      SelectedItem="{Binding SelectedYear}" DisplayMemberPath="Label" />
+            <Button Content="Show gaps" Margin="16,0,0,0" Padding="12,5" Command="{Binding ShowGapsCommand}" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Gaps}"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Missing number" Binding="{Binding MissingNumber}" Width="SizeToCells" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="3" Margin="4,8,0,0" Text="{Binding Status}" Foreground="#FF5A6B85" TextWrapping="Wrap" />
+    </Grid>
+</UserControl>

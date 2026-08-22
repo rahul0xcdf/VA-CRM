@@ -306,6 +306,9 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("VoucherRevisionId")
                         .HasColumnType("TEXT");
 
@@ -314,6 +317,8 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.HasIndex("CostCentreId");
 
                     b.HasIndex("LedgerId");
+
+                    b.HasIndex("VoucherId");
 
                     b.HasIndex("CompanyId", "LedgerId");
 
@@ -857,6 +862,584 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.ToTable("Companies", (string)null);
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.Godown", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameNormalised")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "NameNormalised")
+                        .IsUnique();
+
+                    b.ToTable("Godowns", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.InventorySettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DefaultValuationMethod")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("InventorySettings", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.Item", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("AlternateUnitId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Barcode")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("BaseUnitId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ConversionFactorMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsBatchTracked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsKit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSerialTracked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameNormalised")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ReorderLevelMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("StockGroupId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ValuationOverride")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlternateUnitId");
+
+                    b.HasIndex("BaseUnitId");
+
+                    b.HasIndex("StockGroupId");
+
+                    b.HasIndex("CompanyId", "Barcode");
+
+                    b.HasIndex("CompanyId", "BaseUnitId");
+
+                    b.HasIndex("CompanyId", "Code");
+
+                    b.HasIndex("CompanyId", "NameNormalised")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "StockGroupId");
+
+                    b.ToTable("Items", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.ItemKitComponent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ComponentItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("KitItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("QuantityMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentItemId");
+
+                    b.HasIndex("KitItemId", "ComponentItemId")
+                        .IsUnique();
+
+                    b.ToTable("ItemKitComponents", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.SerialNumber", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CurrentGodownId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ReceiptLineId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ReceivedOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("SaleLineId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("SoldOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ValueNormalised")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentGodownId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("ReceiptLineId");
+
+                    b.HasIndex("SaleLineId");
+
+                    b.HasIndex("CompanyId", "ItemId", "Status");
+
+                    b.HasIndex("CompanyId", "ItemId", "ValueNormalised")
+                        .IsUnique();
+
+                    b.ToTable("SerialNumbers", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameNormalised")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "NameNormalised")
+                        .IsUnique();
+
+                    b.ToTable("StockGroups", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockLedgerEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BatchNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EntryDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("GlobalSequence")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("GodownId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("QuantityInMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("QuantityOutMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("StockVoucherId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("StockVoucherLineId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UnitCostMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ValueMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GodownId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("StockVoucherId");
+
+                    b.HasIndex("StockVoucherLineId");
+
+                    b.HasIndex("CompanyId", "EntryDate");
+
+                    b.HasIndex("CompanyId", "GodownId", "ItemId");
+
+                    b.HasIndex("CompanyId", "ItemId", "GlobalSequence");
+
+                    b.ToTable("StockLedgerEntries", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockVoucher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CounterLedgerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Narration")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostedNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PostedVoucherId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("VoucherDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CounterLedgerId");
+
+                    b.HasIndex("PostedVoucherId");
+
+                    b.HasIndex("CompanyId", "PostedVoucherId");
+
+                    b.HasIndex("CompanyId", "VoucherDate");
+
+                    b.ToTable("StockVouchers", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockVoucherLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BatchNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("GodownId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsBatchTracked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSerialTracked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("QuantityMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("StockVoucherId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UnitCostMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GodownId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("CompanyId", "ItemId");
+
+                    b.HasIndex("StockVoucherId", "LineNumber");
+
+                    b.ToTable("StockVoucherLines", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.UnitOfMeasure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CodeNormalised")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DecimalPlaces")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "CodeNormalised")
+                        .IsUnique();
+
+                    b.ToTable("UnitsOfMeasure", (string)null);
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Accounting.AccountGroup", b =>
                 {
                     b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
@@ -939,6 +1522,12 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
                         .WithMany()
                         .HasForeignKey("LedgerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Voucher", null)
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1072,7 +1661,199 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.Godown", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.InventorySettings", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.Item", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.UnitOfMeasure", null)
+                        .WithMany()
+                        .HasForeignKey("AlternateUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.UnitOfMeasure", null)
+                        .WithMany()
+                        .HasForeignKey("BaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.StockGroup", null)
+                        .WithMany()
+                        .HasForeignKey("StockGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.ItemKitComponent", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ComponentItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Item", null)
+                        .WithMany()
+                        .HasForeignKey("KitItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.SerialNumber", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Godown", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentGodownId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.StockVoucherLine", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.StockVoucherLine", null)
+                        .WithMany()
+                        .HasForeignKey("SaleLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockGroup", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockLedgerEntry", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Godown", null)
+                        .WithMany()
+                        .HasForeignKey("GodownId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.StockVoucher", null)
+                        .WithMany()
+                        .HasForeignKey("StockVoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.StockVoucherLine", null)
+                        .WithMany()
+                        .HasForeignKey("StockVoucherLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockVoucher", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
+                        .WithMany()
+                        .HasForeignKey("CounterLedgerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Voucher", null)
+                        .WithMany()
+                        .HasForeignKey("PostedVoucherId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockVoucherLine", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Godown", null)
+                        .WithMany()
+                        .HasForeignKey("GodownId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.StockVoucher", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("StockVoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.UnitOfMeasure", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Accounting.VoucherRevision", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockVoucher", b =>
                 {
                     b.Navigation("Lines");
                 });

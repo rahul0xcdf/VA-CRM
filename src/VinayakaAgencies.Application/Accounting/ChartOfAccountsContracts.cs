@@ -69,6 +69,14 @@ public interface IChartOfAccountsService
         bool includeInactive = false,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Ledgers under Bank Accounts / Bank OD A/c — whether a ledger "is a bank" is derived from its
+    /// group's position in the chart, never stored on the ledger (spec §5).
+    /// </summary>
+    Task<IReadOnlyList<LedgerSummary>> ListBankLedgersAsync(
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default);
+
     Task<LedgerSummary?> GetLedgerAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<LedgerSummary> CreateLedgerAsync(
@@ -92,5 +100,11 @@ public interface IChartOfAccountsService
 
     Task<AccountGroupSummary> CreateGroupAsync(
         CreateAccountGroupRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Renames a group. System groups may be renamed; their position may not change.</summary>
+    Task<AccountGroupSummary> RenameGroupAsync(
+        Guid id,
+        string newName,
         CancellationToken cancellationToken = default);
 }

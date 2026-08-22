@@ -36,6 +36,7 @@ internal sealed class JournalLineConfiguration : IEntityTypeConfiguration<Journa
         builder.Property(line => line.Id).ValueGeneratedNever();
 
         builder.Property(line => line.CompanyId).IsRequired();
+        builder.Property(line => line.VoucherId).IsRequired();
         builder.Property(line => line.VoucherRevisionId).IsRequired();
         builder.Property(line => line.LineNumber).IsRequired();
         builder.Property(line => line.LedgerId).IsRequired();
@@ -65,6 +66,14 @@ internal sealed class JournalLineConfiguration : IEntityTypeConfiguration<Journa
         builder.HasOne<Company>()
             .WithMany()
             .HasForeignKey(line => line.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Direct to the voucher, mirroring the denormalised key columns on VoucherRevision (§5):
+        // the edit log files every row under its voucher without a join, and the Restrict rule
+        // keeps a delete path from reaching posted history through this column either.
+        builder.HasOne<Voucher>()
+            .WithMany()
+            .HasForeignKey(line => line.VoucherId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // The relationship to VoucherRevision is configured from the parent side, in

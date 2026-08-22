@@ -32,4 +32,18 @@ public interface ICompanyProvisioningService
     Task<CompanyProvisioningResult> ProvisionAsync(
         Guid companyId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures the inventory setup a company needs before stock can move: the system
+    /// "Stock Journal" voucher type with its numbering series, the seeded "Main Location" godown,
+    /// the base unit of measure and the inventory settings row (phase-2-inventory.md §1).
+    /// </summary>
+    /// <remarks>
+    /// Idempotent and row-granular, unlike <see cref="ProvisionAsync"/>'s all-or-nothing contract:
+    /// it exists so databases provisioned before Phase 2 — which already have a chart of accounts
+    /// and are therefore refused by <c>IsProvisionedAsync</c>'s logic — still gain the stock seed,
+    /// each missing piece independently. Safe to call at every startup.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
+    Task EnsureInventorySeedAsync(Guid companyId, CancellationToken cancellationToken = default);
 }

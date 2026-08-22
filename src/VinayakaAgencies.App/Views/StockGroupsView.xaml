@@ -1,0 +1,60 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.StockGroupsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="560" d:DesignWidth="900">
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="Stock groups — how items are classified for reporting"
+                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Groups}"
+                  SelectedItem="{Binding SelectedGroup}"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="3*" />
+                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="2" Background="#FFF7F9FC" Padding="12" Margin="0,12,0,0" CornerRadius="6"
+                BorderBrush="#FFE1E7EF" BorderThickness="1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                <TextBox Width="180" Margin="6,0,16,0"
+                         Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="Description:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                <TextBox Width="260" Margin="6,0,16,0"
+                         Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}" />
+                <Button Content="New" Padding="14,5" Command="{Binding NewCommand}" />
+                <Button Content="Save changes" Margin="8,0,0,0" Padding="14,5"
+                        Command="{Binding SaveSelectedCommand}" />
+                <Button Content="Deactivate" Margin="8,0,0,0" Padding="14,5"
+                        Command="{Binding DeactivateSelectedCommand}" />
+                <Button Content="Delete (only if empty)" Margin="8,0,0,0" Padding="14,5"
+                        Command="{Binding DeleteSelectedCommand}" />
+            </StackPanel>
+        </Border>
+
+        <DockPanel Grid.Row="3" LastChildFill="False">
+            <Button DockPanel.Dock="Left" Content="Refresh" Padding="14,5" Margin="0,8,0,0"
+                    Command="{Binding RefreshCommand}" />
+            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
+                       Text="{Binding Status}" Foreground="#FF5A6B85" TextWrapping="Wrap" />
+        </DockPanel>
+    </Grid>
+</UserControl>

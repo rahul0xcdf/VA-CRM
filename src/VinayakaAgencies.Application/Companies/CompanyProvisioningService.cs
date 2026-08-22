@@ -1,6 +1,8 @@
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
+using VinayakaAgencies.Domain.Common;
 using VinayakaAgencies.Domain.Entities;
+using VinayakaAgencies.Domain.Inventory;
 
 namespace VinayakaAgencies.Application.Companies;
 
@@ -255,6 +257,143 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
             "seeded groups. The seed tables and the spec's §4.3/§4.4 tables have diverged.");
     }
 
+    /// <summary>
+    /// The inventory seed: one system voucher type ("Stock Journal", Kind=Journal, prefix SJ/), the
+    /// system "Main Location" godown, the base "NOS" unit and the settings row defaulting to FIFO
+    /// (phase-2-inventory.md §1; open-questions.md #19).
+    /// </summary>
+    /// <remarks>
+    /// Row-granular idempotence on purpose: a company provisioned under Phase 1 has no stock rows,
+    /// while one provisioned after Phase 2 has them all. Each piece is checked independently so the
+    /// call can run at every startup and only ever fill what is genuinely missing.
+    /// </remarks>
+    public async Task EnsureInventorySeedAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        if (companyId == Guid.Empty)
+        {
+            throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+        }
+
+        var company = await _unitOfWork.Repository<Company>()
+            .GetByIdAsync(companyId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (company is null)
+        {
+            throw new InvalidOperationException(
+                $"Company '{companyId}' does not exist, so there is nothing to seed inventory into.");
+        }
+
+        await using var transaction = await _unitOfWork
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        await EnsureStockJournalVoucherTypeAsync(companyId, cancellationToken).ConfigureAwait(false);
+        await EnsureMainGodownAsync(companyId, cancellationToken).ConfigureAwait(false);
+        await EnsureBaseUnitAsync(companyId, cancellationToken).ConfigureAwait(false);
+        await EnsureInventorySettingsAsync(companyId, cancellationToken).ConfigureAwait(false);
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureStockJournalVoucherTypeAsync(
+        Guid companyId,
+        CancellationToken cancellationToken)
+    {
+        var normalised = NameNormaliser.Normalise(InventorySeedData.StockJournalVoucherTypeName);
+
+        if (await _unitOfWork.Repository<VoucherType>()
+                .AnyAsync(new VoucherTypeByName(companyId, normalised), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var voucherType = new VoucherType(
+            companyId,
+            InventorySeedData.StockJournalVoucherTypeName,
+            VoucherKind.Journal,
+            isSystem: true);
+
+        var series = new VoucherNumberSeries(
+            companyId,
+            voucherType.Id,
+            InventorySeedData.StockJournalVoucherTypeName,
+            InventorySeedData.StockJournalPrefix,
+            width: DefaultSeriesWidth,
+            suffix: null,
+            startNumber: DefaultSeriesStartNumber,
+            resetPolicy: NumberResetPolicy.FinancialYear,
+            allowManualOverride: true);
+
+        voucherType.SetDefaultSeries(series.Id);
+
+        await _unitOfWork.Repository<VoucherType>()
+            .AddAsync(voucherType, cancellationToken)
+            .ConfigureAwait(false);
+        await _unitOfWork.Repository<VoucherNumberSeries>()
+            .AddAsync(series, cancellationToken)
+            .ConfigureAwait(false);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureMainGodownAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var normalised = NameNormaliser.Normalise(Godown.MainLocationName);
+
+        if (await _unitOfWork.Repository<Domain.Inventory.Godown>()
+                .AnyAsync(new GodownByName(companyId, normalised), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return;
+        }
+
+        await _unitOfWork.Repository<Domain.Inventory.Godown>().AddAsync(
+            new Domain.Inventory.Godown(companyId, Godown.MainLocationName, address: null, isSystem: true),
+            cancellationToken).ConfigureAwait(false);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureBaseUnitAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var normalised = NameNormaliser.Normalise(InventorySeedData.BaseUnitCode);
+
+        if (await _unitOfWork.Repository<Domain.Inventory.UnitOfMeasure>()
+                .AnyAsync(new UnitByCode(companyId, normalised), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return;
+        }
+
+        await _unitOfWork.Repository<Domain.Inventory.UnitOfMeasure>().AddAsync(
+            new Domain.Inventory.UnitOfMeasure(
+                companyId,
+                InventorySeedData.BaseUnitCode,
+                decimalPlaces: 0,
+                description: "Numbers (default base unit)"),
+            cancellationToken).ConfigureAwait(false);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureInventorySettingsAsync(
+        Guid companyId,
+        CancellationToken cancellationToken)
+    {
+        if (await _unitOfWork.Repository<Domain.Inventory.InventorySettings>()
+                .AnyAsync(new SettingsByCompany(companyId), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return;
+        }
+
+        await _unitOfWork.Repository<Domain.Inventory.InventorySettings>().AddAsync(
+            new Domain.Inventory.InventorySettings(companyId, ValuationMethod.Fifo),
+            cancellationToken).ConfigureAwait(false);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private sealed class AccountGroupsOfCompanySpecification : Specification<AccountGroup>
     {
         public AccountGroupsOfCompanySpecification(Guid companyId)
@@ -278,6 +417,43 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
         public VoucherTypesOfCompanySpecification(Guid companyId)
         {
             Where(voucherType => voucherType.CompanyId == companyId);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class VoucherTypeByName : Specification<VoucherType>
+    {
+        public VoucherTypeByName(Guid companyId, string nameNormalised)
+        {
+            Where(voucherType => voucherType.CompanyId == companyId
+                && voucherType.NameNormalised == nameNormalised);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class GodownByName : Specification<Godown>
+    {
+        public GodownByName(Guid companyId, string nameNormalised)
+        {
+            Where(godown => godown.CompanyId == companyId && godown.NameNormalised == nameNormalised);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class UnitByCode : Specification<UnitOfMeasure>
+    {
+        public UnitByCode(Guid companyId, string codeNormalised)
+        {
+            Where(unit => unit.CompanyId == companyId && unit.CodeNormalised == codeNormalised);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class SettingsByCompany : Specification<InventorySettings>
+    {
+        public SettingsByCompany(Guid companyId)
+        {
+            Where(settings => settings.CompanyId == companyId);
             ApplyNoTracking();
         }
     }

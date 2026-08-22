@@ -1,0 +1,76 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.LedgersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="560" d:DesignWidth="900">
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="Ledgers — grouped by account group, searchable by name or alias"
+                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
+            <TextBlock Text="Group:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <ComboBox Width="180" Margin="6,0,16,0" ItemsSource="{Binding GroupChoices}"
+                      SelectedItem="{Binding GroupFilter}" DisplayMemberPath="Name" />
+            <TextBlock Text="Search:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <TextBox Width="200" Margin="6,0,16,0"
+                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+            <CheckBox Content="Show inactive" VerticalAlignment="Center"
+                      IsChecked="{Binding IncludeInactive}" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding VisibleLedgers}"
+                  SelectedItem="{Binding SelectedLedger}"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                <DataGridTextColumn Header="Alias" Binding="{Binding Alias}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="*" />
+                <DataGridCheckBoxColumn Header="System" Binding="{Binding IsSystem}" Width="SizeToHeader" />
+                <DataGridCheckBoxColumn Header="Manual posting" Binding="{Binding AllowsManualPosting}" Width="SizeToHeader" />
+                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="3" Background="#FFF7F9FC" Padding="12" Margin="0,12,0,0" CornerRadius="6"
+                BorderBrush="#FFE1E7EF" BorderThickness="1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBox Width="180" Margin="6,0,16,0"
+                             Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Group:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <ComboBox Width="180" Margin="6,0,16,0" ItemsSource="{Binding GroupChoices}"
+                              SelectedValue="{Binding EditGroupId}"
+                              SelectedValuePath="Id" DisplayMemberPath="Name" />
+                    <TextBlock Text="Alias:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBox Width="100" Margin="6,0,16,0" Text="{Binding EditAlias}" />
+                    <Button Content="New" Padding="14,5" Command="{Binding NewLedgerCommand}" />
+                    <Button Content="Save changes" Margin="8,0,0,0" Padding="14,5" Command="{Binding SaveLedgerCommand}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="Deactivate" Padding="14,5" Command="{Binding DeactivateSelectedCommand}" />
+                    <Button Content="Reactivate" Margin="8,0,0,0" Padding="14,5" Command="{Binding ActivateSelectedCommand}" />
+                    <Button Content="Delete (only if never posted to)" Margin="8,0,0,0" Padding="14,5"
+                            Command="{Binding DeleteSelectedCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Foreground="#FF5A6B85" TextWrapping="Wrap" />
+    </Grid>
+</UserControl>

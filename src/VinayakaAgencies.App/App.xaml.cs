@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using VinayakaAgencies.App.Branding;
 using VinayakaAgencies.App.ViewModels;
 using VinayakaAgencies.App.Views;
+using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.DependencyInjection;
 using VinayakaAgencies.Domain.Abstractions;
@@ -69,6 +70,17 @@ public partial class App : System.Windows.Application
             splash.ReportStatus(applied.Count == 0
                 ? "Schema is up to date."
                 : $"Applied {applied.Count} migration(s).");
+
+            // Phase 2: fill any missing inventory seed rows (Stock Journal type + series, the main
+            // godown, the base unit, settings). Row-granular and idempotent, so this is safe on
+            // every start and writes nothing once present.
+            splash.ReportStatus("Preparing inventory masters…");
+            var provisioning = _shellScope.ServiceProvider.GetRequiredService<ICompanyProvisioningService>();
+            var companyId = await _shellScope.ServiceProvider
+                .GetRequiredService<ICompanyContext>()
+                .EnsureCompanyAsync()
+                .ConfigureAwait(true);
+            await provisioning.EnsureInventorySeedAsync(companyId).ConfigureAwait(true);
 
             var shell = _shellScope.ServiceProvider.GetRequiredService<ShellWindow>();
 

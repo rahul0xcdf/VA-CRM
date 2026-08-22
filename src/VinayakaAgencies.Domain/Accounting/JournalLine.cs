@@ -15,7 +15,7 @@ namespace VinayakaAgencies.Domain.Accounting;
 /// updated or deleted, which is what lets the day book show what was actually posted at the time.
 /// </para>
 /// </remarks>
-public sealed class JournalLine : Entity
+public sealed class JournalLine : Entity, IBelongsToAggregate
 {
     private JournalLine()
     {
@@ -24,6 +24,7 @@ public sealed class JournalLine : Entity
 
     public JournalLine(
         Guid companyId,
+        Guid voucherId,
         Guid voucherRevisionId,
         int lineNumber,
         Guid ledgerId,
@@ -34,6 +35,18 @@ public sealed class JournalLine : Entity
         if (companyId == Guid.Empty)
         {
             throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+        }
+
+        if (voucherId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A journal line must name the voucher it belongs to.", nameof(voucherId));
+        }
+
+        if (voucherRevisionId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A journal line must name its revision.", nameof(voucherRevisionId));
         }
 
         if (ledgerId == Guid.Empty)
@@ -58,6 +71,7 @@ public sealed class JournalLine : Entity
         AmountMinor = MoneyScale.ToMinor(amount);
 
         CompanyId = companyId;
+        VoucherId = voucherId;
         VoucherRevisionId = voucherRevisionId;
         LineNumber = lineNumber;
         LedgerId = ledgerId;
@@ -66,6 +80,13 @@ public sealed class JournalLine : Entity
     }
 
     public Guid CompanyId { get; private set; }
+
+    /// <summary>
+    /// Copy of the parent revision's <see cref="VoucherRevision.VoucherId"/>, carried for the same
+    /// reason the revision carries it: the edit log files every line directly under its voucher,
+    /// without a join (spec §8.2, §11.1).
+    /// </summary>
+    public Guid VoucherId { get; private set; }
 
     public Guid VoucherRevisionId { get; private set; }
 
@@ -99,4 +120,11 @@ public sealed class JournalLine : Entity
 
     /// <summary>The credit column of a two-column presentation, shown positive; zero on a debit line.</summary>
     public decimal CreditAmount => AmountMinor < 0 ? MoneyScale.FromMinor(-AmountMinor) : 0m;
+
+    /// <summary>The voucher this line belongs under in the edit log (§11.1), reached through its
+    /// revision. Explicit rather than inferred: a journal line carries several foreign keys and a
+    /// guessed aggregate would file the change under the wrong voucher.</summary>
+    string IBelongsToAggregate.AggregateType => nameof(Voucher);
+
+    string IBelongsToAggregate.AggregateId => VoucherId.ToString("D");
 }

@@ -76,4 +76,23 @@ internal static class ColumnLengths
     /// reporting SQL filters on these values.
     /// </remarks>
     internal const int EnumName = 32;
+
+    /// <summary>Operator-facing item codes and barcodes.</summary>
+    internal const int ItemCode = 64;
+
+    /// <summary>Batch names on stock movements.</summary>
+    internal const int BatchNumber = 64;
+
+    /// <summary>
+    /// Serial-number values and their normalised comparison forms.
+    /// </summary>
+    /// <remarks>
+    /// Indexed: the unique <c>(CompanyId, ItemId, ValueNormalised)</c> index that makes "in stock
+    /// exactly once" a database fact rather than a convention. At 100 characters × 3 columns the
+    /// composite stays inside SQL Server's 900-byte index limit.
+    /// </remarks>
+    internal const int SerialValue = 100;
+
+    /// <summary>Unit-of-measure codes ("NOS", "BOX").</summary>
+    internal const int UnitCode = 16;
 }

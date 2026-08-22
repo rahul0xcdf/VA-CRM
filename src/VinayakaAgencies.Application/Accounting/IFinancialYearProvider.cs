@@ -26,4 +26,10 @@ public interface IFinancialYearProvider
         Guid companyId,
         DateOnly businessDate,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every financial year on record for this company, newest first. Years appear here only once
+    /// something has been posted into them — they are not provisioned ahead (§12).
+    /// </summary>
+    Task<IReadOnlyList<FinancialYear>> ListAsync(CancellationToken cancellationToken = default);
 }

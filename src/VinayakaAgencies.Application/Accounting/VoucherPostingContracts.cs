@@ -36,9 +36,17 @@ public sealed record AlterVoucherRequest(
     string? ReferenceNumber = null,
     DateOnly? ReferenceDate = null);
 
+/// <summary>One posted line of the current revision, shown back to the operator when altering.</summary>
+public sealed record PostedVoucherLine(
+    Guid LedgerId,
+    decimal Debit,
+    decimal Credit,
+    string? Narration);
+
 public sealed record PostedVoucherSummary(
     Guid VoucherId,
     Guid RevisionId,
+    Guid VoucherTypeId,
     int RevisionNumber,
     string Number,
     DateOnly VoucherDate,
@@ -47,7 +55,8 @@ public sealed record PostedVoucherSummary(
     VoucherKind Kind,
     decimal TotalDebit,
     decimal TotalCredit,
-    string? Narration);
+    string? Narration,
+    IReadOnlyList<PostedVoucherLine> Lines);
 
 /// <summary>Read model for a voucher type, used to populate the entry screen's picker.</summary>
 public sealed record VoucherTypeSummary(
