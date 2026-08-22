@@ -1,0 +1,102 @@
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.Application.Auditing;
+
+namespace VinayakaAgencies.App.ViewModels;
+
+/// <summary>
+/// The edit-log viewer: strictly read-only, with the hash-chain integrity check beside it
+/// (spec §2, §11). There is no delete, no purge, and no filter that can hide rows permanently —
+/// the interface offers none because the product must not.
+/// </summary>
+public sealed partial class EditLogViewModel : ObservableObject
+{
+    private readonly IAuditLogReader _auditLogReader;
+
+    /// <summary>How many newest rows a plain refresh shows.</summary>
+    private const int DefaultRowsShown = 200;
+
+    [ObservableProperty]
+    private ObservableCollection<AuditLogRow> _rows = [];
+
+    [ObservableProperty]
+    private string _entityTypeFilter = string.Empty;
+
+    [ObservableProperty]
+    private string _entityIdFilter = string.Empty;
+
+    [ObservableProperty]
+    private string _verificationStatus = "Chain not verified yet.";
+
+    [ObservableProperty]
+    private string _status = "Press Load.";
+
+    [ObservableProperty]
+    private bool _isBusy;
+
+    public EditLogViewModel(IAuditLogReader auditLogReader)
+    {
+        _auditLogReader = auditLogReader ?? throw new ArgumentNullException(nameof(auditLogReader));
+    }
+
+    [RelayCommand]
+    private async Task LoadAsync(CancellationToken cancellationToken)
+    {
+        IsBusy = true;
+
+        try
+        {
+            var entityType = string.IsNullOrWhiteSpace(EntityTypeFilter) ? null : EntityTypeFilter.Trim();
+            var entityId = string.IsNullOrWhiteSpace(EntityIdFilter) ? null : EntityIdFilter.Trim();
+
+            var rows = entityId is null
+                ? await _auditLogReader.ListAsync(null, null, entityType, DefaultRowsShown, cancellationToken)
+                    .ConfigureAwait(true)
+                : await _auditLogReader.ListForEntityAsync(
+                    entityType ?? throw new InvalidOperationException(
+                        "An entity id filter needs its entity type, e.g. Ledger or VoucherRevision."),
+                    entityId,
+                    cancellationToken)
+                    .ConfigureAwait(true);
+
+            Rows = new ObservableCollection<AuditLogRow>(rows);
+
+            Status = entityId is null
+                ? $"Showing the newest {Rows.Count} row(s); every row ever written is retained."
+                : $"{Rows.Count} row(s) for that entity.";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            Status = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task VerifyChainAsync(CancellationToken cancellationToken)
+    {
+        IsBusy = true;
+
+        try
+        {
+            var verification = await _auditLogReader.VerifyChainAsync(cancellationToken)
+                .ConfigureAwait(true);
+
+            VerificationStatus = verification.IsIntact
+                ? $"Chain intact over {verification.RowsChecked} row(s)."
+                : $"CHAIN BROKEN at sequence {verification.FirstBrokenSequence}: {verification.Detail}";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            VerificationStatus = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+}
