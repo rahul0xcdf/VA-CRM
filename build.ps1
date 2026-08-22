@@ -1,8 +1,7 @@
 # build.ps1 — restore + build + test harness (specs/phase-0-foundations.md §2.5, checkpoint C0.1)
 #
-# This is exactly what the Stop hook (.claude/hooks/stop-gate.ps1) shells out to, so its exit code
-# is load-bearing: 0 only on full success, non-zero on the first failing step. PS 5.1 compatible —
-# no &&, ||, ternary, ??, or ?. .
+# Exit code is load-bearing: 0 only on full success, non-zero on the first failing step.
+# PS 5.1 compatible — no &&, ||, ternary, ??, or ?. .
 
 param(
     [switch]$NoTest,

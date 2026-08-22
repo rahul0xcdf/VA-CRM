@@ -278,8 +278,8 @@ public sealed class AccountingRoundTripTests
 
             await unitOfWork.Repository<JournalLine>().AddRangeAsync(
             [
-                new JournalLine(company.Id, revision.Id, 1, cash.Id, 1250.5075m, centre.Id),
-                new JournalLine(company.Id, revision.Id, 2, sales.Id, -1250.5075m),
+                new JournalLine(company.Id, voucher.Id, revision.Id, 1, cash.Id, 1250.5075m, centre.Id),
+                new JournalLine(company.Id, voucher.Id, revision.Id, 2, sales.Id, -1250.5075m),
             ]);
 
             await unitOfWork.SaveChangesAsync();

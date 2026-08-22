@@ -30,8 +30,8 @@ public class VoucherRevisionTests
     public void IsBalanced_DebitsEqualCredits_ReturnsTrue()
     {
         var revision = NewRevision();
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 500m));
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), -500m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 500m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), -500m));
 
         revision.IsBalanced.ShouldBeTrue();
         revision.NetMinor.ShouldBe(0L);
@@ -43,8 +43,8 @@ public class VoucherRevisionTests
         // ₹0.0001 out — the smallest possible imbalance — must still be rejected. No tolerance,
         // no epsilon (spec §8.1, ADR-0003).
         var revision = NewRevision();
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 500m));
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), -499.9999m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 500m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), -499.9999m));
 
         revision.IsBalanced.ShouldBeFalse();
         revision.NetMinor.ShouldBe(1L);
@@ -54,9 +54,9 @@ public class VoucherRevisionTests
     public void NetMinor_MultipleLines_IsTheExactSignedSum()
     {
         var revision = NewRevision();
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 300m));
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), 200m));
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 3, Guid.NewGuid(), -500m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 300m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), 200m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 3, Guid.NewGuid(), -500m));
 
         revision.NetMinor.ShouldBe(0L);
     }
@@ -65,9 +65,9 @@ public class VoucherRevisionTests
     public void TotalDebit_SumsOnlyPositiveLines()
     {
         var revision = NewRevision();
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 300m));
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), 200m));
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 3, Guid.NewGuid(), -500m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 300m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), 200m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 3, Guid.NewGuid(), -500m));
 
         revision.TotalDebit.ShouldBe(500m);
     }
@@ -76,9 +76,9 @@ public class VoucherRevisionTests
     public void TotalCredit_SumsOnlyNegativeLinesShownPositive()
     {
         var revision = NewRevision();
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 500m));
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), -300m));
-        revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 3, Guid.NewGuid(), -200m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 500m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 2, Guid.NewGuid(), -300m));
+        revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 3, Guid.NewGuid(), -200m));
 
         revision.TotalCredit.ShouldBe(500m);
     }
@@ -90,7 +90,7 @@ public class VoucherRevisionTests
         revision.SupersedeBy(Guid.NewGuid());
 
         Should.Throw<InvalidOperationException>(
-            () => revision.AddLine(new JournalLine(Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 100m)));
+            () => revision.AddLine(new JournalLine(Guid.NewGuid(), Guid.NewGuid(), revision.Id, 1, Guid.NewGuid(), 100m)));
     }
 
     [Fact]
