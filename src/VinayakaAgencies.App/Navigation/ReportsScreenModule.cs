@@ -2,13 +2,16 @@ using Microsoft.Extensions.DependencyInjection;
 using VinayakaAgencies.App.ViewModels;
 using VinayakaAgencies.App.Views;
 using VinayakaAgencies.Application.Accounting;
+using VinayakaAgencies.Application.Common;
+using VinayakaAgencies.Application.Companies;
+using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Reporting;
 
 namespace VinayakaAgencies.App.Navigation;
 
 /// <summary>
-/// The Reports group: the derived statements and the gap report (spec §2). On-screen grids only —
-/// export and printing belong to later phases.
+/// The Reports group: the derived statements, the gap report (spec §2) and the Phase 4
+/// customer statement (phase-4-customer-pricing.md §2).
 /// </summary>
 public sealed class ReportsScreenModule : IScreenModule
 {
@@ -42,5 +45,14 @@ public sealed class ReportsScreenModule : IScreenModule
                 services.GetRequiredService<IBankReconciliationService>(),
                 services.GetRequiredService<IChartOfAccountsService>()),
             typeof(BankReconciliationView)),
+
+        new ScreenDescriptor(
+            "Customer statement",
+            services => new CustomerStatementViewModel(
+                services.GetRequiredService<ICustomerStatementService>(),
+                services.GetRequiredService<ICustomerService>(),
+                services.GetRequiredService<ICompanyService>(),
+                services.GetRequiredService<ICompanyContext>()),
+            typeof(CustomerStatementView)),
     ];
 }

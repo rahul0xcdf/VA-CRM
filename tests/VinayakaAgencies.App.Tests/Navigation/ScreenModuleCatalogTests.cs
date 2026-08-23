@@ -26,6 +26,23 @@ public sealed class ScreenModuleCatalogTests
     }
 
     [Fact]
+    public void Discover_FindsThePhase4Screens_InMastersAndReports()
+    {
+        var modules = ScreenModuleCatalog.Discover();
+
+        var masters = modules.SingleOrDefault(module => module.Name == "Masters");
+        masters.ShouldNotBeNull();
+        masters.Screens.Select(screen => screen.Header).ShouldContain("Customers");
+        masters.Screens.Select(screen => screen.Header).ShouldContain("Customer categories");
+        masters.Screens.Select(screen => screen.Header).ShouldContain("Category price lists");
+        masters.Screens.Select(screen => screen.Header).ShouldContain("Sales settings");
+
+        var reports = modules.SingleOrDefault(module => module.Name == "Reports");
+        reports.ShouldNotBeNull();
+        reports.Screens.Select(screen => screen.Header).ShouldContain("Customer statement");
+    }
+
+    [Fact]
     public void Discover_ReturnsModulesOrderedByOrderThenName()
     {
         // The real assembly currently ships exactly one module; ordering is asserted against a
