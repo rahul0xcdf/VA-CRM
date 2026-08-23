@@ -38,11 +38,28 @@ with India GST/TDS compliance as a core requirement.
   priority (C3.6). Pipeline provisioning (`EnsurePipelineSeedAsync`) is idempotent at startup.
   Remaining before Phase 3 sign-off: owner walkthrough of the three Sales & Purchase screens and
   screenshots for `specs/evidence/phase-3-evidence.md`.
+- **Phase 4 (customer & pricing engine) — implemented and verified by tests.** Spec approved
+  23 Aug 2026 with decisions recorded in §4a (placeholder four categories seeded as master data;
+  all three pricing bases per line — fixed price / margin on cost / margin on MRP; conversion
+  holds quoted prices; per-customer special prices in scope, winning over the category list).
+  Customers link 1:1 to auto-created Sundry Debtors ledgers so every Phase 1–3 posting path is
+  unchanged; selecting a customer on a sale document auto-fills prices (C4.1) and overrides are
+  proved structurally on the line (`AppliedRateMinor`/`IsPriceOverridden`/`PriceSource`), so the
+  automatic audit trail shows original vs override without a manual audit writer (C4.2). All
+  three bases verified against hand-computed fixtures (C4.4); the override gate is the
+  `Sales.AllowPriceOverride` setting enforced in both UI and document service until Phase 9
+  roles exist (C4.5); bill-wise outstanding allocates receipts oldest-bill-first and statements
+  read straight from the books (C4.3/C4.6); credit limit warn/block gates orders and invoices.
+  Remaining before Phase 4 sign-off: owner walkthrough of the five new screens and screenshots
+  for `specs/evidence/phase-4-evidence.md`.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
-  `print-templates.md`. **End-user guides** (how to run the features from the screen) live in
-  `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`.
+  `print-templates.md`. Phase 4 additions: `customer-categories.md`, `customer-master.md`,
+  `customer-pricing-engine.md`, `customer-statement-outstanding.md`.
+  **End-user guides** (how to run the features from the screen) live in
+  `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`; Phase 4:
+  `phase-4-customers-and-pricing.md`.
 
 ## Development workflow (replaces the removed Claude hooks)
 
