@@ -25,9 +25,24 @@ with India GST/TDS compliance as a core requirement.
   (ADR-0003 extended to stock); every model guard test still holds (no decimal-on-TEXT columns, no
   cascades, enums by name). Remaining before Phase 2 sign-off: owner walkthrough of the five
   Inventory screens and screenshots for `specs/evidence/phase-2-evidence.md`.
+- **Phase 3 (sales & purchase pipeline) — implemented and verified by tests.** Spec approved
+  22 Aug 2026 with decisions recorded in §4a (invoice-direct norm with data-only challans; one
+  numbering series per company per document kind reusing §7 machinery; A4 full-page print with
+  Rule 46 copy labels as template fields; FastReport deferred to ADR-0004 with templates as
+  versioned data rendered by a built-in FlowDocument engine). Quotation → sales order → delivery
+  challan → tax invoice and purchase order → goods receipt → purchase invoice, converting without
+  re-keying (C3.1); invoices post journal voucher + mirror stock voucher + ledger rows + serial
+  lifecycle in one transaction (C3.3); order outstanding reports track partial deliveries, and
+  cancelling a posted invoice reopens a fulfilled order's balance (C3.4); quotations touch neither
+  trial balance nor stock ledger (C3.5); two seeded tax-invoice templates resolve by lowest active
+  priority (C3.6). Pipeline provisioning (`EnsurePipelineSeedAsync`) is idempotent at startup.
+  Remaining before Phase 3 sign-off: owner walkthrough of the three Sales & Purchase screens and
+  screenshots for `specs/evidence/phase-3-evidence.md`.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
-  `stock-valuation-and-reports.md`.
+  `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
+  `print-templates.md`. **End-user guides** (how to run the features from the screen) live in
+  `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`.
 
 ## Development workflow (replaces the removed Claude hooks)
 
