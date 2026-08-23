@@ -76,11 +76,41 @@ public partial class App : System.Windows.Application
             // every start and writes nothing once present.
             splash.ReportStatus("Preparing inventory masters…");
             var provisioning = _shellScope.ServiceProvider.GetRequiredService<ICompanyProvisioningService>();
+
+            // A company is never defaulted into existence (spec §10): its legal name and state code
+            // end up on filed returns. On a brand-new install the only honest move is to ask.
+            if (await _shellScope.ServiceProvider
+                    .GetRequiredService<ICompanyService>()
+                    .CountAsync()
+                    .ConfigureAwait(true) == 0)
+            {
+                splash.ReportStatus("Waiting for company details…");
+
+                var firstRunViewModel = new FirstRunCompanyViewModel(
+                    _shellScope.ServiceProvider.GetRequiredService<ICompanyService>(),
+                    provisioning);
+                var firstRunWindow = new FirstRunCompanyWindow { DataContext = firstRunViewModel };
+                firstRunWindow.ShowDialog();
+
+                if (!firstRunViewModel.CreatedCompanyId.HasValue)
+                {
+                    Log.Information("First-run company creation was dismissed; exiting cleanly.");
+                    Shutdown(0);
+                    return;
+                }
+            }
+
             var companyId = await _shellScope.ServiceProvider
                 .GetRequiredService<ICompanyContext>()
                 .EnsureCompanyAsync()
                 .ConfigureAwait(true);
             await provisioning.EnsureInventorySeedAsync(companyId).ConfigureAwait(true);
+
+            // Phase 3: voucher types/series per document kind, the COGS ledger and the default
+            // print templates. Idempotent like its inventory sibling, so it runs on every start
+            // and fills only what earlier installs are missing.
+            splash.ReportStatus("Preparing sales & purchase masters…");
+            await provisioning.EnsurePipelineSeedAsync(companyId).ConfigureAwait(true);
 
             var shell = _shellScope.ServiceProvider.GetRequiredService<ShellWindow>();
 
