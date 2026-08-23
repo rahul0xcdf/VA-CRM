@@ -30,7 +30,10 @@ public sealed class TradeDocumentLine : Entity, ICreationStamped, IBelongsToAggr
         decimal rate,
         decimal discountPercent,
         string? batchNumber = null,
-        IReadOnlyList<string>? serialNumbers = null)
+        IReadOnlyList<string>? serialNumbers = null,
+        long? appliedRateMinor = null,
+        bool isPriceOverridden = false,
+        SalePriceSource priceSource = SalePriceSource.Manual)
     {
         if (companyId == Guid.Empty)
         {
@@ -125,6 +128,26 @@ public sealed class TradeDocumentLine : Entity, ICreationStamped, IBelongsToAggr
         SerialNumbersText = serialNumbers is null || serialNumbers.Count == 0
             ? null
             : string.Join(";", serialNumbers.Select(serial => serial.Trim()));
+
+        // Pricing evidence (phase-4 §4a, checkpoint C4.2). A line built without pricing — every
+        // pre-existing construction path — is manual, not overridden, and applied what was keyed.
+        if (!Enum.IsDefined(priceSource))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(priceSource), priceSource, "Unknown sale price source.");
+        }
+
+        if (appliedRateMinor.HasValue && appliedRateMinor.Value < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(appliedRateMinor),
+                appliedRateMinor,
+                "An applied rate cannot be negative.");
+        }
+
+        AppliedRateMinor = appliedRateMinor ?? RateMinor;
+        IsPriceOverridden = isPriceOverridden;
+        PriceSource = priceSource;
     }
 
     public Guid CompanyId { get; private set; }
@@ -172,12 +195,59 @@ public sealed class TradeDocumentLine : Entity, ICreationStamped, IBelongsToAggr
     /// </summary>
     public string? SerialNumbersText { get; private set; }
 
+    /// <summary>
+    /// The rate the pricing engine auto-applied at line creation, in minor units of 1/10,000
+    /// (ADR-0003). Equals <see cref="RateMinor"/> on a hand-keyed line, and is the before-side of
+    /// checkpoint C4.2's override evidence: kept even when the operator changes the rate before
+    /// the first save, which an audit before-image alone could not show.
+    /// </summary>
+    public long AppliedRateMinor { get; private set; }
+
+    /// <summary>Whether the final rate was moved off <see cref="AppliedRateMinor"/> by an
+    /// authorised override.</summary>
+    public bool IsPriceOverridden { get; private set; }
+
+    /// <summary>Which pricing tier produced <see cref="AppliedRateMinor"/>.</summary>
+    public SalePriceSource PriceSource { get; private set; }
+
     /// <summary>The line's parsed serial list, or an empty list when none were staged.</summary>
     public IReadOnlyList<string> ParsedSerials =>
         SerialNumbersText?
             .Split([';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList()
         ?? [];
+
+    /// <summary>
+    /// Records a permission-gated price override: the final rate moves off the auto-applied one,
+    /// and the evidence pair (<see cref="AppliedRateMinor"/>, <see cref="IsPriceOverridden"/>)
+    /// keeps both values readable even before the first save reaches the audit trail.
+    /// </summary>
+    /// <remarks>
+    /// The caller — the pricing service or the UI behind it — is responsible for the permission
+    /// gate and for the audit-trail write of original and overridden values (phase-4 §2); this
+    /// method only makes the line itself carry the truth.
+    /// </remarks>
+    public void RecordPriceOverride(decimal overriddenRate)
+    {
+        if (decimal.IsNegative(overriddenRate))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(overriddenRate), overriddenRate, "A rate cannot be negative.");
+        }
+
+        var rounded = MoneyScale.Round(overriddenRate);
+
+        if (rounded != overriddenRate)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(overriddenRate),
+                overriddenRate,
+                $"A rate carries more than {MoneyScale.Places} decimal places.");
+        }
+
+        RateMinor = MoneyScale.ToMinor(rounded);
+        IsPriceOverridden = true;
+    }
 
     /// <summary>Value before discount, rounded once at birth (banker's, ADR-0003).</summary>
     public decimal GrossValue => MoneyScale.Round(Quantity * Rate);

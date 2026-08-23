@@ -154,7 +154,10 @@ public sealed class TradeDocument : Entity, IAuditStamped
         decimal discountPercent,
         bool isSerialTracked,
         string? batchNumber = null,
-        IReadOnlyList<string>? serialNumbers = null)
+        IReadOnlyList<string>? serialNumbers = null,
+        long? appliedRateMinor = null,
+        bool isPriceOverridden = false,
+        SalePriceSource priceSource = SalePriceSource.Manual)
     {
         if (RequiresGodownPerLine(Kind) && !godownId.HasValue)
         {
@@ -184,7 +187,10 @@ public sealed class TradeDocument : Entity, IAuditStamped
             rate,
             discountPercent,
             batchNumber,
-            serialNumbers);
+            serialNumbers,
+            appliedRateMinor,
+            isPriceOverridden,
+            priceSource);
 
         _lines.Add(line);
         return line;
@@ -212,7 +218,10 @@ public sealed class TradeDocument : Entity, IAuditStamped
                 line.DiscountPercent,
                 line.IsSerialTracked,
                 line.BatchNumber,
-                line.SerialNumbers);
+                line.SerialNumbers,
+                line.AppliedRateMinor,
+                line.IsPriceOverridden,
+                line.PriceSource);
         }
     }
 
