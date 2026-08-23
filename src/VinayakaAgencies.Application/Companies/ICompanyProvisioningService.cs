@@ -46,4 +46,17 @@ public interface ICompanyProvisioningService
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
     Task EnsureInventorySeedAsync(Guid companyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures the sales/purchase pipeline setup a company needs: one system voucher type with its
+    /// numbering series per document kind, the cost-of-goods-sold ledger, and the default
+    /// tax-invoice print templates (phase-3-sales-purchase-pipeline.md §4a).
+    /// </summary>
+    /// <remarks>
+    /// Idempotent and row-granular exactly like <see cref="EnsureInventorySeedAsync"/>: databases
+    /// provisioned under earlier phases gain the missing rows at the next startup, and the call
+    /// writes nothing once everything is present. Safe to call at every startup.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
+    Task EnsurePipelineSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
 }
