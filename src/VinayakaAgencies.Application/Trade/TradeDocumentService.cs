@@ -786,7 +786,10 @@ public sealed class TradeDocumentService(
                 line.DiscountPercent,
                 item.IsSerialTracked,
                 line.BatchNumber,
-                line.SerialNumbers);
+                line.SerialNumbers,
+                line.AppliedRateMinor,
+                line.IsPriceOverridden,
+                line.PriceSource);
         }
 
         return document;
@@ -808,7 +811,10 @@ public sealed class TradeDocumentService(
                 line.DiscountPercent,
                 item.IsSerialTracked,
                 line.BatchNumber,
-                line.SerialNumbers);
+                line.SerialNumbers,
+                line.AppliedRateMinor,
+                line.IsPriceOverridden,
+                line.PriceSource);
         }
     }
 
@@ -882,7 +888,12 @@ public sealed class TradeDocumentService(
                 line.DiscountPercent,
                 item.IsSerialTracked,
                 carriesBatch ? line.BatchNumber : null,
-                carriesSerials ? line.ParsedSerials : null));
+                carriesSerials ? line.ParsedSerials : null,
+
+                // Conversion never reprices, so the pricing evidence travels with the rate.
+                line.AppliedRateMinor,
+                line.IsPriceOverridden,
+                line.PriceSource));
         }
 
         return inputs;

@@ -2,7 +2,15 @@ using VinayakaAgencies.Domain.Trade;
 
 namespace VinayakaAgencies.Application.Trade;
 
-/// <summary>One editable line of a trade document being created or revised.</summary>
+/// <summary>
+/// One editable line of a trade document being created or revised.
+/// </summary>
+/// <remarks>
+/// The pricing-evidence trio travels with the rate (phase-4 §4a): what the pricing engine applied
+/// and from which tier, plus whether the operator moved the final rate off it before saving.
+/// Defaults describe a hand-keyed line — manual, not overridden, applied what was keyed — so
+/// purchase-side and unpriced callers are unaffected.
+/// </remarks>
 public sealed record TradeDocumentLineInput(
     Guid ItemId,
     Guid? GodownId,
@@ -10,7 +18,10 @@ public sealed record TradeDocumentLineInput(
     decimal Rate,
     decimal DiscountPercent = 0m,
     string? BatchNumber = null,
-    IReadOnlyList<string>? SerialNumbers = null);
+    IReadOnlyList<string>? SerialNumbers = null,
+    long? AppliedRateMinor = null,
+    bool IsPriceOverridden = false,
+    SalePriceSource PriceSource = SalePriceSource.Manual);
 
 /// <param name="Kind">Which pipeline document this is. Immutable after creation.</param>
 /// <param name="DocumentDate">Business date; Indian FY logic keys off it.</param>
