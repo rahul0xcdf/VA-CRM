@@ -32,19 +32,22 @@ internal sealed class InventorySqliteStatements : ISqlStatementSource
         new Dictionary<SqlQueryKey, string>
         {
             // On-hand and value per item per godown. Value is summed signed-by-direction because
-            // both increase and decrease rows carry positive ValueMinor columns.
+            // both increase and decrease rows carry positive ValueMinor columns. The CASTs are not
+            // decoration: with an empty group set SQLite reports untyped aggregates as BLOB, and
+            // Dapper then demands byte[] constructor parameters (ADR-0003 keeps the columns
+            // INTEGER; this pins the read shape to match).
             [InventoryQueryKeys.StockOnHand] = $"""
                 SELECT e.ItemId,
                        i.Name AS ItemName,
                        i.Code AS ItemCode,
                        e.GodownId,
                        g.Name AS GodownName,
-                       SUM(e.QuantityInMinor) AS QuantityInMinor,
-                       SUM(e.QuantityOutMinor) AS QuantityOutMinor,
-                       SUM(e.QuantityInMinor)
-                         - SUM(e.QuantityOutMinor) AS OnHandMinor,
-                       SUM(CASE WHEN e.Direction = 'Increase'
-                                THEN e.ValueMinor ELSE -e.ValueMinor END) AS ValueMinor
+                       CAST(SUM(e.QuantityInMinor) AS INTEGER) AS QuantityInMinor,
+                       CAST(SUM(e.QuantityOutMinor) AS INTEGER) AS QuantityOutMinor,
+                       CAST(SUM(e.QuantityInMinor)
+                         - SUM(e.QuantityOutMinor) AS INTEGER) AS OnHandMinor,
+                       CAST(SUM(CASE WHEN e.Direction = 'Increase'
+                                THEN e.ValueMinor ELSE -e.ValueMinor END) AS INTEGER) AS ValueMinor
                 FROM StockLedgerEntries e
                 JOIN Items i ON i.Id = e.ItemId
                 JOIN Godowns g ON g.Id = e.GodownId
@@ -61,10 +64,10 @@ internal sealed class InventorySqliteStatements : ISqlStatementSource
             [InventoryQueryKeys.StockValuation] = $"""
                 SELECT e.ItemId,
                        i.Name AS ItemName,
-                       SUM(e.QuantityInMinor)
-                         - SUM(e.QuantityOutMinor) AS OnHandMinor,
-                       SUM(CASE WHEN e.Direction = 'Increase'
-                                THEN e.ValueMinor ELSE -e.ValueMinor END) AS ValueMinor
+                       CAST(SUM(e.QuantityInMinor)
+                         - SUM(e.QuantityOutMinor) AS INTEGER) AS OnHandMinor,
+                       CAST(SUM(CASE WHEN e.Direction = 'Increase'
+                                THEN e.ValueMinor ELSE -e.ValueMinor END) AS INTEGER) AS ValueMinor
                 FROM StockLedgerEntries e
                 JOIN Items i ON i.Id = e.ItemId
                 WHERE e.CompanyId = @CompanyId
