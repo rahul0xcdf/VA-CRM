@@ -3,13 +3,15 @@
 ```yaml
 Phase: 3
 Title: Sales & Purchase Pipeline + Template Designer
-Status: Draft
+Status: Approved
 Source: project.md §4.3, §10 (Phase 3)
 Depends on: Phases 1, 2
 Blocks: Phases 4, 5, 6
 ```
 
-> **Draft.** Do not implement until `Status: Approved`.
+> **Approved 22 Aug 2026** by direct owner instruction ("implement the phase three"), with the
+> §4 open questions closed as recorded in §4a below. The owner may amend any default; amendments
+> are additive to the data model (statuses and templates are rows/enum values, not schema breaks).
 
 ## 1. Deliverables (project.md §10)
 
@@ -53,6 +55,29 @@ Additional:
 
 ## 4. Open questions to close before approval
 
+Closed on approval (§4a). Recorded here verbatim for the audit of the decision:
+
 - Are delivery challans actually used day to day, or is invoice-direct the norm?
 - Are quotations numbered in one series or per branch/salesperson?
 - Print stationery: pre-printed letterhead or full-page print? Paper size (A4/A5)? Copies (Original / Duplicate / Triplicate)?
+
+## 4a. Decisions recorded at approval
+
+| Question | Decision |
+|---|---|
+| Delivery challans vs invoice-direct | Invoice-direct is the norm; the challan remains available as a staging stage that carries godown and quantity forward into the invoice it converts to. Challans are **data-only**: they move no stock and post nothing, so the stock ledger and the control account stay reconciled by construction. Stock moves exactly twice in each direction — once when a tax invoice is posted, once when a purchase invoice is posted — which keeps checkpoint C3.3's atomicity surface minimal. |
+| Quotation numbering | One series per company per document kind (`QTN/`, `SO/`, `DC/`, `INV/`, `PO/`, `GRN/`, `BILL/`), reusing the §7 numbering machinery as system voucher types. Branch/salesperson series is deferred to Phase 9 with multi-user/multi-branch. |
+| Print stationery | A4 full-page print, no pre-printed letterhead assumed; logo, header lines and terms are template data. Copy labels (Original for Recipient / Duplicate for Transporter / Triplicate for Supplier) are configurable template fields per GST Rule 46. |
+
+Implementation amendments (recorded under the working agreement):
+
+1. **FastReport .NET WPF deferral** — FastReport .NET WPF requires a commercial licence before its
+   runtime designer can ship. Phase 3 therefore lands document templates as versioned data
+   (`PrintTemplate` + append-only `PrintTemplateRevision` rows) rendered through a built-in WPF
+   `FlowDocument` preview/print window, with an editable designer screen that satisfies C3.2
+   functionally today. ADR-0004 records the decision; swapping the renderer to FastReport later is
+   a presentation-layer change because templates are data either way.
+2. **Goods receipt is data-only** — the purchase mirror posts stock exactly once, at the purchase
+   invoice, mirroring the sales side. A GRN records what physically arrived (against its order)
+   so the outstanding report stays truthful without a clearing-account posting leg.
+
