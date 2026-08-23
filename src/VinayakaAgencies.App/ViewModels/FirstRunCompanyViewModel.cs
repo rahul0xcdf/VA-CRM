@@ -98,6 +98,9 @@ public sealed partial class FirstRunCompanyViewModel : ObservableObject
             Status = "Preparing sales & purchase setup…";
             await _provisioning.EnsurePipelineSeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
 
+            Status = "Preparing customer setup…";
+            await _provisioning.EnsureCustomerSeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
+
             CreatedCompanyId = company.Id;
             Status = $"{company.Name} is ready. Opening…";
 

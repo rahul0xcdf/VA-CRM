@@ -1,8 +1,10 @@
+using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
 using VinayakaAgencies.Domain.Common;
+using VinayakaAgencies.Domain.Customers;
 using VinayakaAgencies.Domain.Entities;
 using VinayakaAgencies.Domain.Inventory;
 using VinayakaAgencies.Domain.Printing;
@@ -442,6 +444,64 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// The customer seed: the four placeholder categories and the sales settings row
+    /// (phase-4-customer-pricing.md §2, §4a). Row-granular and idempotent for the same reason as
+    /// <see cref="EnsureInventorySeedAsync"/>.
+    /// </summary>
+    public async Task EnsureCustomerSeedAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        if (companyId == Guid.Empty)
+        {
+            throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+        }
+
+        var company = await _unitOfWork.Repository<Company>()
+            .GetByIdAsync(companyId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (company is null)
+        {
+            throw new InvalidOperationException(
+                $"Company '{companyId}' does not exist, so there is nothing to seed customers into.");
+        }
+
+        await using var transaction = await _unitOfWork
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var seed in CustomerSeedData.Categories)
+        {
+            var normalised = NameNormaliser.Normalise(seed.Name);
+
+            if (await _unitOfWork.Repository<CustomerCategory>()
+                    .AnyAsync(new CustomerCategoryByName(companyId, normalised), cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                continue;
+            }
+
+            await _unitOfWork.Repository<CustomerCategory>().AddAsync(
+                new CustomerCategory(companyId, seed.Name, seed.Description),
+                cancellationToken).ConfigureAwait(false);
+            await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!await _unitOfWork.Repository<SalesSettings>()
+                .AnyAsync(new SalesSettingsOfCompany(companyId), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            await _unitOfWork.Repository<SalesSettings>().AddAsync(
+                new SalesSettings(companyId),
+                cancellationToken).ConfigureAwait(false);
+            await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task EnsureKindVoucherTypeAsync(
         Guid companyId,
         PipelineSeedData.KindSeed kind,
@@ -563,6 +623,25 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
         public LedgerByName(Guid companyId, string nameNormalised)
         {
             Where(ledger => ledger.CompanyId == companyId && ledger.NameNormalised == nameNormalised);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class CustomerCategoryByName : Specification<CustomerCategory>
+    {
+        public CustomerCategoryByName(Guid companyId, string nameNormalised)
+        {
+            Where(category => category.CompanyId == companyId
+                && category.NameNormalised == nameNormalised);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class SalesSettingsOfCompany : Specification<SalesSettings>
+    {
+        public SalesSettingsOfCompany(Guid companyId)
+        {
+            Where(settings => settings.CompanyId == companyId);
             ApplyNoTracking();
         }
     }

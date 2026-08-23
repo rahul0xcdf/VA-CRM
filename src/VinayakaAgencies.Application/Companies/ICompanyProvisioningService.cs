@@ -59,4 +59,16 @@ public interface ICompanyProvisioningService
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
     Task EnsurePipelineSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures the customer-side setup a company needs: the four placeholder customer categories
+    /// (Retailer / Dealer / Wholesaler / Institutional) and the sales settings row with its
+    /// defaults (override allowed, credit breaches warn) — phase-4-customer-pricing.md §2, §4a.
+    /// </summary>
+    /// <remarks>
+    /// Idempotent and row-granular exactly like its Phase 2/3 siblings: safe to call at every
+    /// startup, fills only what is genuinely missing.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
+    Task EnsureCustomerSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
 }

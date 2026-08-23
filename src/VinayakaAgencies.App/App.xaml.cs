@@ -112,6 +112,11 @@ public partial class App : System.Windows.Application
             splash.ReportStatus("Preparing sales & purchase masters…");
             await provisioning.EnsurePipelineSeedAsync(companyId).ConfigureAwait(true);
 
+            // Phase 4: the four customer categories and the sales settings row. Idempotent like
+            // its siblings, so it runs on every start and fills only what earlier installs miss.
+            splash.ReportStatus("Preparing customer masters…");
+            await provisioning.EnsureCustomerSeedAsync(companyId).ConfigureAwait(true);
+
             var shell = _shellScope.ServiceProvider.GetRequiredService<ShellWindow>();
 
             // Exercise both database paths at startup exactly as the Phase 0 shell did (C0.7): the
