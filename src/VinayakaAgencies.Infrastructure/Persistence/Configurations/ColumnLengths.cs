@@ -95,4 +95,22 @@ internal static class ColumnLengths
 
     /// <summary>Unit-of-measure codes ("NOS", "BOX").</summary>
     internal const int UnitCode = 16;
+
+    /// <summary>
+    /// The ';'-joined serial numbers staged on a trade document line.
+    /// </summary>
+    /// <remarks>
+    /// Not indexed — availability is checked against the serial table at posting time — so the
+    /// width only bounds storage, sized for roughly a hundred typical motor/pump serials.
+    /// </remarks>
+    internal const int SerialList = 2000;
+
+    /// <summary>
+    /// One version of a print template's layout as JSON.
+    /// </summary>
+    /// <remarks>
+    /// Not indexed either; the bound exists so Phase 9's provider switch maps to a bounded column
+    /// rather than an unbounded one by accident.
+    /// </remarks>
+    internal const int TemplateLayoutJson = 8000;
 }
