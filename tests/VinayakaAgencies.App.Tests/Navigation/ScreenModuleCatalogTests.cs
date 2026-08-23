@@ -14,6 +14,18 @@ public sealed class ScreenModuleCatalogTests
     }
 
     [Fact]
+    public void Discover_FindsTheSalesPurchaseModule_WithItsThreePhase3Screens()
+    {
+        var modules = ScreenModuleCatalog.Discover();
+
+        var salesPurchase = modules.SingleOrDefault(module => module.Name == "Sales & Purchase");
+        salesPurchase.ShouldNotBeNull();
+
+        salesPurchase.Screens.Select(screen => screen.Header).ShouldBe(
+            ["Documents", "Order outstanding", "Print templates"]);
+    }
+
+    [Fact]
     public void Discover_ReturnsModulesOrderedByOrderThenName()
     {
         // The real assembly currently ships exactly one module; ordering is asserted against a
