@@ -31,6 +31,15 @@ internal sealed class TradeDocumentLineConfiguration : IEntityTypeConfiguration<
         builder.Property(line => line.RateMinor).IsRequired();
         builder.Property(line => line.DiscountPercentMinor).IsRequired();
 
+        // Pricing evidence (phase-4 §4a, checkpoint C4.2): what pricing auto-applied, whether the
+        // operator moved off it, and which tier produced it. Stored by name like every enum.
+        builder.Property(line => line.AppliedRateMinor).IsRequired();
+        builder.Property(line => line.IsPriceOverridden).IsRequired();
+        builder.Property(line => line.PriceSource)
+            .HasConversion<string>()
+            .HasMaxLength(ColumnLengths.EnumName)
+            .IsRequired();
+
         builder.Ignore(line => line.Quantity);
         builder.Ignore(line => line.Rate);
         builder.Ignore(line => line.DiscountPercent);

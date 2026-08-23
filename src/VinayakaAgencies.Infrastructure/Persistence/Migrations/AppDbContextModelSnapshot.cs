@@ -1921,6 +1921,9 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<long>("AppliedRateMinor")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("BatchNumber")
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
@@ -1942,11 +1945,19 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("GodownId")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsPriceOverridden")
+                        .HasColumnType("INTEGER");
+
                     b.Property<Guid>("ItemId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("LineNumber")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("PriceSource")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("QuantityMinor")
                         .HasColumnType("INTEGER");
