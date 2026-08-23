@@ -1,8 +1,12 @@
+using VinayakaAgencies.Application.Printing;
+using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
 using VinayakaAgencies.Domain.Common;
 using VinayakaAgencies.Domain.Entities;
 using VinayakaAgencies.Domain.Inventory;
+using VinayakaAgencies.Domain.Printing;
+using VinayakaAgencies.Domain.Trade;
 
 namespace VinayakaAgencies.Application.Companies;
 
@@ -392,6 +396,195 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
             new Domain.Inventory.InventorySettings(companyId, ValuationMethod.Fifo),
             cancellationToken).ConfigureAwait(false);
         await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The pipeline seed: one system voucher type with its numbering series per trade-document
+    /// kind, the cost-of-goods-sold ledger, and the default tax-invoice print templates
+    /// (phase-3-sales-purchase-pipeline.md §4a).
+    /// </summary>
+    /// <remarks>
+    /// Row-granular and idempotent for the same reason as <see cref="EnsureInventorySeedAsync"/>:
+    /// companies provisioned under earlier phases must gain exactly what is missing at the next
+    /// startup, and nothing once nothing is missing.
+    /// </remarks>
+    public async Task EnsurePipelineSeedAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        if (companyId == Guid.Empty)
+        {
+            throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+        }
+
+        var company = await _unitOfWork.Repository<Company>()
+            .GetByIdAsync(companyId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (company is null)
+        {
+            throw new InvalidOperationException(
+                $"Company '{companyId}' does not exist, so there is nothing to seed the pipeline into.");
+        }
+
+        await using var transaction = await _unitOfWork
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var kind in PipelineSeedData.Kinds)
+        {
+            await EnsureKindVoucherTypeAsync(companyId, kind, cancellationToken).ConfigureAwait(false);
+        }
+
+        await EnsureCostOfGoodsSoldLedgerAsync(companyId, cancellationToken).ConfigureAwait(false);
+        await EnsureDefaultTemplatesAsync(companyId, cancellationToken).ConfigureAwait(false);
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureKindVoucherTypeAsync(
+        Guid companyId,
+        PipelineSeedData.KindSeed kind,
+        CancellationToken cancellationToken)
+    {
+        var normalised = NameNormaliser.Normalise(kind.VoucherTypeName);
+
+        if (await _unitOfWork.Repository<VoucherType>()
+                .AnyAsync(new VoucherTypeByName(companyId, normalised), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var voucherType = new VoucherType(companyId, kind.VoucherTypeName, kind.AccountingKind, isSystem: true);
+
+        var series = new VoucherNumberSeries(
+            companyId,
+            voucherType.Id,
+            kind.VoucherTypeName,
+            kind.Prefix,
+            width: DefaultSeriesWidth,
+            suffix: null,
+            startNumber: DefaultSeriesStartNumber,
+            resetPolicy: NumberResetPolicy.FinancialYear,
+            allowManualOverride: true);
+
+        voucherType.SetDefaultSeries(series.Id);
+
+        await _unitOfWork.Repository<VoucherType>()
+            .AddAsync(voucherType, cancellationToken)
+            .ConfigureAwait(false);
+        await _unitOfWork.Repository<VoucherNumberSeries>()
+            .AddAsync(series, cancellationToken)
+            .ConfigureAwait(false);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureCostOfGoodsSoldLedgerAsync(
+        Guid companyId,
+        CancellationToken cancellationToken)
+    {
+        var normalised = NameNormaliser.Normalise(PipelineSeedData.CostOfGoodsSoldLedgerName);
+
+        if (await _unitOfWork.Repository<Ledger>()
+                .AnyAsync(new LedgerByName(companyId, normalised), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var group = await _unitOfWork.Repository<AccountGroup>()
+            .SingleOrDefaultAsync(
+                new GroupByName(companyId, NameNormaliser.Normalise(PipelineSeedData.CostOfGoodsSoldGroupName)),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (group is null)
+        {
+            throw new InvalidOperationException(
+                $"The '{PipelineSeedData.CostOfGoodsSoldGroupName}' account group is missing from "
+                + "this company's chart of accounts, so the cost-of-goods-sold ledger has nowhere "
+                + "to hang. Provision the company first.");
+        }
+
+        await _unitOfWork.Repository<Ledger>().AddAsync(
+            new Ledger(
+                companyId,
+                PipelineSeedData.CostOfGoodsSoldLedgerName,
+                group.Id,
+                alias: null,
+                isSystem: false,
+                allowsManualPosting: true),
+            cancellationToken).ConfigureAwait(false);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureDefaultTemplatesAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        foreach (var seed in PrintTemplateDefaults.Seeds)
+        {
+            var normalised = NameNormaliser.Normalise(seed.Name);
+
+            if (await _unitOfWork.Repository<PrintTemplate>()
+                    .AnyAsync(new TemplateByName(companyId, seed.DocumentKind, normalised), cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                continue;
+            }
+
+            var template = new PrintTemplate(
+                companyId,
+                seed.DocumentKind,
+                seed.Name,
+                seed.Priority,
+                seed.Description);
+
+            // Version 1 lands with the template itself; the designer appends from version 2 on.
+            var revision = new PrintTemplateRevision(
+                companyId,
+                template.Id,
+                version: 1,
+                PrintTemplateService.Serialise(seed.Layout));
+
+            template.AttachRevision(revision.Id, revision.Version);
+
+            await _unitOfWork.Repository<PrintTemplate>()
+                .AddAsync(template, cancellationToken)
+                .ConfigureAwait(false);
+            await _unitOfWork.Repository<PrintTemplateRevision>()
+                .AddAsync(revision, cancellationToken)
+                .ConfigureAwait(false);
+            await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private sealed class LedgerByName : Specification<Ledger>
+    {
+        public LedgerByName(Guid companyId, string nameNormalised)
+        {
+            Where(ledger => ledger.CompanyId == companyId && ledger.NameNormalised == nameNormalised);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class GroupByName : Specification<AccountGroup>
+    {
+        public GroupByName(Guid companyId, string nameNormalised)
+        {
+            Where(group => group.CompanyId == companyId && group.NameNormalised == nameNormalised);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class TemplateByName : Specification<PrintTemplate>
+    {
+        public TemplateByName(Guid companyId, TradeDocumentKind documentKind, string nameNormalised)
+        {
+            Where(template => template.CompanyId == companyId
+                && template.DocumentKind == documentKind
+                && template.NameNormalised == nameNormalised);
+            ApplyNoTracking();
+        }
     }
 
     private sealed class AccountGroupsOfCompanySpecification : Specification<AccountGroup>
