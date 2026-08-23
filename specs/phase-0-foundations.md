@@ -23,17 +23,17 @@ seems to need any of those, that is scope creep — stop and flag it (`project.m
 
 ### 2.1 Solution & layering
 
-`MotorPumpSuite.sln` with four source projects and three test projects:
+`VinayakaAgencies.sln` with four source projects and three test projects:
 
 | Project | TFM | Purpose | May reference |
 |---|---|---|---|
-| `src/MotorPumpSuite.Domain` | `net8.0` | Entities, value objects, abstractions (`IRepository<T>`, `IUnitOfWork`, `ISqlQueryExecutor`, `IClock`, `ICurrentUser`) | **nothing** |
-| `src/MotorPumpSuite.Application` | `net8.0` | Use-cases / services, DTOs, DI registration | Domain |
-| `src/MotorPumpSuite.Infrastructure` | `net8.0` | `AppDbContext`, EF configurations, migrations, repository + UoW implementations, Dapper query executor, connection factory | Domain, Application |
-| `src/MotorPumpSuite.App` | `net8.0-windows` (WPF) | Generic Host, DI composition root, Serilog, shell window | all three |
-| `tests/MotorPumpSuite.Domain.Tests` | `net8.0` | | Domain |
-| `tests/MotorPumpSuite.Application.Tests` | `net8.0` | | Application, Domain |
-| `tests/MotorPumpSuite.Infrastructure.Tests` | `net8.0` | migration + round-trip tests against a real temp SQLite file | Infrastructure, Domain |
+| `src/VinayakaAgencies.Domain` | `net8.0` | Entities, value objects, abstractions (`IRepository<T>`, `IUnitOfWork`, `ISqlQueryExecutor`, `IClock`, `ICurrentUser`) | **nothing** |
+| `src/VinayakaAgencies.Application` | `net8.0` | Use-cases / services, DTOs, DI registration | Domain |
+| `src/VinayakaAgencies.Infrastructure` | `net8.0` | `AppDbContext`, EF configurations, migrations, repository + UoW implementations, Dapper query executor, connection factory | Domain, Application |
+| `src/VinayakaAgencies.App` | `net8.0-windows` (WPF) | Generic Host, DI composition root, Serilog, shell window | all three |
+| `tests/VinayakaAgencies.Domain.Tests` | `net8.0` | | Domain |
+| `tests/VinayakaAgencies.Application.Tests` | `net8.0` | | Application, Domain |
+| `tests/VinayakaAgencies.Infrastructure.Tests` | `net8.0` | migration + round-trip tests against a real temp SQLite file | Infrastructure, Domain |
 
 **Dependency rule, enforced by an architecture test:** Domain references no other project and no
 EF Core; Application does not reference EF Core; only Infrastructure references
@@ -69,9 +69,9 @@ before/after edit log is Phase 1, and these stamps are the seam it will hang off
 - `Microsoft.Extensions.Hosting` generic host in the WPF `App.xaml.cs`; the DI container owns the
   main window and all viewmodels.
 - Configuration from `appsettings.json` + `appsettings.Local.json` (git-ignored) + environment
-  variables. Connection string resolves to `%LOCALAPPDATA%\MotorPumpSuite\motorpump.db` by default;
+  variables. Connection string resolves to `%LOCALAPPDATA%\VinayakaAgencies\motorpump.db` by default;
   a `Database:Provider` key (`Sqlite` today, `SqlServer` from Phase 9) selects the provider.
-- Serilog: console + rolling daily file at `%LOCALAPPDATA%\MotorPumpSuite\logs\log-.txt`,
+- Serilog: console + rolling daily file at `%LOCALAPPDATA%\VinayakaAgencies\logs\log-.txt`,
   31-day retention. Unhandled dispatcher exceptions are logged before the app dies.
 - Migrations are applied at startup for SQLite (single-user, Phase 1–8). A note in the Phase 9 spec
   flags that auto-migrate-on-startup must become an explicit, gated step once multiple clients connect.
@@ -82,7 +82,7 @@ The shell is preceded by a branded intro animation. This is presentation only; i
 logic and does not widen Phase 0's scope in any other respect.
 
 - Trading name **Vinayaka Agencies** and its tagline come from a `Branding` section in
-  `appsettings.json`, not from code. The solution and root namespace remain `MotorPumpSuite` —
+  `appsettings.json`, not from code. The solution and root namespace remain `VinayakaAgencies` —
   the rename is still open (`open-questions.md` #7).
 - The owner's logo has not been supplied yet. `SplashWindow` draws a "VA" monogram and swaps it for
   `Assets\logo.png` the moment that file exists; a missing or unreadable file costs the logo, never
@@ -134,7 +134,7 @@ Additional Phase 0 criteria:
 | # | Criterion | How it is verified |
 |---|---|---|
 | C0.6 | Layering holds | Architecture test asserts Domain has no project/EF references and Application has no EF Core reference |
-| C0.7 | App starts | `dotnet run --project src\MotorPumpSuite.App` opens the shell window, applies migrations, and shows a live company count read through `IUnitOfWork` |
+| C0.7 | App starts | `dotnet run --project src\VinayakaAgencies.App` opens the shell window, applies migrations, and shows a live company count read through `IUnitOfWork` |
 | C0.8 | No business logic leaked in | `src/` contains exactly one entity (`Company`); no voucher/stock/GST types |
 
 ## 5. Evidence required

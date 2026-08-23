@@ -1,0 +1,179 @@
+﻿<Window x:Class="VinayakaAgencies.App.Views.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Height="380" Width="600">
+
+    <!-- Light ground on purpose: the supplied logo is green and blue on an opaque white
+         background with no alpha channel, so a dark backdrop would render it as a white block.
+         Colours below are sampled from the artwork itself (#38AE71 / #1B7EB7). -->
+    <Window.Resources>
+        <SolidColorBrush x:Key="BrandGreen" Color="#FF38AE71" />
+        <SolidColorBrush x:Key="BrandBlue" Color="#FF1B7EB7" />
+
+        <LinearGradientBrush x:Key="AccentBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#FF38AE71" Offset="0.0" />
+            <GradientStop Color="#FF1B7EB7" Offset="1.0" />
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Border CornerRadius="16" Background="White" BorderBrush="#FFE4EBF1" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="7" Opacity="0.22" Color="#FF1B3A4B" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Brand strip, clipped to the card's rounded top corners. -->
+            <Border Grid.Row="0" Height="5" Background="{StaticResource AccentBrush}"
+                    CornerRadius="15,15,0,0" />
+
+            <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="48,0">
+                <Grid x:Name="MarkHost" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="MarkScale" ScaleX="0.82" ScaleY="0.82" />
+                    </Grid.RenderTransform>
+
+                    <!-- The owner's artwork. Already carries the "Vinayaka Agencies" wordmark,
+                         so no separate wordmark is drawn beside it. -->
+                    <Image x:Name="LogoImage"
+                           Height="150"
+                           Stretch="Uniform"
+                           Visibility="Collapsed"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+
+                    <!-- Fallback used only when Assets\logo.png is absent or unreadable. -->
+                    <StackPanel x:Name="FallbackMark">
+                        <Grid Width="84" Height="84" HorizontalAlignment="Center">
+                            <Ellipse Stroke="{StaticResource BrandGreen}"
+                                     StrokeThickness="2.5"
+                                     StrokeDashArray="7 5"
+                                     RenderTransformOrigin="0.5,0.5">
+                                <Ellipse.RenderTransform>
+                                    <RotateTransform x:Name="MarkRingRotation" />
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                            <TextBlock x:Name="Monogram"
+                                       Text="VA"
+                                       FontSize="29"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrandGreen}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+
+                        <TextBlock x:Name="Wordmark"
+                                   Margin="0,18,0,0"
+                                   Text="Vinayaka Agencies"
+                                   FontSize="27"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrandGreen}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock x:Name="Tagline"
+                           Margin="0,18,0,0"
+                           Text="Motors  ·  Pumps  ·  Spares"
+                           FontSize="13"
+                           Foreground="#FF7C8B99"
+                           HorizontalAlignment="Center"
+                           Opacity="0">
+                    <TextBlock.RenderTransform>
+                        <TranslateTransform x:Name="TaglineOffset" Y="12" />
+                    </TextBlock.RenderTransform>
+                </TextBlock>
+            </StackPanel>
+
+            <StackPanel x:Name="ProgressBlock" Grid.Row="2" Margin="48,0,48,26" Opacity="0">
+                <!-- A sliding sheen rather than a percentage: startup work is short and its
+                     duration is not knowable in advance, so a real bar would be a lie. -->
+                <Border Height="3" CornerRadius="2" Background="#FFEDF1F5" ClipToBounds="True">
+                    <Border Width="140" Height="3" CornerRadius="2"
+                            HorizontalAlignment="Left"
+                            Background="{StaticResource AccentBrush}">
+                        <Border.RenderTransform>
+                            <TranslateTransform x:Name="ProgressOffset" X="-140" />
+                        </Border.RenderTransform>
+                    </Border>
+                </Border>
+
+                <TextBlock x:Name="StatusText"
+                           Margin="0,12,0,0"
+                           Text="Starting…"
+                           FontSize="11"
+                           Foreground="#FF9AA8B4"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </Border>
+
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" Duration="0:0:0.35" />
+
+                    <DoubleAnimation Storyboard.TargetName="MarkHost"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" Duration="0:0:0.65" />
+
+                    <DoubleAnimation Storyboard.TargetName="MarkScale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     From="0.82" To="1" Duration="0:0:0.8">
+                        <DoubleAnimation.EasingFunction>
+                            <BackEase EasingMode="EaseOut" Amplitude="0.35" />
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="MarkScale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     From="0.82" To="1" Duration="0:0:0.8">
+                        <DoubleAnimation.EasingFunction>
+                            <BackEase EasingMode="EaseOut" Amplitude="0.35" />
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+
+                    <DoubleAnimation Storyboard.TargetName="MarkRingRotation"
+                                     Storyboard.TargetProperty="Angle"
+                                     From="0" To="360" Duration="0:0:6"
+                                     RepeatBehavior="Forever" />
+
+                    <DoubleAnimation Storyboard.TargetName="Tagline"
+                                     Storyboard.TargetProperty="Opacity"
+                                     BeginTime="0:0:0.5"
+                                     From="0" To="1" Duration="0:0:0.6" />
+                    <DoubleAnimation Storyboard.TargetName="TaglineOffset"
+                                     Storyboard.TargetProperty="Y"
+                                     BeginTime="0:0:0.5"
+                                     From="12" To="0" Duration="0:0:0.6">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut" />
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+
+                    <DoubleAnimation Storyboard.TargetName="ProgressBlock"
+                                     Storyboard.TargetProperty="Opacity"
+                                     BeginTime="0:0:0.8"
+                                     From="0" To="1" Duration="0:0:0.4" />
+
+                    <DoubleAnimation Storyboard.TargetName="ProgressOffset"
+                                     Storyboard.TargetProperty="X"
+                                     BeginTime="0:0:0.8"
+                                     From="-140" To="510" Duration="0:0:1.4"
+                                     RepeatBehavior="Forever" />
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
+</Window>

@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
 ---
 
-You own the WPF presentation layer of MotorPumpSuite (`src/MotorPumpSuite.App`).
+You own the WPF presentation layer of VinayakaAgencies (`src/VinayakaAgencies.App`).
 
 Your user is a motor & pump dealer's counter staff, billing all day, by keyboard, at speed. They are
 not going to read a manual. Optimise for keyboard throughput and for making mistakes visible, not for

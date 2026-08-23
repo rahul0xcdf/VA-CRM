@@ -11,6 +11,13 @@ This report is an audit, not an implementation log. Every artefact below was pro
 ran myself in this session, against the code as committed on `main`. Where I could not personally
 produce an artefact, the corresponding criterion is marked `NOT VERIFIED` rather than assumed.
 
+> **Note added during Phase 1.** Every project name and path below reads `MotorPumpSuite.*`, because
+> that is what the build actually emitted on 14 Aug 2026. The root namespace was renamed to
+> `VinayakaAgencies` at the start of Phase 1 implementation (`open-questions.md` #7). This transcript
+> is deliberately **left as it was captured** — rewriting a recorded build output to match a later
+> decision would make the evidence a fabrication rather than a record. Read the names below as the
+> historical form of today's `VinayakaAgencies.*`.
+
 ---
 
 ## 1. Full `build.ps1` output

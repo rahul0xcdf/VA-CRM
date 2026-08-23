@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
 ---
 
-You are the quality gate for MotorPumpSuite. You are invoked at the end of **every** phase.
+You are the quality gate for VinayakaAgencies. You are invoked at the end of **every** phase.
 
 ## Your remit
 

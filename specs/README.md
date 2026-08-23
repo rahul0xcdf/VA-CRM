@@ -6,9 +6,10 @@ One file per phase, derived from [`../project.md`](../project.md) §10.
 
 1. A phase's spec is written **before** its implementation begins.
 2. Implementation is blocked until the spec's frontmatter says `Status: Approved`.
-   The `PreToolUse` hook (`.claude/hooks/spec-gate.ps1`) enforces this on `src/` and `tests/`.
-3. `CURRENT_PHASE` holds a single integer — the phase currently in flight. The `SessionStart`
-   hook reads it and injects that phase's spec path + checkpoint checklist into context.
+   (The `PreToolUse` hook that once enforced this was removed at the owner's instruction;
+   the rule itself stands and is honoured by the working agreement.)
+3. `CURRENT_PHASE` holds a single integer — the phase currently in flight. Read it, then that
+   phase's spec, before touching anything.
 4. Checkpoint criteria are copied verbatim from `project.md` §10 and may be **extended**, never weakened.
 5. At the end of a phase, `qa-agent` writes `evidence/phase-N-evidence.md`. The project owner
    reviews that before `CURRENT_PHASE` is advanced.
@@ -40,5 +41,6 @@ One file per phase, derived from [`../project.md`](../project.md) §10.
 
 - `adr/` — architecture decision records for anything that changes a locked decision in `project.md` §3.
 - `evidence/` — per-phase QA evidence reports.
-- `session-log.md` — written by the `PreCompact` hook; git-ignored, regenerated per session.
+- `session-log.md` — optional session notes; not written by any tooling since the PreCompact hook
+  was removed.
 - `open-questions.md` — `project.md` §11 assumptions, tracked until confirmed.

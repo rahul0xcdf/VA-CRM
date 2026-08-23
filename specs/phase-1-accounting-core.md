@@ -3,17 +3,37 @@
 ```yaml
 Phase: 1
 Title: Accounting Core
-Status: Draft
+Status: Approved
+Approved by: Project owner, 14 Aug 2026
 Source: project.md §4.1, §4.6, §10 (Phase 1)
 Depends on: Phase 0
 Blocks: Phases 2–10
-Decisions recorded: ADR-0001 (layering), ADR-0002 (append-only journal)
+Decisions recorded: ADR-0001 (layering), ADR-0002 (append-only journal), ADR-0003 (money storage)
 ```
 
-> **Draft.** This file is now expanded to what the architect believes is an approvable state.
-> `Status` is the project owner's call, not the architect's — see §14 for the list of questions that
-> must be answered before it can move to `Approved`. The spec gate blocks `src/` and `tests/` edits
-> until then.
+> **Approved 14 Aug 2026 by the project owner**, who instructed that implementation proceed on the
+> defaults this spec proposes, to be corrected after they have used the running application. The
+> `Status` change is recorded here as the owner's decision, not the architect's.
+>
+> **What was decided, and what was deferred to first use.** Two blocking items were answered
+> outright: money storage (**ADR-0003 accepted** — scaled 64-bit integer minor units, see §6) and
+> the D1–D4 decisions in §3. The remaining §16 items proceed on the defaults proposed in this
+> file — the seed ledger list in §4.5, the numbering prefixes in §7.2, and the audit-log hash chain
+> in §11 — on the explicit understanding that the owner will review them against the running
+> product and correct them.
+>
+> **Two of those defaults are cheap to change now and expensive later**, and are flagged for
+> attention at first review rather than left silent:
+> - **Numbering prefixes** (`PMT/0001`, `RCT/0001`, `SAL/0001`, …) end up printed on documents given
+>   to customers and filed with returns. Changing them after real vouchers exist means either a gap
+>   in the series or a renumbering, and GST invoice numbering is not freely re-writable.
+> - **Seed ledgers** are simple to add later, but any that are wrong and have already been *posted
+>   to* cannot simply be deleted — the append-only journal (ADR-0002) has no delete path.
+>
+> Implementation order follows the owner's instruction to build a usable vertical slice first:
+> chart of accounts → ledger masters → Payment/Receipt/Journal entry → day book and trial balance,
+> so the journal engine and audit trail can be judged in use before the remaining voucher types and
+> statements are built out.
 
 ## 1. Goal
 
@@ -62,7 +82,7 @@ These close items that were listed as open in the Phase 1 stub and in `open-ques
 | D1 | **Financial year starts 1 April** (Indian standard). `Company.FinancialYearStartMonth` stays `4`; the column remains because the schema is multi-company-ready and the value is data, not a constant. | `open-questions.md` #9 — Confirmed |
 | D2 | **Voucher numbering:** per-voucher-type series with prefix + width; the counter **resets each financial year**; **gaps are blocked** — deleting or cancelling a voucher does not free its number; any gap that does arise is surfaced in an audit report rather than silently reused; a **manual number override is permitted and is written to the edit log**. Closest to TallyPrime's default behaviour. | §7, `open-questions.md` #11 — Confirmed |
 | D3 | **Cost centres: schema now, UI hidden.** `CostCategory`, `CostCentre` and the **nullable** `JournalLine.CostCentreId` ship in the Phase 1 migration; **no UI is built in Phase 1**. | §9, `open-questions.md` #12 — Confirmed |
-| D4 | **Product display branding is "Vinayaka Agencies."** The solution and root namespace remain `MotorPumpSuite`; a namespace rename is still an open owner decision and is cheapest before Phase 1 implementation starts. | `open-questions.md` #7 — display name confirmed, rename still Open |
+| D4 | **Product display branding is "Vinayaka Agencies."** ~~The solution and root namespace remain `MotorPumpSuite`; a namespace rename is still an open owner decision and is cheapest before Phase 1 implementation starts.~~ **Superseded 15 Aug 2026:** the owner elected to rename. The solution, root namespace and all seven projects are now `VinayakaAgencies`; the display name is unchanged at "Vinayaka Agencies". Done immediately before the Phase 1 migration was generated, which is the point §16 identified as cheapest. | `open-questions.md` #7 — **Resolved, renamed** |
 
 ## 4. Chart of accounts
 
@@ -193,20 +213,100 @@ All tables carry `CompanyId` (§10). All `Id` values are client-generated GUIDs 
 
 | Entity | Key columns | Notes |
 |---|---|---|
-| `AccountGroup` | `CompanyId`, `Name`, `ParentGroupId?`, `MaterialisedPath`, `Nature`, `AffectsGrossProfit`, `IsPrimary`, `IsSystem`, `SortOrder`, `IsActive` | Unique `(CompanyId, ParentGroupId, Name)`. Index on `(CompanyId, MaterialisedPath)` |
-| `Ledger` | `CompanyId`, `Name`, `Alias?`, `AccountGroupId`, `IsSystem`, `AllowsManualPosting`, `Description?`, `IsActive` | Unique `(CompanyId, Name)`. **No opening-balance column** — see §8.5. Whether a ledger is a bank ledger is *derived* from its group being at or under `Bank Accounts` / `Bank OD A/c`, not stored |
+| `AccountGroup` | `CompanyId`, `Name`, `ParentGroupId?`, `MaterialisedPath`, `Nature`, `AffectsGrossProfit`, `IsPrimary`, `IsSystem`, `SortOrder`, `IsActive` | Sibling names unique, as **two** filtered unique indexes — `(CompanyId, ParentGroupId, NameNormalised) WHERE ParentGroupId IS NOT NULL` and `(CompanyId, NameNormalised) WHERE ParentGroupId IS NULL`. Amended 15 Aug 2026; see "Nullable columns in a unique index" below — a single unfiltered index over the nullable parent means one thing on SQLite and another on SQL Server. Index on `(CompanyId, MaterialisedPath)`. `MaterialisedPath` is capped at 400 chars — see §4.2 and the note below this table |
+| `Ledger` | `CompanyId`, `Name`, `Alias?`, `AccountGroupId`, `IsSystem`, `AllowsManualPosting`, `Description?`, `IsActive` | Unique `(CompanyId, NameNormalised)`. **No opening-balance column** — see §8.5. Whether a ledger is a bank ledger is *derived* from its group being at or under `Bank Accounts` / `Bank OD A/c`, not stored |
 | `FinancialYear` | `CompanyId`, `StartDate` (`DateOnly`), `EndDate` (`DateOnly`), `Label`, `IsClosed` | Unique `(CompanyId, StartDate)`. Created lazily on first post into a year, derived from `Company.FinancialYearStartMonth` |
 | `PeriodLock` | `CompanyId`, `LockedThroughDate` (`DateOnly`), `Reason`, `SetBy`, `SetAtUtc` | One row per company; changing it is a master change and is edit-logged |
-| `VoucherType` | `CompanyId`, `Name`, `Kind`, `IsSystem`, `DefaultSeriesId?`, `IsActive` | Unique `(CompanyId, Name)`. See §7.1 for why `Kind` is an enum while the type itself is a data row |
-| `VoucherNumberSeries` | `CompanyId`, `VoucherTypeId`, `Name`, `Prefix`, `Suffix`, `Width`, `StartNumber`, `ResetPolicy`, `AllowManualOverride`, `IsActive` | §7.2 |
+| `VoucherType` | `CompanyId`, `Name`, `Kind`, `IsSystem`, `DefaultSeriesId?`, `IsActive` | Unique `(CompanyId, NameNormalised)`. See §7.1 for why `Kind` is an enum while the type itself is a data row |
+| `VoucherNumberSeries` | `CompanyId`, `VoucherTypeId`, `Name`, `NameNormalised`, `Prefix`, `Suffix`, `Width`, `StartNumber`, `ResetPolicy`, `AllowManualOverride`, `IsActive` | §7.2. Unique `(CompanyId, VoucherTypeId, NameNormalised)` — added 15 Aug 2026; the name is scoped to the voucher type, because a series called "Default" under both Sales and Payment is normal |
 | `VoucherNumberSequence` | `SeriesId`, `FinancialYearId`, `LastAllocatedNumber` | Unique `(SeriesId, FinancialYearId)`. High-water mark; never decreases |
 | `Voucher` | `CompanyId`, `VoucherTypeId`, `SeriesId`, `FinancialYearId` | Immutable identity only. This GUID is the stable id Phase 8 exports to Tally |
-| `VoucherRevision` | `VoucherId`, `RevisionNumber`, `Status`, `VoucherDate` (`DateOnly`), `Number`, `NumberNormalised`, `IsManualNumber`, `Narration?`, `ReferenceNumber?`, `ReferenceDate?`, `ChangeReason?`, `SupersededByRevisionId?`, `CreatedAtUtc`, `CreatedBy` | Unique `(VoucherId, RevisionNumber)`. Filtered unique index on `(CompanyId, VoucherTypeId, SeriesId, FinancialYearId, NumberNormalised) WHERE SupersededByRevisionId IS NULL`. See ADR-0002 |
+| `VoucherRevision` | `VoucherId`, `RevisionNumber`, `Status`, `VoucherDate` (`DateOnly`), `Number`, `NumberNormalised`, `IsManualNumber`, `Narration?`, `ReferenceNumber?`, `ReferenceDate?`, `ChangeReason?`, `SupersededByRevisionId?`, `CreatedAtUtc`, `CreatedBy`, **`CompanyId`, `VoucherTypeId`, `SeriesId`, `FinancialYearId`** | Unique `(VoucherId, RevisionNumber)`. Filtered unique index on `(CompanyId, VoucherTypeId, SeriesId, FinancialYearId, NumberNormalised) WHERE SupersededByRevisionId IS NULL`. See ADR-0002. **The last three key columns are denormalised copies of the parent `Voucher`'s** — amended 15 Aug 2026 after `architect-agent` review found the index unbuildable otherwise, since neither provider can put a unique index across a join. They are set in the constructor from the parent, are `private set`, and are never mutated; all three are immutable on `Voucher`, so the copies cannot drift by construction. `FinancialYearId` is mandatory in the key, not optional: D2 resets the counter each financial year, so `PMT/0001` legitimately recurs and a company-wide unique index would reject the second year's first payment |
 | `JournalLine` | `CompanyId`, `VoucherRevisionId`, `LineNumber`, `LedgerId`, `AmountMinor`, `CostCentreId?`, `Narration?` | Insert-only. Signed amount: positive = debit, negative = credit (§8.1). Index `(CompanyId, LedgerId)` and `(VoucherRevisionId, LineNumber)` |
-| `CostCategory` | `CompanyId`, `Name`, `IsActive` | D3 — schema only, no UI |
-| `CostCentre` | `CompanyId`, `CostCategoryId?`, `Name`, `ParentCostCentreId?`, `MaterialisedPath`, `IsActive` | D3 — schema only, no UI |
+| `CostCategory` | `CompanyId`, `Name`, `NameNormalised`, `IsActive` | D3 — schema only, no UI. Unique `(CompanyId, NameNormalised)` — added 15 Aug 2026 |
+| `CostCentre` | `CompanyId`, `CostCategoryId?`, `Name`, `NameNormalised`, `ParentCostCentreId?`, `MaterialisedPath`, `IsActive` | D3 — schema only, no UI. Unique `(CompanyId, NameNormalised)` — added 15 Aug 2026, company-wide and deliberately **not** scoped by the nullable `CostCategoryId` or `ParentCostCentreId`, both to avoid the NULL-semantics trap below and because Phase 8's Tally import matches cost centres by name. `open-questions.md` #18 |
 | `BankReconciliationMark` | `CompanyId`, `JournalLineId`, `BankDate` (`DateOnly`), `ClearedAtUtc`, `ClearedBy` | §12. Unique on `JournalLineId` |
 | `AuditLogEntry` | `Sequence`, `CompanyId?`, `OccurredAtUtc`, `UserName`, `MachineName`, `SaveBatchId`, `Action`, `EntityType`, `EntityId`, `AggregateType?`, `AggregateId?`, `ChangedProperties`, `BeforeJson?`, `AfterJson?`, `PreviousHash`, `RowHash` | §11. Insert-only at every level from the domain type up to a database trigger |
+
+**Column lengths — added 15 Aug 2026 after `architect-agent` review.** `AppDbContext.ConfigureConventions`
+defaults every non-key string to 512 characters so nothing maps to `nvarchar(max)` by accident at
+Phase 9. SQLite ignores the cap, so a wrong value is invisible through Phase 8 and only bites on the
+provider switch. Three cases must therefore be set explicitly rather than left on the default:
+
+| Property | Length | Why |
+|---|---|---|
+| `AuditLogEntry.BeforeJson`, `.AfterJson`, `.ChangedProperties` | unbounded | §11.1 stores **full row images**. At `nvarchar(512)` they would truncate at Phase 9 — silent audit-log data loss on a table whose triggers block repair. |
+| `AccountGroup.MaterialisedPath`, `CostCentre.MaterialisedPath` | 400 | §4.2 sized this for SQL Server's 900-byte index key limit. At the 512 default the `(CompanyId, MaterialisedPath)` index is 1040 bytes and **SQL Server refuses to create it**. |
+| `AuditLogEntry.PreviousHash`, `.RowHash` | 64, fixed | SHA-256 hex. |
+
+`EntityId` 64; `EntityType` / `AggregateType` 256; `UserName` / `MachineName` / `CreatedBy` /
+`ModifiedBy` 256, matching the existing `CompanyConfiguration`. `Narration` is widened to 1000 —
+512 is tight for an operator used to Tally, and the column costs nothing on SQLite.
+
+**Nullable columns in a unique index — added 15 Aug 2026 after `architect-agent` review.** SQLite and
+SQL Server disagree about NULL inside a unique index, in opposite directions from each other and from
+the SQL standard: SQLite treats two NULLs as **distinct**, so duplicates are accepted; SQL Server
+treats them as **equal**, so the same data is rejected. `(CompanyId, ParentGroupId, NameNormalised)`
+with a nullable parent therefore permits two top-level groups both named "Cash" today, and those rows
+would make the Phase 9 `CREATE UNIQUE INDEX` fail — discovered at migration time, on real data, with
+no good fix left. **The rule for this phase and every later one: a unique index must have either no
+nullable key column, or a filter that decides the NULL case explicitly.** That is what
+`Companies.Gstin` already does (`WHERE [Gstin] IS NOT NULL`), and `IndexFilters` carries both
+predicates so the SQL stays in the dialect layer (ADR-0001). C1.20 enforces it over the whole model,
+so this cannot recur in Phase 2 or Phase 7.
+
+The related principle, applied to the three name indexes added on this date: **a unique index can
+always be dropped later, but can only be added later if the existing data happens to satisfy it.**
+Where the rule is genuinely uncertain, ship the tighter index and loosen it on request.
+
+**Delete behaviour.** Every relationship in this phase is configured `DeleteBehavior.Restrict`,
+explicitly and without exception. EF Core defaults required relationships to `Cascade`, which would
+put a cascade-delete path through `JournalLine` — a delete path for posted lines, which ADR-0002
+forbids outright. `Restrict` on `Ledger → JournalLine` also gives §4.6's "hard delete only when the
+row has no journal line" a database-level backstop instead of a validation someone must remember.
+
+**Phase 1 ships three migrations, not one.** The architect's review called for a single migration
+covering all fourteen tables. In implementation the audit-log table, its indexes and its two
+`RAISE(ABORT)` triggers landed first, as `AddAuditLogTable`, because the audit capture in
+`SaveChangesAsync` cannot be tested at all until the table it writes to exists — and §11's defences
+are the last thing that should ship untested. The accounting tables follow in a second migration.
+Nothing in the review's reasoning is violated: its hard rule was that no column on `JournalLine` or
+`VoucherRevision` may be deferred (§9, §13), and neither is. §15's evidence requirement is read as
+covering the DDL of **all** Phase 1 migrations. Isolating the edit log's DDL arguably helps the
+reviewer who has to satisfy themselves that the triggers exist and that no balance column does.
+
+A third migration, `AddNameUniquenessIndexes`, carries the four index corrections this section
+records under the 15 Aug 2026 dates: the `AccountGroup` pair, and the `VoucherNumberSeries`,
+`CostCategory` and `CostCentre` name indexes. It is a separate migration rather than an edit to
+`AddAccountingCore`, which has already been applied: rewriting an applied migration is a habit that
+costs nothing until Phase 9, when it costs a broken upgrade path. It adds indexes only — no column,
+no table — so it is safe on both providers and on any database already carrying the second migration.
+
+**Seed data does not use EF's `HasData`.** The §4.3 primary groups, §4.4 sub-groups, §4.5 ledgers and
+§7.1 voucher types with their series are written at runtime by a company-provisioning service going
+through `IUnitOfWork`, not baked into the migration. Three reasons, any one sufficient: `HasData`
+writes rows through the migration and therefore **bypasses `SaveChangesAsync` and the audit trail**,
+which §11.1 requires for every insert of every mapped entity — the creation of a system-locked row is
+exactly what an auditor asks about; it bypasses `IAuditStamped`, so `CreatedBy` would be a literal
+string; and every one of these rows is `CompanyId`-scoped while companies are created at runtime, so
+per-company seed data is not expressible as static migration data at all. Provisioning a company
+therefore produces roughly fifty audit rows, which is the correct outcome rather than a cost.
+
+**Enum columns are stored as strings** (`HasConversion<string>()`), for the reason §11.3 already
+gives about the audit log: a later enum reordering must not silently change the meaning of existing
+rows. This applies to `AccountNature`, `VoucherKind`, `VoucherStatus`, `NumberResetPolicy` and
+`AuditAction`, and applies harder because Phase 5 and Phase 8 reporting SQL filters on them.
+
+**`CompanyId` is a real foreign key with no navigation property** — `HasOne<Company>().WithMany()`.
+Referential integrity for §10's cross-company rule belongs in the database, not only in the §8.1
+post-time validation. Omitting the navigation keeps §11.3's "navigation properties are never
+serialised" trivially true. Two exceptions: `AuditLogEntry.CompanyId` gets **no** FK, because the log
+must outlive any company row; and `VoucherType.DefaultSeriesId` gets no FK, because
+`VoucherType → VoucherNumberSeries → VoucherType` is a cycle that would force EF to split the insert
+into an insert-with-null plus a later `UPDATE`, generating a spurious audit row on every company
+provisioning. A **third** exception was added on 15 Aug 2026: `VoucherRevision.SupersededByRevisionId`
+gets no FK, because a foreign key there makes ADR-0002's central operation unsaveable in any ordering
+— see §8.2 and ADR-0002 Amendment 1. These three are the complete list; a fourth needs an ADR.
 
 ## 6. Money: exactness under SQLite — **needs ADR-0003 before implementation**
 
@@ -327,6 +427,46 @@ accounting query filters on that predicate; the reason it is a predicate rather 
 is that it simultaneously records *what* superseded a revision, which the edit-log viewer needs.
 A partial (SQLite) / filtered (SQL Server) index supports it on both providers.
 
+**`SupersededByRevisionId` carries no foreign key, and the write order is mandated — ADR-0002
+Amendment 1, added 15 Aug 2026.** The successor carries the same number as the predecessor, so for as
+long as both rows have a null `SupersededByRevisionId` they collide in the filtered unique index. A
+foreign key would force exactly that order (the update depends on the inserted row), and no provider
+defers unique-index or foreign-key checking to commit — SQL Server has none at all — so with the
+foreign key present the alteration cannot be saved in any ordering, by any number of saves. The
+column is therefore the third and last exception to §5's "every reference is a real foreign key",
+and the ordering is stated here rather than left to EF Core's command ordering, which has no model of
+a filtered index's predicate and therefore gives no guarantee.
+
+**The alteration procedure — implement exactly this.** It is *one* method on the posting service
+(`AlterAsync` / `CancelAsync`), never a sequence a caller assembles, because step 3 leaves a state
+that must not be committed.
+
+1. **Validate everything first**, against the *proposed* revision: every rule in §8.1, including the
+   period lock; the change reason, required on every revision after the first; and any manual
+   number. Allocate a number from the sequence only if the alteration changes it. Nothing has been
+   written yet, so a rejection here costs nothing.
+2. **Open a transaction — `await using var tx = await unitOfWork.BeginTransactionAsync(ct)`.** It is
+   mandatory. Between steps 3 and 4 the voucher has *no* current revision: its number is free and it
+   is invisible to every query in §8.4. Committing that state loses a voucher from the books.
+3. **Save 1 — supersession only.** Call `predecessor.SupersedeBy(successorId)` with the successor's
+   client-generated GUID (available before insert, ADR-0001 §5) and `SaveChangesAsync`. The successor
+   row does not exist yet; with no foreign key that is legal, and the predecessor now leaves the
+   filtered index, freeing the number.
+4. **Save 2 — the successor and all of its `JournalLine` rows together, in one `SaveChangesAsync`.**
+   They *should* share a save: `JournalLine.VoucherRevisionId` is a real foreign key, so EF orders the
+   parent before the children correctly and by construction. Do not split them, and do not fold the
+   supersession of step 3 into this save.
+5. **Commit.** Any failure disposes the transaction and rolls both saves back.
+
+Cancellation (§8.6) and renumbering (§7.2) follow the same five steps unchanged — a cancelled
+successor simply has no lines at step 4, and a renumbered one carries a different number. One code
+path, no special cases, so the ordering cannot be right in one path and wrong in another.
+
+**Consequence on the edit log.** Two saves mean two `SaveBatchId` values, so an alteration is not one
+batch. `VoucherRevision` and `JournalLine` must therefore implement `IBelongsToAggregate` returning
+`("Voucher", VoucherId)` — §11.1 requires this regardless — so the edit-log viewer groups the whole
+alteration under the voucher. Do not widen `SaveBatchId` to span a transaction to work around this.
+
 ### 8.3 The derived-balance invariant
 
 **No table in this schema has a balance column, and none ever will.** Not on `Ledger`, not on
@@ -349,7 +489,7 @@ else is a rewrite of this invariant and needs its own ADR.
 
 All reporting reads go through `ISqlQueryExecutor` with a named `SqlQueryKey` resolved per provider
 by `ISqlDialect` (ADR-0001 §3). **No SQL string appears in Application or App.** The keys Phase 1
-adds, declared in `MotorPumpSuite.Application/Reporting/AccountingQueryKeys.cs`:
+adds, declared in `VinayakaAgencies.Application/Reporting/AccountingQueryKeys.cs`:
 
 | `SqlQueryKey` | Purpose | Parameters |
 |---|---|---|
@@ -459,7 +599,7 @@ volume that is the right trade.
 ### 11.2 Where it is captured
 
 In `AppDbContext.SaveChangesAsync`, at the same interception point Phase 0 built for `IAuditStamped`
-(`src/MotorPumpSuite.Domain/Common/IAuditStamped.cs`). The change tracker is walked *before*
+(`src/VinayakaAgencies.Domain/Common/IAuditStamped.cs`). The change tracker is walked *before*
 `base.SaveChangesAsync`, and the log rows are inserted in the **same transaction** as the change they
 describe: either both commit or neither does.
 
@@ -515,9 +655,26 @@ Layered so that no single mistake defeats it:
 Prevention stops at the file: through Phases 1–8 the database is a local SQLite file that a
 determined user can open with any tool and, with enough effort, drop a trigger. So the log is also
 made **tamper-evident**. Each row stores `PreviousHash` and `RowHash`, where `RowHash` is
-SHA-256 over UTF-8 of the concatenation of `PreviousHash`, `Sequence`, `OccurredAtUtc` (`O`),
-`UserName`, `Action`, `EntityType`, `EntityId`, `BeforeJson` and `AfterJson`, hex-encoded lower-case.
-`Accounting.EditLog.ChainVerification` re-computes the chain and reports the first break.
+SHA-256 over UTF-8 of the unit-separated (`U+001F`) concatenation of `PreviousHash`,
+`OccurredAtUtc` (`O`, normalised to UTC), `UserName`, `MachineName`, `SaveBatchId`, `Action`
+(**its name, not its integer** — §11.3's own reasoning applies here too), `EntityType`, `EntityId`,
+`AggregateType`, `AggregateId`, `ChangedProperties`, `BeforeJson` and `AfterJson`, hex-encoded
+lower-case. `Accounting.EditLog.ChainVerification` re-computes the chain and reports the first break.
+
+> **Amended 15 Aug 2026 to the implemented field list**, after `architect-agent` review. This spec
+> originally listed `Sequence` in the hashed payload and omitted `MachineName`, `SaveBatchId`,
+> `AggregateType`, `AggregateId` and `ChangedProperties`. Hashing `Sequence` is **not implementable**:
+> it is assigned by the database on insert, the row is sealed before `base.SaveChangesAsync`, and the
+> `BEFORE UPDATE` trigger (§11.4 item 3) forbids re-sealing afterwards. The implementation in
+> `AuditLogEntry.Seal` is correct and the spec is amended to match it — the wider field list covers
+> strictly more of the row, so the guarantee is stronger, not weaker. A field separator that cannot
+> occur in a GUID, an ISO-8601 timestamp or JSON text keeps two different rows from hashing
+> identically by shifting content across a delimiter.
+>
+> One consequence for C1.16: the chain's `PreviousHash` linkage assumes rows are inserted in the
+> order they were sealed, which EF Core does not formally guarantee within a batch. The C1.16 fixture
+> must therefore include a single `SaveChanges` that writes three or more log rows, and assert the
+> chain still verifies.
 
 This does not prevent tampering; it makes tampering **provable**, which is what an auditor needs.
 Real prevention arrives with SQL Server permissions at Phase 9 and data-at-rest protection at
@@ -592,13 +749,29 @@ Explicitly not in this phase. If a task appears to need one of these, stop and f
   dependency; PDF is FastReport, which is Phase 3. Do not add either NuGet package in this phase.
 - **Numbering under concurrency.** §7.2's read-modify-write allocation is safe only because Phases 1–8
   are single-user. Phase 9 must replace it; noted here and to be carried into the Phase 9 spec.
+- **Alteration under concurrency (Phase 9 note).** §8.2's supersede-then-insert holds on SQL Server
+  unchanged — the filtered index and the constraint timing behave the same way, and the ordering is
+  the spec's, not the provider's. What changes at Phase 9 is that between the two saves the number is
+  momentarily free *to other sessions* as well. Under `READ COMMITTED` a second session cannot commit
+  a claim on it, because the first session's transaction holds the index key until commit, but it can
+  block or deadlock there. Phase 9 must decide the lock or retry strategy alongside the numbering
+  work above; the two are the same problem and should be solved once. Carry into the Phase 9 spec.
 - **Audit-log retention or archival.** There is no purge, and Phase 10's backup work must not
   introduce one. Any future archival must be copy-never-delete, to append-only storage, and needs an
   ADR.
-- **SQL Server trigger interaction (Phase 9 note).** EF Core 8 needs
+- **SQL Server trigger interaction — resolved in Phase 1, not deferred.** EF Core 8 needs
   `.ToTable(t => t.HasTrigger(...))` for SQL Server tables carrying triggers, otherwise its
-  `OUTPUT`-clause save path breaks. The audit-log table will carry triggers on both providers. Carry
-  this into the Phase 9 spec.
+  `OUTPUT`-clause save path breaks. The audit-log table carries triggers on both providers, and
+  `AuditLogEntry.Sequence` is store-generated, so the SQL Server provider will emit
+  `INSERT … OUTPUT INSERTED.Sequence` — which SQL Server rejects on a table with enabled triggers.
+  **Amended 15 Aug 2026:** the annotation is therefore declared **now**, in the Phase 1 audit
+  configuration, naming both triggers. It is inert on SQLite, so it costs nothing today and Phase 9
+  does not break. Still carried into the Phase 9 spec as a constraint, but no longer as an open task.
+- **Migration rollback must never reach the UI (Phase 10 note).** `Down()` on the Phase 1 migration
+  drops the audit-log table. That is inherent to how migrations work and is acceptable as a developer
+  action, but Phase 10's backup/restore work must not surface migration rollback as a user-facing
+  operation — that would be an audit-trail delete path wearing a maintenance label (§11.4). Carry
+  this into the Phase 10 spec.
 
 ## 14. Checkpoint criteria
 
@@ -624,14 +797,19 @@ Phase 1 stub. C1.8 onward are added here. Criteria may be extended, never weaken
 | C1.14 | Materialised paths agree with `ParentGroupId` | Build a randomised group tree, re-parent nodes, then assert every `MaterialisedPath` equals the path recomputed from `ParentGroupId` alone |
 | C1.15 | Money arithmetic is exact | Post amounts chosen to be inexact in binary floating point (e.g. 0.1 + 0.2 patterns, ₹1/3 splits); assert the trial balance is exactly zero and no `double`/`float` appears in any accounting type or report DTO |
 | C1.16 | The audit hash chain verifies, and detects tampering | Verify the chain over the C1.5 fixture; then, with triggers dropped in a throwaway copy, mutate one row and assert verification reports that row as the first break |
+| C1.17 | `SupersededByRevisionId` has no foreign key, deliberately | Model test: `context.Model.FindEntityType(typeof(VoucherRevision))!.GetForeignKeys()` contains none whose properties include `SupersededByRevisionId`. The assertion message must state why (ADR-0002 Amendment 1), because the failure mode is a future contributor "fixing" the omission and breaking every alteration |
+| C1.18 | An alteration supersedes before it inserts | Capture the emitted SQL for one `AlterAsync` with a `DbCommandInterceptor`; assert the `UPDATE` of `VoucherRevisions` setting `SupersededByRevisionId` is issued **before** the `INSERT` of the successor row, and that both are inside one transaction. This is the test that survives an EF Core upgrade reordering commands, or someone collapsing §8.2's two saves into one |
+| C1.19 | Every voucher has exactly one current revision | Over the C1.5 fixture plus a set of altered and cancelled vouchers, assert that each `Voucher` has exactly one revision with `SupersededByRevisionId IS NULL`, and that every non-null `SupersededByRevisionId` resolves to an existing revision of the *same* voucher. This is the invariant the missing foreign key used to guarantee; assert it after a deliberately failed alteration too, so a rolled-back transaction is shown to leave no orphan |
+| C1.20 | No unique index depends on NULL semantics | Model test over every entity type: for each unique index, either no key property is nullable, or the index has a filter. Guards the §5 rule that SQLite and SQL Server disagree about NULL in a unique index, for this phase and every later one |
 
 ## 15. Evidence required
 
 `qa-agent` writes `/specs/evidence/phase-1-evidence.md` containing:
 
 - full `build.ps1` output (build must be warning-free) and the `dotnet test` summary with per-test names;
-- `dotnet ef migrations list` output and the generated DDL for the Phase 1 migration, so the reviewer
-  can see for themselves that no balance column exists and that the audit triggers are created;
+- `dotnet ef migrations list` output and the generated DDL for **all three** Phase 1 migrations, so the
+  reviewer can see for themselves that no balance column exists, that the audit triggers are created,
+  and that every unique index either has no nullable key column or has a filter (§5, C1.20);
 - the trial balance, P&L and balance sheet produced from the ≥500-voucher fixture, with the totals;
 - the edit-log extract for one voucher taken through create → alter → cancel, showing the before/after
   images;
@@ -645,6 +823,6 @@ Phase 1 stub. C1.8 onward are added here. Criteria may be extended, never weaken
 - [ ] **Seed ledger list (§4.5) approved line by line** by the project owner — in particular L7–L9, which are marked "Owner decides".
 - [ ] **Numbering series defaults confirmed** — the prefix and width for each of the eight voucher types (`open-questions.md` #14).
 - [ ] **Hash chain (§11.5) confirmed in or out of Phase 1** — cheap now, awkward later.
-- [ ] `open-questions.md` #7 resolved: rename the root namespace to match "Vinayaka Agencies", or keep `MotorPumpSuite`. Cheapest immediately before Phase 1 implementation starts; expensive after.
+- [ ] `open-questions.md` #7 resolved: rename the root namespace to match "Vinayaka Agencies", or keep `VinayakaAgencies`. Cheapest immediately before Phase 1 implementation starts; expensive after.
 - [ ] Project owner has read §13 and agrees nothing in it is needed at launch.
 - [ ] `Status` of this file changed to `Approved` **by the project owner**, and `CURRENT_PHASE` advanced to `1`.

@@ -5,8 +5,8 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 model: opus
 ---
 
-You own persistence for MotorPumpSuite: `src/MotorPumpSuite.Infrastructure` and the entity/abstraction
-types in `src/MotorPumpSuite.Domain`.
+You own persistence for VinayakaAgencies: `src/VinayakaAgencies.Infrastructure` and the entity/abstraction
+types in `src/VinayakaAgencies.Domain`.
 
 ## Your remit
 
@@ -40,9 +40,9 @@ types in `src/MotorPumpSuite.Domain`.
 ## Commands
 
 ```powershell
-dotnet ef migrations add <Name> -p src\MotorPumpSuite.Infrastructure -s src\MotorPumpSuite.App -o Persistence\Migrations
-dotnet ef migrations list      -p src\MotorPumpSuite.Infrastructure -s src\MotorPumpSuite.App
-dotnet ef database update      -p src\MotorPumpSuite.Infrastructure -s src\MotorPumpSuite.App
+dotnet ef migrations add <Name> -p src\VinayakaAgencies.Infrastructure -s src\VinayakaAgencies.App -o Persistence\Migrations
+dotnet ef migrations list      -p src\VinayakaAgencies.Infrastructure -s src\VinayakaAgencies.App
+dotnet ef database update      -p src\VinayakaAgencies.Infrastructure -s src\VinayakaAgencies.App
 ```
 
 Test every migration by applying it to a fresh database **and** by round-tripping data through it.
