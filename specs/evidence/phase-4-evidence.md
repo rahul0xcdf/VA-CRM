@@ -40,8 +40,8 @@ Build: 0 warnings, 0 errors across all eight projects (nullable warnings-as-erro
 | VinayakaAgencies.Domain.Tests | 328 | 0 | 328 |
 | VinayakaAgencies.Application.Tests | 46 | 0 | 46 |
 | VinayakaAgencies.App.Tests | 8 | 0 | 8 |
-| VinayakaAgencies.Infrastructure.Tests | 157 | 0 | 157 |
-| **Total** | **539** | **0** | **539** |
+| VinayakaAgencies.Infrastructure.Tests | 159 | 0 | 159 |
+| **Total** | **541** | **0** | **541** |
 
 Per-project transcript (from the same session's `dotnet test` runs):
 
@@ -49,12 +49,12 @@ Per-project transcript (from the same session's `dotnet test` runs):
 Passed!  - Failed:     0, Passed:   328, Skipped:     0, Total:   328 - VinayakaAgencies.Domain.Tests.dll
 Passed!  - Failed:     0, Passed:    46, Skipped:     0, Total:    46 - VinayakaAgencies.Application.Tests.dll
 Passed!  - Failed:     0, Passed:     8, Skipped:     0, Total:     8 - VinayakaAgencies.App.Tests.dll
-Passed!  - Failed:     0, Passed:   157, Skipped:     0, Total:   157 - VinayakaAgencies.Infrastructure.Tests.dll
+Passed!  - Failed:     0, Passed:   159, Skipped:     0, Total:   159 - VinayakaAgencies.Infrastructure.Tests.dll
 ```
 
 Phase 4 additions to those suites: 21 domain tests (`tests/VinayakaAgencies.Domain.Tests/Customers/`),
 11 application tests (`PricingServiceTests`, `SalesSettingsServiceTests` — three-basis fixtures,
-precedence), 7 infrastructure workflow tests (`CustomerWorkflowTests`) and 1 navigation assertion.
+precedence), 9 infrastructure workflow tests (`CustomerWorkflowTests`) and 1 navigation assertion.
 
 ## 3. Checkpoint criteria
 
@@ -64,7 +64,7 @@ precedence), 7 infrastructure workflow tests (`CustomerWorkflowTests`) and 1 nav
 | C4.2 | An override is possible but logged | VERIFIED | `CustomerWorkflowTests.OverrideBeforeSave_PersistsAppliedRateAndEvidence_WithAnEditLogRow` — line keeps `AppliedRateMinor ≠ RateMinor`, `IsPriceOverridden=true`; `AuditLogEntry.AfterJson` contains all three evidence fields |
 | C4.3 | Statement matches invoices minus receipts | VERIFIED | `ICustomerStatementService.CustomerStatementAsync` asserted inside `BillwiseOutstanding_SixHundredReceipt_GoesToTheOldestBillFirst` — closing balance ₹800 = Σ invoices ₹1,400 − receipt ₹600 |
 | C4.4 | All three pricing bases verified against hand-computed fixtures | VERIFIED | `PricingServiceTests`: fixed 175.0000; margin-on-cost 250 +20% → 300.0000; margin-on-sale MRP 500 −10% → 450.0000; precedence special → category → item default |
-| C4.5 | Without override permission no UI path changes an auto-applied price | VERIFIED | UI: rate cell disabled when `Sales.AllowPriceOverride` off and a price applied (`TradeDocumentsView` template column + `InverseBooleanConverter`); service backstop `TradeDocumentService.ValidateHeaderAndLinesAsync` refuses overridden sale lines when the gate is off (workflow test in `Customers/`) |
+| C4.5 | Without override permission no UI path changes an auto-applied price | VERIFIED | UI: rate cell disabled when `Sales.AllowPriceOverride` off and a price applied (`TradeDocumentsView` template column + `InverseBooleanConverter`). Service backstop: `SaveDocument_WhenOverridesLocked_ARateMovedOffItsAppliedPrice_IsRefused` (refusal + nothing persisted) and `SaveDocument_WhenOverridesLocked_ARateMatchingItsAppliedPrice_Saves`; enforced in `TradeDocumentService.ValidateHeaderAndLinesAsync` |
 | C4.6 | Part-payment applies against the oldest open bill | VERIFIED | `CustomerWorkflowTests.BillwiseOutstanding_SixHundredReceipt_GoesToTheOldestBillFirst`: older ₹1,000 + newer ₹400 invoices, one ₹600 receipt → older opens ₹400 / newer opens ₹400; credit policy pair in `CreditCheck_BlockPolicyRejectsOverLimit_WarnAllows` |
 
 ## 4. Decisions recorded during implementation
