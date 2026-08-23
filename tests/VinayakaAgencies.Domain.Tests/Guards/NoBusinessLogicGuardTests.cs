@@ -4,20 +4,22 @@ using VinayakaAgencies.Domain.Tests.TestSupport;
 namespace VinayakaAgencies.Domain.Tests.Guards;
 
 /// <summary>
-/// C0.8 (Phase 0) — "No business logic leaked in", updated for Phase 1 and Phase 2.
+/// C0.8 (Phase 0) — "No business logic leaked in", updated for Phases 1 through 3.
 /// </summary>
 /// <remarks>
 /// Phase 0's version of this guard asserted the domain contained exactly one entity, <c>Company</c>,
 /// and that no voucher/ledger/stock/GST/pricing type existed anywhere. Phase 1 (spec
 /// <c>specs/phase-1-accounting-core.md</c> §5) legitimately adds the chart-of-accounts, journal and
 /// numbering entities plus the audit log; Phase 2 (spec <c>specs/phase-2-inventory.md</c> §1,
-/// Approved 22 Aug 2026) legitimately adds the inventory masters and the unified stock ledger. A
-/// guard that forbade a phase's own approved concepts would fail correctly-scoped work.
+/// Approved 22 Aug 2026) adds the inventory masters and the unified stock ledger; Phase 3 (spec
+/// <c>specs/phase-3-sales-purchase-pipeline.md</c>, Approved 22 Aug 2026) adds the trade documents
+/// and print templates. A guard that forbade a phase's own approved concepts would fail
+/// correctly-scoped work.
 /// <para>
 /// What must not change is the *reason* the guard exists: a later phase's concept must not leak in
 /// early. So this file is updated per phase, never deleted — <see cref="ApprovedEntityTypeNames"/>
-/// carries the closed set each approved spec added, so an unapproved Phase 3+ entity (a sales
-/// document, a price list) dropped into <c>src/VinayakaAgencies.Domain</c> still fails the build.
+/// carries the closed set each approved spec added, so an unapproved Phase 4+ entity (a price
+/// list, a GST rate row) dropped into <c>src/VinayakaAgencies.Domain</c> still fails the build.
 /// </para>
 /// </remarks>
 public class NoBusinessLogicGuardTests
@@ -51,10 +53,12 @@ public class NoBusinessLogicGuardTests
     ];
 
     /// <summary>
-    /// The closed set of types deriving directly from <c>Entity</c> that Phase 0 through Phase 2
-    /// were approved to add (Phase 0: <c>Company</c>; Phase 1: spec §5's entity table; Phase 2:
-    /// <c>specs/phase-2-inventory.md</c> §1 as approved). Deliberately a fixed list, not "however
-    /// many exist today" — a new entry here is a spec change, not a test update to follow the code.
+    /// The closed set of types deriving directly from <c>Entity</c> that Phases 0 through 3 were
+    /// approved to add (Phase 0: <c>Company</c>; Phase 1: spec §5's entity table; Phase 2:
+    /// <c>specs/phase-2-inventory.md</c> §1 as approved; Phase 3:
+    /// <c>specs/phase-3-sales-purchase-pipeline.md</c> §1–§2 — trade documents and print
+    /// templates). Deliberately a fixed list, not "however many exist today" — a new entry here is
+    /// a spec change, not a test update to follow the code.
     /// </summary>
     private static readonly string[] ApprovedEntityTypeNames =
     [
@@ -71,11 +75,15 @@ public class NoBusinessLogicGuardTests
         "JournalLine",
         "Ledger",
         "PeriodLock",
+        "PrintTemplate",
+        "PrintTemplateRevision",
         "SerialNumber",
         "StockGroup",
         "StockLedgerEntry",
         "StockVoucher",
         "StockVoucherLine",
+        "TradeDocument",
+        "TradeDocumentLine",
         "UnitOfMeasure",
         "Voucher",
         "VoucherNumberSequence",
@@ -134,17 +142,17 @@ public class NoBusinessLogicGuardTests
         }
 
         offenders.ShouldBeEmpty(
-            $"Phase 2 forbids GST/pricing/sales-document types until their phases approve them; found: {string.Join(", ", offenders)}");
+            $"Phase 3 forbids GST/pricing types until their phases approve them; found: {string.Join(", ", offenders)}");
     }
 
     [Fact]
-    public void EntityTypesInDomain_MatchExactlyThePhase0Through2ApprovedSet()
+    public void EntityTypesInDomain_MatchExactlyThePhase0Through3ApprovedSet()
     {
         // Belt-and-braces version of the two checks above: verifies the guard would also catch a
         // business entity dropped in the wrong folder (e.g. Domain/Common), and — unlike the Phase 0
         // version of this test, which asserted a single fixed name — verifies the *set* is exactly
-        // what the approved phase specs added, so a Phase 3+ entity (e.g. a hypothetical
-        // `SalesInvoice : Entity`) still fails even though it does not collide with any name in
+        // what the approved phase specs added, so a Phase 4+ entity (e.g. a hypothetical
+        // `PriceList : Entity`) still fails even though it does not collide with any name in
         // ForbiddenTypeNames.
         var domainDirectory = Path.Combine(SrcDirectory, "VinayakaAgencies.Domain");
         var entityDeclaringFiles = new List<string>();
