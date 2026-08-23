@@ -4,6 +4,7 @@ using VinayakaAgencies.Application.Accounting;
 using VinayakaAgencies.Application.Auditing;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
+using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Reporting;
@@ -55,6 +56,16 @@ public static class ApplicationServiceCollectionExtensions
         // and the print templates those documents render from.
         services.AddScoped<ITradeDocumentService, TradeDocumentService>();
         services.AddScoped<IPrintTemplateService, PrintTemplateService>();
+
+        // Phase 4 customers & pricing: masters, the price tables, sale-price resolution with its
+        // three bases, the credit gate and the statement reads (phase-4-customer-pricing.md).
+        services.AddScoped<ICustomerCategoryService, CustomerCategoryService>();
+        services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<IPriceListService, PriceListService>();
+        services.AddScoped<IPricingService, PricingService>();
+        services.AddScoped<ISalesSettingsService, SalesSettingsService>();
+        services.AddScoped<ICreditLimitService, CreditLimitService>();
+        services.AddScoped<ICustomerStatementService, CustomerStatementService>();
 
         return services;
     }
