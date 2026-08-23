@@ -168,6 +168,9 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
 
     private bool _allowPriceOverride = true;
 
+    /// <summary>True while the party combo is being assigned programmatically — no auto-pricing.</summary>
+    private bool _suppressPartyReprice;
+
     [ObservableProperty]
     private DateTime _documentDate = DateTime.Today;
 
@@ -292,9 +295,13 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
 
     partial void OnPartyLedgerChanged(LedgerSummary? value)
     {
-        // C4.1: picking the customer auto-fills their prices on the staged lines. Only unsaved,
-        // unoverridden lines reprice — converted documents keep their quoted prices (§4a).
-        if (!IsEditingEnabled || !TradeDocument.IsSalesSide(NewDocumentKind))
+        // C4.1: picking the customer auto-fills their prices on staged lines of an UNSAVED
+        // document. Loaded drafts keep their quoted prices — repricing saved lines would move
+        // amounts that were already agreed (§4a) — and programmatic assignment never fires it.
+        if (_suppressPartyReprice
+            || EditingDocumentId.HasValue
+            || !IsEditingEnabled
+            || !TradeDocument.IsSalesSide(NewDocumentKind))
         {
             return;
         }
@@ -592,7 +599,23 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
             Narration = detail.Narration ?? string.Empty;
             PartyReferenceNumber = detail.PartyReferenceNumber ?? string.Empty;
             PartyReferenceDate = detail.PartyReferenceDate?.ToDateTime(TimeOnly.MinValue);
-            PartyLedger = LedgerChoices.FirstOrDefault(ledger => ledger.Id == detail.PartyLedgerId);
+
+            // Restoring the party must not fire the auto-pricer against the loaded lines.
+            _suppressPartyReprice = true;
+
+            try
+            {
+                PartyLedger = LedgerChoices.FirstOrDefault(ledger => ledger.Id == detail.PartyLedgerId);
+            }
+            finally
+            {
+                _suppressPartyReprice = false;
+            }
+
+            _activeCustomer = PartyLedger is not null
+                && _customersByLedgerId.TryGetValue(PartyLedger.Id, out var loadedParty)
+                    ? loadedParty
+                    : null;
 
             var itemIds = detail.Lines.Select(line => line.ItemId).ToList();
             var knownItems = ItemChoices.Where(row => itemIds.Contains(row.Id))
