@@ -214,9 +214,15 @@ public sealed class StockLedgerEntry : Entity, ICreationStamped, IBelongsToAggre
 
     private static StockMovementDirection KindDirection(StockMovementKind kind) => kind switch
     {
-        StockMovementKind.OpeningBalance or StockMovementKind.Receipt or StockMovementKind.TransferIn
-            => StockMovementDirection.Increase,
-        StockMovementKind.Issue or StockMovementKind.TransferOut => StockMovementDirection.Decrease,
+        StockMovementKind.OpeningBalance
+            or StockMovementKind.Receipt
+            or StockMovementKind.TransferIn
+            or StockMovementKind.Purchase
+            or StockMovementKind.SaleCancellation => StockMovementDirection.Increase,
+        StockMovementKind.Issue
+            or StockMovementKind.TransferOut
+            or StockMovementKind.Sale
+            or StockMovementKind.PurchaseCancellation => StockMovementDirection.Decrease,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown movement kind."),
     };
 }
