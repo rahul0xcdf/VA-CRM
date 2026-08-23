@@ -41,6 +41,13 @@ public sealed record SaveTradeDocumentRequest(
     bool ConfirmNegativeStockWarnings = false);
 
 /// <summary>Read model for one posted or staged line of a trade document.</summary>
+/// <param name="AppliedRateMinor">
+/// What the pricing engine applied when the line was priced, in minor units — null on a
+/// hand-keyed line. The override evidence travels with drafts so an edit-and-save cycle never
+/// silently launders an override into a manual rate (phase-4-customer-pricing.md §4a).
+/// </param>
+/// <param name="IsPriceOverridden">True when the final rate was moved off the applied one.</param>
+/// <param name="PriceSource">Which pricing tier produced the applied rate.</param>
 public sealed record TradeDocumentLineSummary(
     int LineNumber,
     Guid ItemId,
@@ -52,7 +59,10 @@ public sealed record TradeDocumentLineSummary(
     decimal DiscountPercent,
     decimal NetValue,
     string? BatchNumber,
-    IReadOnlyList<string> SerialNumbers);
+    IReadOnlyList<string> SerialNumbers,
+    long? AppliedRateMinor = null,
+    bool IsPriceOverridden = false,
+    SalePriceSource PriceSource = SalePriceSource.Manual);
 
 /// <summary>Read model for a trade document, header and lines together.</summary>
 public sealed record TradeDocumentSummary(

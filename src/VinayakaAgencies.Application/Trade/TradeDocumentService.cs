@@ -5,6 +5,7 @@ using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
 using VinayakaAgencies.Domain.Common;
+using VinayakaAgencies.Domain.Customers;
 using VinayakaAgencies.Domain.Inventory;
 using VinayakaAgencies.Domain.Trade;
 
@@ -728,7 +729,47 @@ public sealed class TradeDocumentService(
             }
         }
 
+        // C4.5's backstop: when the override gate is off, no sale line may save a rate that moved
+        // off the price the engine applied — the UI hides the path, this refuses any other.
+        if (TradeDocument.IsSalesSide(request.Kind))
+        {
+            var settingsRows = await _unitOfWork.Repository<SalesSettings>()
+                .ListAsync(new SalesSettingsOfCompany(companyId), cancellationToken)
+                .ConfigureAwait(false);
+            var settings = settingsRows.Count > 0 ? settingsRows[0] : null;
+
+            if (settings is { AllowPriceOverride: false })
+            {
+                ordinal = 0;
+
+                foreach (var line in request.Lines)
+                {
+                    ordinal++;
+
+                    var autoPriced = line.PriceSource != SalePriceSource.Manual;
+                    var movedOffApplied = line.AppliedRateMinor.HasValue
+                        && line.AppliedRateMinor.Value
+                        != MoneyScale.ToMinor(MoneyScale.Round(line.Rate));
+
+                    if (line.IsPriceOverridden || (autoPriced && movedOffApplied))
+                    {
+                        errors.Add(
+                            $"Line {ordinal} carries a price different from its auto-applied price, "
+                            + "but price overrides are locked off in Sales settings.");
+                    }
+                }
+            }
+        }
+
         return new ResolvedLines(errors, itemsById, godownsById);
+    }
+
+    private sealed class SalesSettingsOfCompany : Specification<SalesSettings>
+    {
+        public SalesSettingsOfCompany(Guid companyId)
+        {
+            Where(settings => settings.CompanyId == companyId);
+        }
     }
 
     private static void CheckStagedSerialCounts(
@@ -1986,7 +2027,10 @@ public sealed class TradeDocumentService(
                     line.DiscountPercent,
                     line.NetValue,
                     line.BatchNumber,
-                    line.ParsedSerials))
+                    line.ParsedSerials,
+                    line.AppliedRateMinor,
+                    line.IsPriceOverridden,
+                    line.PriceSource))
                 .ToList());
 
     // -----------------------------------------------------------------------------------------
