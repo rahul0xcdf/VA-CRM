@@ -1,0 +1,89 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.CategoryPriceListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1100">
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="Category price lists — what each category pays, per item"
+                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+
+        <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">
+            <TextBlock Text="Category:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <ComboBox Width="200" Margin="6,0,16,0"
+                      ItemsSource="{Binding CategoryChoices}"
+                      SelectedItem="{Binding SelectedCategory}"
+                      DisplayMemberPath="Name" />
+            <Button Content="Refresh" Padding="14,5" Command="{Binding RefreshCommand}" />
+        </DockPanel>
+
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding PriceLines}"
+                  SelectedItem="{Binding SelectedLine}"
+                  AutoGenerateColumns="False"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
+                <DataGridTemplateColumn Header="Basis" Width="190">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Basis}" VerticalAlignment="Center" Margin="4,0" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <ComboBox SelectedItem="{Binding Basis}"
+                                      ItemsSource="{Binding DataContext.BasisChoices, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Fixed ₹ / percent" Binding="{Binding ValueText}" Width="160" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="3" Background="#FFF7F9FC" Padding="12" Margin="0,12,0,0" CornerRadius="6"
+                BorderBrush="#FFE1E7EF" BorderThickness="1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Add line — item:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <ComboBox Width="260" Margin="6,0,12,0"
+                              ItemsSource="{Binding ItemChoices}"
+                              SelectedItem="{Binding NewItem}"
+                              DisplayMemberPath="Name" />
+                    <ComboBox Width="180" Margin="0,0,6,0"
+                              ItemsSource="{Binding BasisChoices}"
+                              SelectedItem="{Binding NewBasis}" />
+                    <TextBox Width="110"
+                             ToolTip="Rupees on a fixed price, otherwise a percent (margin on cost, discount on MRP)"
+                             Text="{Binding NewValue, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Content="Add line" Margin="6,0,0,0" Padding="14,5"
+                            Command="{Binding AddLineCommand}" />
+                    <Button Content="Remove selected" Margin="8,0,0,0" Padding="14,5"
+                            Command="{Binding RemoveSelectedCommand}" />
+                    <Button Content="Save prices" Margin="8,0,0,0" Padding="14,5"
+                            Command="{Binding SavePricesCommand}" />
+                </StackPanel>
+
+                <TextBlock Margin="0,8,0,0" Foreground="#FF5A6B85" TextWrapping="Wrap"
+                           Text="Fixed price bills that rupee amount. 'MarginOnCost' adds the percent to the item's current cost. 'MarginOnSalePrice' discounts the percent off the item's default sale price (set it on the item master)." />
+            </StackPanel>
+        </Border>
+
+        <DockPanel Grid.Row="4" LastChildFill="False">
+            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
+                       Text="{Binding Status}" Foreground="#FF5A6B85" TextWrapping="Wrap" />
+        </DockPanel>
+    </Grid>
+</UserControl>
