@@ -3,8 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:VinayakaAgencies.App.Views"
              mc:Ignorable="d"
              d:DesignHeight="860" d:DesignWidth="1280">
+
+    <UserControl.Resources>
+        <local:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+    </UserControl.Resources>
 
     <Grid Margin="24,20">
         <Grid.RowDefinitions>
@@ -79,8 +84,33 @@
                                         SelectedValuePath="Id"
                                         DisplayMemberPath="Name" />
                 <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="80" />
-                <DataGridTextColumn Header="Rate" Binding="{Binding Rate}" Width="100" />
+                <DataGridTemplateColumn Header="Rate" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Rate}" VerticalAlignment="Center" Margin="4,0" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <!-- Locked when the override gate is off and a price was auto-applied. -->
+                            <TextBox Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged}"
+                                     IsEnabled="{Binding IsRateLocked, Converter={StaticResource InverseBooleanConverter}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Disc %" Binding="{Binding DiscountPercent}" Width="70" />
+                <DataGridTextColumn Header="Priced from" Binding="{Binding PriceSourceLabel}" IsReadOnly="True" Width="90">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPriceOverridden}" Value="True">
+                                    <Setter Property="Foreground" Value="#FFB45309" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Batch" Binding="{Binding BatchNumber}" Width="100" />
                 <DataGridTextColumn Header="Serials (; separated)" Binding="{Binding SerialNumbers}" Width="2*" />
             </DataGrid.Columns>

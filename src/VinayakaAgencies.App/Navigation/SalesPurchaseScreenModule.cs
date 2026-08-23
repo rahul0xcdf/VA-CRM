@@ -2,11 +2,12 @@ using Microsoft.Extensions.DependencyInjection;
 using VinayakaAgencies.App.ViewModels;
 using VinayakaAgencies.App.Views;
 using VinayakaAgencies.Application.Accounting;
+using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
+using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Trade;
-using VinayakaAgencies.Application.Common;
 
 namespace VinayakaAgencies.App.Navigation;
 
@@ -31,7 +32,11 @@ public sealed class SalesPurchaseScreenModule : IScreenModule
                 services.GetRequiredService<IStockReportService>(),
                 services.GetRequiredService<IPrintTemplateService>(),
                 services.GetRequiredService<ICompanyService>(),
-                services.GetRequiredService<ICompanyContext>()),
+                services.GetRequiredService<ICompanyContext>(),
+                services.GetRequiredService<ICustomerService>(),
+                services.GetRequiredService<IPricingService>(),
+                services.GetRequiredService<ISalesSettingsService>(),
+                services.GetRequiredService<ICreditLimitService>()),
             typeof(TradeDocumentsView)),
 
         new ScreenDescriptor(

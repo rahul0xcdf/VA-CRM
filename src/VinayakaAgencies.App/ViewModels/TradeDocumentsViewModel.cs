@@ -7,16 +7,26 @@ using VinayakaAgencies.App.Presentation;
 using VinayakaAgencies.Application.Accounting;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
+using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Trade;
+using VinayakaAgencies.Domain.Common;
+using VinayakaAgencies.Domain.Customers;
 using VinayakaAgencies.Domain.Trade;
 
 namespace VinayakaAgencies.App.ViewModels;
 
 /// <summary>One editable line of the trade document being entered.</summary>
+/// <remarks>
+/// Carries the phase-4 pricing evidence alongside the keyed rate: what the engine applied and
+/// from which tier, whether the operator moved the final rate off it (logged at save as C4.2),
+/// and whether the override gate locks this cell (C4.5).
+/// </remarks>
 public sealed partial class TradeDocumentLineEditor : ObservableObject
 {
+    private bool _suppressRateNotifications;
+
     public TradeDocumentLineEditor(ItemLookupRow item)
     {
         Item = item;
@@ -51,10 +61,82 @@ public sealed partial class TradeDocumentLineEditor : ObservableObject
     [ObservableProperty]
     private string _serialNumbers = string.Empty;
 
+    /// <summary>What the pricing engine applied; null on a hand-keyed line.</summary>
+    public long? AppliedRateMinor { get; private set; }
+
+    public SalePriceSource PriceSource { get; private set; } = SalePriceSource.Manual;
+
+    [ObservableProperty]
+    private bool _isPriceOverridden;
+
+    /// <summary>True when the override gate is off and an auto-applied price fills this cell.</summary>
+    [ObservableProperty]
+    private bool _isRateLocked;
+
+    /// <summary>The tier label shown in the grid; empty for hand-keyed lines.</summary>
+    public string PriceSourceLabel => PriceSource switch
+    {
+        SalePriceSource.CustomerSpecialPrice => "customer",
+        SalePriceSource.CategoryPriceList => "category",
+        SalePriceSource.ItemDefault => "item default",
+        _ => string.Empty,
+    };
+
     public IReadOnlyList<string> ParsedSerials =>
         SerialNumbers
             .Split([';', ',', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
+
+    /// <summary>Fills the rate from a resolved price, marking the line auto-priced (C4.1).</summary>
+    public void ApplyResolved(ResolvedSalePrice resolved)
+    {
+        _suppressRateNotifications = true;
+
+        try
+        {
+            Rate = MoneyScale.FromMinor(resolved.RateMinor).ToString("0.####", CultureInfo.InvariantCulture);
+            AppliedRateMinor = resolved.RateMinor;
+            PriceSource = resolved.Source;
+            IsPriceOverridden = false;
+        }
+        finally
+        {
+            _suppressRateNotifications = false;
+        }
+
+        OnPropertyChanged(nameof(PriceSourceLabel));
+    }
+
+    /// <summary>Restores saved evidence so an edit-and-save cycle never launders an override.</summary>
+    public void RestoreEvidence(long? appliedRateMinor, bool isPriceOverridden, SalePriceSource priceSource)
+    {
+        _suppressRateNotifications = true;
+
+        try
+        {
+            AppliedRateMinor = appliedRateMinor;
+            PriceSource = priceSource;
+            IsPriceOverridden = isPriceOverridden;
+        }
+        finally
+        {
+            _suppressRateNotifications = false;
+        }
+
+        OnPropertyChanged(nameof(PriceSourceLabel));
+    }
+
+    partial void OnRateChanged(string value)
+    {
+        if (_suppressRateNotifications || AppliedRateMinor is null)
+        {
+            return;
+        }
+
+        // Moving the rate off the applied one is the override C4.2 logs; returning to it clears.
+        IsPriceOverridden = decimal.TryParse(value, out var rate)
+            && MoneyScale.ToMinor(MoneyScale.Round(rate)) != AppliedRateMinor.Value;
+    }
 }
 
 /// <summary>
@@ -75,6 +157,16 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
     private readonly IPrintTemplateService _printTemplates;
     private readonly ICompanyService _companies;
     private readonly ICompanyContext _companyContext;
+    private readonly ICustomerService _customers;
+    private readonly IPricingService _pricing;
+    private readonly ISalesSettingsService _salesSettings;
+    private readonly ICreditLimitService _creditLimits;
+
+    private Dictionary<Guid, CustomerSummary> _customersByLedgerId = [];
+
+    private CustomerSummary? _activeCustomer;
+
+    private bool _allowPriceOverride = true;
 
     [ObservableProperty]
     private DateTime _documentDate = DateTime.Today;
@@ -161,7 +253,11 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
         IStockReportService reports,
         IPrintTemplateService templates,
         ICompanyService companies,
-        ICompanyContext companyContext)
+        ICompanyContext companyContext,
+        ICustomerService customers,
+        IPricingService pricing,
+        ISalesSettingsService salesSettings,
+        ICreditLimitService creditLimits)
     {
         _pipeline = documents ?? throw new ArgumentNullException(nameof(documents));
         _chartOfAccounts = chartOfAccounts ?? throw new ArgumentNullException(nameof(chartOfAccounts));
@@ -170,6 +266,10 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
         _printTemplates = templates ?? throw new ArgumentNullException(nameof(templates));
         _companies = companies ?? throw new ArgumentNullException(nameof(companies));
         _companyContext = companyContext ?? throw new ArgumentNullException(nameof(companyContext));
+        _customers = customers ?? throw new ArgumentNullException(nameof(customers));
+        _pricing = pricing ?? throw new ArgumentNullException(nameof(pricing));
+        _salesSettings = salesSettings ?? throw new ArgumentNullException(nameof(salesSettings));
+        _creditLimits = creditLimits ?? throw new ArgumentNullException(nameof(creditLimits));
     }
 
     public IReadOnlyList<TradeDocumentKind> KindChoices { get; } =
@@ -189,6 +289,72 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
 
     partial void OnNewDocumentKindChanged(TradeDocumentKind value) =>
         EditingCaption = $"New {value}";
+
+    partial void OnPartyLedgerChanged(LedgerSummary? value)
+    {
+        // C4.1: picking the customer auto-fills their prices on the staged lines. Only unsaved,
+        // unoverridden lines reprice — converted documents keep their quoted prices (§4a).
+        if (!IsEditingEnabled || !TradeDocument.IsSalesSide(NewDocumentKind))
+        {
+            return;
+        }
+
+        _activeCustomer = value is not null
+            && _customersByLedgerId.TryGetValue(value.Id, out var customer)
+                ? customer
+                : null;
+
+        _ = RepriceStagedLinesAsync();
+    }
+
+    private async Task RepriceStagedLinesAsync()
+    {
+        if (_activeCustomer is null || Lines.Count == 0)
+        {
+            return;
+        }
+
+        IsBusy = true;
+
+        try
+        {
+            var companyId = await _companyContext.EnsureCompanyAsync().ConfigureAwait(true);
+
+            foreach (var line in Lines.Where(line => !line.IsPriceOverridden))
+            {
+                var resolved = await _pricing.ResolveForSaleAsync(
+                        companyId,
+                        _activeCustomer.Id,
+                        line.ItemId)
+                    .ConfigureAwait(true);
+
+                if (resolved is not null)
+                {
+                    line.ApplyResolved(resolved);
+                }
+            }
+
+            ApplyOverrideGate();
+            Status = $"Prices applied for {_activeCustomer.Name}.";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            Status = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>Locks every auto-priced rate cell when the override gate is off (C4.5).</summary>
+    private void ApplyOverrideGate()
+    {
+        foreach (var line in Lines)
+        {
+            line.IsRateLocked = !_allowPriceOverride && line.AppliedRateMinor.HasValue;
+        }
+    }
 
     partial void OnSelectedDocumentChanged(TradeDocumentSummary? value)
     {
@@ -228,9 +394,22 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
                 await _masters.ListGodownsAsync(cancellationToken: cancellationToken)
                     .ConfigureAwait(true));
 
+            var customers = await _customers.ListAsync(cancellationToken: cancellationToken)
+                .ConfigureAwait(true);
+            _customersByLedgerId = customers.ToDictionary(customer => customer.LedgerId);
+
+            _activeCustomer = _activeCustomer is not null
+                && _customersByLedgerId.TryGetValue(_activeCustomer.LedgerId, out var refreshed)
+                    ? refreshed
+                    : null;
+
+            var settings = await _salesSettings.GetAsync(cancellationToken).ConfigureAwait(true);
+            _allowPriceOverride = settings.AllowPriceOverride;
+
             DefaultGodown ??= GodownChoices.FirstOrDefault();
             ConvertGodown ??= DefaultGodown;
 
+            ApplyOverrideGate();
             await SearchItemsAsync(cancellationToken).ConfigureAwait(true);
             await LoadDocumentsAsync(cancellationToken).ConfigureAwait(true);
 
@@ -256,7 +435,7 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void AddLine()
+    private async Task AddLineAsync()
     {
         if (!IsEditingEnabled)
         {
@@ -282,6 +461,26 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
         {
             GodownId = needsGodown ? DefaultGodown?.Id : null,
         };
+
+        // C4.1: a new line prices itself from the selected customer's tiers as soon as it lands.
+        if (_activeCustomer is not null && TradeDocument.IsSalesSide(NewDocumentKind))
+        {
+            try
+            {
+                var companyId = await _companyContext.EnsureCompanyAsync().ConfigureAwait(true);
+                var resolved = await _pricing.ResolveForSaleAsync(companyId, _activeCustomer.Id, line.ItemId)
+                    .ConfigureAwait(true);
+
+                if (resolved is not null)
+                {
+                    line.ApplyResolved(resolved);
+                }
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+            {
+                Status = ex.Message;
+            }
+        }
 
         Lines.Add(line);
         SelectedLine = line;
@@ -319,6 +518,13 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
         if (!TryBuildRequest(out var request, out var problem))
         {
             Status = problem!;
+            return;
+        }
+
+        // Credit terms apply to new orders and invoices (spec §2) — quotations and challans
+        // promise nothing yet.
+        if (!await ConfirmCreditAsync(request!, cancellationToken).ConfigureAwait(true))
+        {
             return;
         }
 
@@ -399,7 +605,7 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
                         ? found
                         : new ItemLookupRow(line.ItemId, line.ItemName, null, null, false, false, false, "?");
 
-                    return new TradeDocumentLineEditor(row)
+                    var editor = new TradeDocumentLineEditor(row)
                     {
                         GodownId = line.GodownId,
                         Quantity = line.Quantity.ToString("0.####", CultureInfo.InvariantCulture),
@@ -408,7 +614,16 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
                         BatchNumber = line.BatchNumber ?? string.Empty,
                         SerialNumbers = string.Join(";", line.SerialNumbers),
                     };
+
+                    editor.RestoreEvidence(
+                        line.AppliedRateMinor,
+                        line.IsPriceOverridden,
+                        line.PriceSource);
+
+                    return editor;
                 }));
+
+            ApplyOverrideGate();
 
             EditingCaption = $"{detail.Kind} {detail.DisplayNumber}";
             EditingStatus = $"{detail.Kind} {detail.DisplayNumber} — {detail.Status}.";
@@ -757,6 +972,51 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
         Documents = new ObservableCollection<TradeDocumentSummary>(recent);
     }
 
+    /// <summary>
+    /// The credit-terms gate on new orders and invoices (spec §2): Block policy refuses, Warn
+    /// policy asks. Customers without terms and non-sale documents pass untouched.
+    /// </summary>
+    private async Task<bool> ConfirmCreditAsync(
+        SaveTradeDocumentRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TradeDocument.IsSalesSide(request.Kind)
+            || request.Kind is TradeDocumentKind.Quotation or TradeDocumentKind.DeliveryChallan
+            || !_customersByLedgerId.TryGetValue(request.PartyLedgerId, out var customer))
+        {
+            return true;
+        }
+
+        var totalNet = request.Lines.Sum(line =>
+            line.Quantity * line.Rate * (1m - line.DiscountPercent / 100m));
+        var totalMinor = MoneyScale.ToMinor(MoneyScale.Round(totalNet));
+
+        var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(true);
+        var result = await _creditLimits.EvaluateAsync(companyId, customer.Id, totalMinor, cancellationToken)
+            .ConfigureAwait(true);
+
+        if (result.IsBlocked)
+        {
+            Status = result.Message;
+            return false;
+        }
+
+        if (result.Policy == CreditLimitPolicy.Warn
+            && result.LimitMinor > 0
+            && result.CurrentOutstandingMinor + totalMinor > result.LimitMinor
+            && MessageBox.Show(
+                result.Message + Environment.NewLine + Environment.NewLine + "Continue anyway?",
+                "Credit limit warning",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) != MessageBoxResult.Yes)
+        {
+            Status = "Not saved — the credit-limit warning was not confirmed.";
+            return false;
+        }
+
+        return true;
+    }
+
     private bool TryBuildRequest(out SaveTradeDocumentRequest? request, out string? problem)
     {
         request = null;
@@ -814,7 +1074,10 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject
                 rate,
                 discountPercent,
                 BatchNumber: string.IsNullOrWhiteSpace(editor.BatchNumber) ? null : editor.BatchNumber.Trim(),
-                SerialNumbers: editor.ParsedSerials.Count > 0 ? editor.ParsedSerials : null));
+                SerialNumbers: editor.ParsedSerials.Count > 0 ? editor.ParsedSerials : null,
+                AppliedRateMinor: editor.AppliedRateMinor,
+                IsPriceOverridden: editor.IsPriceOverridden,
+                PriceSource: editor.PriceSource));
         }
 
         request = new SaveTradeDocumentRequest(
