@@ -5,7 +5,9 @@ using VinayakaAgencies.Application.Auditing;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.Inventory;
+using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Reporting;
+using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
 
 namespace VinayakaAgencies.Application.DependencyInjection;
@@ -48,6 +50,11 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IStockValuationService, StockValuationService>();
         services.AddScoped<IStockVoucherService, StockVoucherService>();
         services.AddScoped<IStockReportService, StockReportService>();
+
+        // Phase 3 sales & purchase pipeline: documents along the chains, atomic invoice posting,
+        // and the print templates those documents render from.
+        services.AddScoped<ITradeDocumentService, TradeDocumentService>();
+        services.AddScoped<IPrintTemplateService, PrintTemplateService>();
 
         return services;
     }
