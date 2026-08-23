@@ -20,4 +20,16 @@ public enum StockMovementKind
     TransferOut = 4,
 
     TransferIn = 5,
+
+    /// <summary>Stock issued to a customer by a posted tax invoice (phase-3 §2).</summary>
+    Sale = 6,
+
+    /// <summary>Stock received from a supplier by a posted purchase invoice (phase-3 §2).</summary>
+    Purchase = 7,
+
+    /// <summary>The reversal row appended when a tax invoice is cancelled — the goods come back.</summary>
+    SaleCancellation = 8,
+
+    /// <summary>The reversal row appended when a purchase invoice is cancelled — the goods go back out.</summary>
+    PurchaseCancellation = 9,
 }
