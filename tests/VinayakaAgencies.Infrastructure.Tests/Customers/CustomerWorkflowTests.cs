@@ -160,6 +160,80 @@ public sealed class CustomerWorkflowTests
         afterJson.ShouldContain("\"PriceSource\":\"CategoryPriceList\"");
     }
 
+    // ------------------------------------------------- C4.5 — the gate's service-side backstop
+
+    [Fact]
+    public async Task SaveDocument_WhenOverridesLocked_ARateMovedOffItsAppliedPrice_IsRefused()
+    {
+        await using var host = NewHost();
+        await host.MigrateAsync();
+        var world = await ArrangeAsync(host);
+
+        var pump = await CreateItemAsync(host, "Submersible Pump");
+        var dealer = await CreateCustomerAsync(host, "Ganesh Traders", world.DealerCategoryId);
+
+        await host.InScopeAsync(sp => sp.GetRequiredService<IPriceListService>()
+            .SetCategoryPriceAsync(new SavePriceLineRequest(
+                Id: null, world.DealerCategoryId, pump.Id,
+                PriceBasis.FixedPrice, FixedPrice: 250m)));
+
+        await host.InScopeAsync(sp => sp.GetRequiredService<ISalesSettingsService>()
+            .UpdateAsync(new SaveSalesSettingsRequest(
+                AllowPriceOverride: false, CreditLimitPolicy.Warn)));
+
+        // A rate that moved off what the engine applied must be refused by the SERVICE — the UI
+        // locking its cell is never the whole proof of C4.5.
+        var refusal = await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await TradeAsync(host, trade => trade.CreateAsync(new SaveTradeDocumentRequest(
+                TradeDocumentKind.TaxInvoice,
+                InFy2026,
+                dealer.LedgerId,
+                [new TradeDocumentLineInput(
+                    pump.Id, world.MainGodownId, 2m, 200m,
+                    AppliedRateMinor: 2_500_000L,
+                    IsPriceOverridden: true,
+                    PriceSource: SalePriceSource.CategoryPriceList)]))));
+
+        refusal.Message.ShouldContain("overrides are locked off in Sales settings");
+
+        // And nothing persisted behind the refusal.
+        var invoiceCount = await CountDocumentsAsync(host, TradeDocumentKind.TaxInvoice);
+        invoiceCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task SaveDocument_WhenOverridesLocked_ARateMatchingItsAppliedPrice_Saves()
+    {
+        await using var host = NewHost();
+        await host.MigrateAsync();
+        var world = await ArrangeAsync(host);
+
+        var pump = await CreateItemAsync(host, "Cisno Pump 2 HP");
+        var dealer = await CreateCustomerAsync(host, "Metro Agencies", world.DealerCategoryId);
+
+        await host.InScopeAsync(sp => sp.GetRequiredService<IPriceListService>()
+            .SetCategoryPriceAsync(new SavePriceLineRequest(
+                Id: null, world.DealerCategoryId, pump.Id,
+                PriceBasis.FixedPrice, FixedPrice: 250m)));
+
+        await host.InScopeAsync(sp => sp.GetRequiredService<ISalesSettingsService>()
+            .UpdateAsync(new SaveSalesSettingsRequest(
+                AllowPriceOverride: false, CreditLimitPolicy.Warn)));
+
+        // The applied price itself passes untouched — locking overrides never blocks normal billing.
+        var created = await TradeAsync(host, trade => trade.CreateAsync(new SaveTradeDocumentRequest(
+            TradeDocumentKind.TaxInvoice,
+            InFy2026,
+            dealer.LedgerId,
+            [new TradeDocumentLineInput(
+                pump.Id, world.MainGodownId, 2m, 250m,
+                AppliedRateMinor: 2_500_000L,
+                IsPriceOverridden: false,
+                PriceSource: SalePriceSource.CategoryPriceList)])));
+
+        created.Lines.Single().Rate.ShouldBe(250m);
+    }
+
     // ---------------------------------------------------------------- C4.6 — bill-wise allocation
 
     [Fact]
@@ -336,6 +410,14 @@ public sealed class CustomerWorkflowTests
         where TEntity : Entity =>
         host.InScopeAsync(sp => sp.GetRequiredService<IUnitOfWork>().Repository<TEntity>().CountAsync());
 
+    private static async Task<int> CountDocumentsAsync(SqliteTestHost host, TradeDocumentKind kind)
+    {
+        var rows = await host.InScopeAsync(sp => sp.GetRequiredService<IUnitOfWork>()
+            .Repository<TradeDocument>().ListAsync(new DocumentsOfKind(kind)));
+
+        return rows.Count;
+    }
+
     private static async Task<CustomerWorld> ArrangeAsync(SqliteTestHost host)
     {
         var companyId = await AddFullyProvisionedCompanyAsync(host);
@@ -490,6 +572,14 @@ public sealed class CustomerWorkflowTests
         {
             Where(line => line.TradeDocumentId == documentId);
             ApplyNoTracking();
+        }
+    }
+
+    private sealed class DocumentsOfKind : Specification<TradeDocument>
+    {
+        public DocumentsOfKind(TradeDocumentKind kind)
+        {
+            Where(document => document.Kind == kind);
         }
     }
 }
