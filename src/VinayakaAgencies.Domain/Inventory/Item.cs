@@ -121,6 +121,21 @@ public sealed class Item : Entity, IAuditStamped
     /// </summary>
     public bool IsKit { get; private set; }
 
+    /// <summary>
+    /// The item's default sale price — computed from minor units, never a column.
+    /// </summary>
+    public decimal? DefaultSalePrice => DefaultSalePriceMinor.HasValue
+        ? MoneyScale.FromMinor(DefaultSalePriceMinor.Value)
+        : null;
+
+    /// <summary>
+    /// Default sale price, in minor units of 1/10,000 (ADR-0003); null until priced.
+    /// Added in Phase 4 (phase-4-customer-pricing.md §2, §4a): the MRP / sale-price basis for
+    /// margin price lines and the final fallback when neither a customer special price nor a
+    /// category price-list line exists.
+    /// </summary>
+    public long? DefaultSalePriceMinor { get; private set; }
+
     public bool IsActive { get; private set; } = true;
 
     public DateTimeOffset CreatedAtUtc { get; set; }
@@ -240,6 +255,39 @@ public sealed class Item : Entity, IAuditStamped
         }
 
         ReorderLevelMinor = MoneyScale.ToMinor(rounded);
+    }
+
+    /// <summary>
+    /// Sets the default sale price (null clears it). Zero is allowed — a free-issue item is a
+    /// legitimate price — but a negative price and more precision than the store holds are not.
+    /// </summary>
+    public void SetDefaultSalePrice(decimal? defaultSalePrice)
+    {
+        if (!defaultSalePrice.HasValue)
+        {
+            DefaultSalePriceMinor = null;
+            return;
+        }
+
+        if (decimal.IsNegative(defaultSalePrice.Value))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(defaultSalePrice),
+                defaultSalePrice,
+                "A selling price cannot be negative.");
+        }
+
+        var rounded = MoneyScale.Round(defaultSalePrice.Value);
+
+        if (rounded != defaultSalePrice.Value)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(defaultSalePrice),
+                defaultSalePrice,
+                $"A price carries more than {MoneyScale.Places} decimal places.");
+        }
+
+        DefaultSalePriceMinor = MoneyScale.ToMinor(rounded);
     }
 
     public void MarkAsKit() => IsKit = true;

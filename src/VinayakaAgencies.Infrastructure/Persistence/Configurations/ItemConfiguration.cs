@@ -50,6 +50,11 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item>
         builder.Property(item => item.ReorderLevelMinor).IsRequired();
         builder.Ignore(item => item.ReorderLevel);
 
+        // Minor units (ADR-0003): the Phase 4 default sale price — margin-on-MRP basis and final
+        // price-resolution fallback. Nullable until the item is priced.
+        builder.Property(item => item.DefaultSalePriceMinor);
+        builder.Ignore(item => item.DefaultSalePrice);
+
         builder.Property(item => item.ValuationOverride)
             .HasConversion<string>()
             .HasMaxLength(ColumnLengths.EnumName);

@@ -63,6 +63,16 @@ internal static class ColumnLengths
     /// </remarks>
     internal const int Narration = 1000;
 
+    /// <summary>
+    /// Multi-line customer addresses (billing / shipping), newline-separated.
+    /// </summary>
+    /// <remarks>
+    /// Widened from the 512 default for the same reason as <see cref="Narration"/>: an Indian
+    /// trading address with a door number, street, locality, landmark and PIN code runs long, and
+    /// the printed tax invoice needs it whole (phase-4-customer-pricing.md §2).
+    /// </remarks>
+    internal const int Address = 1000;
+
     /// <summary>Audit stamp authors, matching <c>CompanyConfiguration</c> and the edit log.</summary>
     internal const int UserName = 256;
 
