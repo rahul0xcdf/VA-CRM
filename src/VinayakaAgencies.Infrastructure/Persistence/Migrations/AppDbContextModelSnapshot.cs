@@ -1440,6 +1440,254 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.ToTable("UnitsOfMeasure", (string)null);
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Printing.PrintTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CurrentRevisionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrentVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameNormalised")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "DocumentKind", "NameNormalised")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "DocumentKind", "Priority");
+
+                    b.ToTable("PrintTemplates", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Printing.PrintTemplateRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LayoutJson")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("TemplateId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("PrintTemplateRevisions", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Trade.TradeDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ConvertedFromDocumentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConvertedFromNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("DocumentDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Narration")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Number")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PartyLedgerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("PartyReferenceDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PartyReferenceNumber")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostedNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PostedVoucherId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConvertedFromDocumentId");
+
+                    b.HasIndex("PartyLedgerId");
+
+                    b.HasIndex("PostedVoucherId");
+
+                    b.HasIndex("CompanyId", "ConvertedFromDocumentId");
+
+                    b.HasIndex("CompanyId", "DocumentDate");
+
+                    b.HasIndex("CompanyId", "PostedVoucherId");
+
+                    b.HasIndex("CompanyId", "Kind", "Number")
+                        .IsUnique()
+                        .HasFilter("[Number] IS NOT NULL");
+
+                    b.ToTable("TradeDocuments", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Trade.TradeDocumentLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BatchNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("DiscountPercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("GodownId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("QuantityMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("RateMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SerialNumbersText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TradeDocumentId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GodownId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("TradeDocumentId");
+
+                    b.HasIndex("CompanyId", "TradeDocumentId");
+
+                    b.ToTable("TradeDocumentLines", (string)null);
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Accounting.AccountGroup", b =>
                 {
                     b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
@@ -1848,12 +2096,92 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Printing.PrintTemplate", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Printing.PrintTemplateRevision", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Printing.PrintTemplate", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Trade.TradeDocument", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Trade.TradeDocument", null)
+                        .WithMany()
+                        .HasForeignKey("ConvertedFromDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
+                        .WithMany()
+                        .HasForeignKey("PartyLedgerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Voucher", null)
+                        .WithMany()
+                        .HasForeignKey("PostedVoucherId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Trade.TradeDocumentLine", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Godown", null)
+                        .WithMany()
+                        .HasForeignKey("GodownId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VinayakaAgencies.Domain.Inventory.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Trade.TradeDocument", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("TradeDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Accounting.VoucherRevision", b =>
                 {
                     b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockVoucher", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Trade.TradeDocument", b =>
                 {
                     b.Navigation("Lines");
                 });
