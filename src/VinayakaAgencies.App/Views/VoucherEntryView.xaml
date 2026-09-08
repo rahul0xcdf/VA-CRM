@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.VoucherEntryView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.VoucherEntryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -17,22 +17,22 @@
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
             <TextBlock Text="Voucher entry"
-                       FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A"
+                       Style="{StaticResource ScreenTitleText}"
                        VerticalAlignment="Center" />
             <Button Content="Load lists" Margin="20,0,0,0" Padding="14,5" Command="{Binding LoadListsCommand}" />
         </StackPanel>
 
-        <Border Grid.Row="1" Background="#FFF7F9FC" Padding="12" CornerRadius="6"
-                BorderBrush="#FFE1E7EF" BorderThickness="1">
+        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" Padding="12" CornerRadius="6"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Type:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                <TextBlock Text="Type:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                 <ComboBox Width="140" Margin="6,0,16,0" ItemsSource="{Binding VoucherTypes}"
                           SelectedItem="{Binding SelectedVoucherType}" DisplayMemberPath="Name" />
-                <TextBlock Text="Date:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                <TextBlock Text="Date:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                 <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding EntryDate}" />
-                <TextBlock Text="Narration:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                <TextBlock Text="Narration:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                 <TextBox Width="260" Margin="6,0,16,0" Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Text="Ref:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                <TextBlock Text="Ref:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                 <TextBox Width="100" Margin="6,0,16,0" Text="{Binding ReferenceNumber}" />
                 <DatePicker Width="120" SelectedDate="{Binding ReferenceDate}" />
             </StackPanel>
@@ -74,17 +74,17 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Row="3" Background="#FFF7F9FC" Padding="12" CornerRadius="6"
-                BorderBrush="#FFE1E7EF" BorderThickness="1">
+        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" CornerRadius="6"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Dr total:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+                    <TextBlock Text="Dr total:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding TotalDebit, StringFormat=N2}" Margin="6,0,16,0"
                                FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <TextBlock Text="Cr total:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+                    <TextBlock Text="Cr total:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding TotalCredit, StringFormat=N2}" Margin="6,0,16,0"
                                FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <TextBlock Text="Difference:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+                    <TextBlock Text="Difference:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding Difference, StringFormat=N2}" Margin="6,0,16,0"
                                FontWeight="Bold" VerticalAlignment="Center" />
                     <Button Content="+ Line" Padding="10,4" Command="{Binding AddLineCommand}" />
@@ -95,14 +95,14 @@
                 <Separator Margin="0,10,0,10" />
 
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Voucher id:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Voucher id:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="280" Margin="6,0,12,0" Text="{Binding AlterVoucherIdText}" />
                     <Button Content="Load for alter" Padding="12,4" Command="{Binding LoadForAlterCommand}" />
                     <Button Content="View history" Margin="8,0,0,0" Padding="12,4" Command="{Binding ViewHistoryCommand}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Reason (required):" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Reason (required):" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="360" Margin="6,0,12,0"
                              Text="{Binding ChangeReason, UpdateSourceTrigger=PropertyChanged}" />
                     <Button Content="Apply alteration" Padding="14,4" Command="{Binding ApplyAlterationCommand}" />
@@ -113,7 +113,7 @@
         </Border>
 
         <TextBox Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status, Mode=OneWay}"
-                 Foreground="#FF5A6B85" TextWrapping="Wrap"
+                 Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap"
                  BorderThickness="0" Background="Transparent" IsReadOnly="True"
                  MaxHeight="60" VerticalScrollBarVisibility="Auto" />
     </Grid>

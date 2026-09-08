@@ -76,6 +76,9 @@ public class NoBusinessLogicGuardTests
         "CustomerCategory",
         "CustomerSpecialPrice",
         "FinancialYear",
+        "GstRateSchedule",
+        "GstSettings",
+        "HsnSac",
         "Godown",
         "InventorySettings",
         "Item",
@@ -155,7 +158,7 @@ public class NoBusinessLogicGuardTests
     }
 
     [Fact]
-    public void EntityTypesInDomain_MatchExactlyThePhase0Through4ApprovedSet()
+    public void EntityTypesInDomain_MatchExactlyThePhase0Through5ApprovedSet()
     {
         // Belt-and-braces version of the two checks above: verifies the guard would also catch a
         // business entity dropped in the wrong folder (e.g. Domain/Common), and — unlike the Phase 0

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Domain.Inventory;
 
@@ -14,6 +15,7 @@ namespace VinayakaAgencies.App.ViewModels;
 public sealed partial class ItemsViewModel : ObservableObject
 {
     private readonly IInventoryMasterService _masters;
+    private readonly IHsnSacService _hsnSac;
 
     [ObservableProperty]
     private ObservableCollection<ItemSummary> _items = [];
@@ -86,14 +88,21 @@ public sealed partial class ItemsViewModel : ObservableObject
     private bool _editIsKit;
 
     [ObservableProperty]
+    private ObservableCollection<HsnSacSummary> _hsnSacChoices = [];
+
+    [ObservableProperty]
+    private Guid? _editHsnSacId;
+
+    [ObservableProperty]
     private string _status = "Ready.";
 
     [ObservableProperty]
     private bool _isBusy;
 
-    public ItemsViewModel(IInventoryMasterService masters)
+    public ItemsViewModel(IInventoryMasterService masters, IHsnSacService hsnSac)
     {
         _masters = masters ?? throw new ArgumentNullException(nameof(masters));
+        _hsnSac = hsnSac ?? throw new ArgumentNullException(nameof(hsnSac));
     }
 
     /// <summary>Sentinel shown in the valuation picker for "use the company default".</summary>
@@ -113,6 +122,10 @@ public sealed partial class ItemsViewModel : ObservableObject
 
             UnitChoices = new ObservableCollection<UnitOfMeasureSummary>(
                 await _masters.ListUnitsAsync(cancellationToken: cancellationToken)
+                    .ConfigureAwait(true));
+
+            HsnSacChoices = new ObservableCollection<HsnSacSummary>(
+                await _hsnSac.ListAsync(includeInactive: false, cancellationToken)
                     .ConfigureAwait(true));
 
             var items = await _masters.ListItemsAsync(
@@ -162,6 +175,7 @@ public sealed partial class ItemsViewModel : ObservableObject
         EditValuationOverride = SelectedItem.ValuationOverride;
         EditReorderLevel = SelectedItem.ReorderLevel.ToString("0.####", CultureInfo.InvariantCulture);
         EditIsKit = SelectedItem.IsKit;
+        EditHsnSacId = SelectedItem.HsnSacId;
 
         KitComponents = EditIsKit
             ? new ObservableCollection<KitComponentLine>(
@@ -190,6 +204,7 @@ public sealed partial class ItemsViewModel : ObservableObject
         EditValuationOverride = null;
         EditReorderLevel = "0";
         EditIsKit = false;
+        EditHsnSacId = null;
         KitComponents = [];
         Status = "New item — fill the form and save.";
     }
@@ -245,7 +260,8 @@ public sealed partial class ItemsViewModel : ObservableObject
                 IsBatchTracked: EditIsBatchTracked,
                 ValuationOverride: EditValuationOverride,
                 ReorderLevel: reorderLevel,
-                IsKit: EditIsKit), cancellationToken).ConfigureAwait(true);
+                IsKit: EditIsKit,
+                HsnSacId: EditHsnSacId), cancellationToken).ConfigureAwait(true);
 
             Status = $"Saved '{saved.Name}'.";
             EditId = saved.Id;

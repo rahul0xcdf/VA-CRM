@@ -63,6 +63,18 @@ public sealed class ScreenModuleCatalogTests
         ordered[1].Name.ShouldBe("Zeta");
     }
 
+    [Fact]
+    public void Discover_FindsTheGstModule_WithItsFourPhase5Screens()
+    {
+        var modules = ScreenModuleCatalog.Discover();
+
+        var gst = modules.SingleOrDefault(module => module.Name == "GST");
+        gst.ShouldNotBeNull();
+
+        gst.Screens.Select(screen => screen.Header).ShouldBe(
+            ["HSN/SAC codes", "GST rate schedules", "GST returns", "GSTR-2B reconciliation"]);
+    }
+
     private sealed class FakeModule(string name, int order) : IScreenModule
     {
         public string Name => name;

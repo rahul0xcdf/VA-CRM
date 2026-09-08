@@ -1,0 +1,357 @@
+using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using VinayakaAgencies.Application.Accounting;
+using VinayakaAgencies.Application.Companies;
+using VinayakaAgencies.Application.Customers;
+using VinayakaAgencies.Application.Gst;
+using VinayakaAgencies.Application.Inventory;
+using VinayakaAgencies.Application.Trade;
+using VinayakaAgencies.Domain.Abstractions;
+using VinayakaAgencies.Domain.Accounting;
+using VinayakaAgencies.Domain.Common;
+using VinayakaAgencies.Domain.Customers;
+using VinayakaAgencies.Domain.Entities;
+using VinayakaAgencies.Domain.Gst;
+using VinayakaAgencies.Domain.Inventory;
+using VinayakaAgencies.Domain.Trade;
+using VinayakaAgencies.Infrastructure.Tests.TestSupport;
+using Shouldly;
+
+namespace VinayakaAgencies.Infrastructure.Tests.Gst;
+
+/// <summary>
+/// The Phase 5 vertical slice against a real SQLite file: posted snapshots driving GSTR-1/3B/9 that
+/// reconcile to each other and to the books (C5.3), the pinned-schema JSON export (C5.1) and the
+/// GSTR-2B reconciliation classes (C5.4) — phase-5-gst-returns.md §2–§3.
+/// </summary>
+public sealed class GstReturnWorkflowTests
+{
+    private static readonly DateOnly PeriodStart = new(2026, 8, 1);
+    private static readonly DateOnly PeriodEnd = new(2026, 8, 31);
+    private static readonly DateOnly InPeriod = new(2026, 8, 20);
+
+    // ---------------------------------------------------------------- C5.3 — returns reconcile
+
+    [Fact]
+    public async Task BuildGstr3B_MatchesGstr1MatchesPostedSnapshots()
+    {
+        await using var host = new SqliteTestHost();
+        await host.MigrateAsync();
+        var world = await ArrangeAsync(host);
+
+        await PostSalesInvoicesAsync(host, world);
+        await PostPurchaseInvoiceAsync(host, world, "SP-2201", 200m);
+        await PostPurchaseInvoiceAsync(host, world, "SP-2202", 100m);
+
+        var gstr1 = await ReturnAsync(host, service => service.BuildGstr1Async(PeriodStart, PeriodEnd));
+        var gstr3b = await ReturnAsync(host, service => service.BuildGstr3BAsync(PeriodStart, PeriodEnd));
+
+        // 3B outward block equals 1's totals exactly — same snapshots, never recomputed.
+        gstr3b.ReconcilesTo(gstr1).ShouldBeTrue();
+
+        // …and both equal the sum of what was stamped onto the posted sales documents.
+        var snapshot = await host.InScopeAsync(async sp =>
+        {
+            var unitOfWork = sp.GetRequiredService<IUnitOfWork>();
+
+            var documents = await unitOfWork.Repository<TradeDocument>().ListAsync();
+            var salesIds = documents
+                .Where(document => document.Kind == TradeDocumentKind.TaxInvoice
+                    && document.Status == TradeDocumentStatus.Issued)
+                .Select(document => document.Id)
+                .ToHashSet();
+
+            var lines = (await unitOfWork.Repository<TradeDocumentLine>().ListAsync())
+                .Where(line => salesIds.Contains(line.TradeDocumentId))
+                .ToList();
+
+            return (
+                TaxableMinor: lines.Sum(line => line.TaxableValueMinor),
+                IgstMinor: lines.Sum(line => line.IgstMinor),
+                CgstMinor: lines.Sum(line => line.CgstMinor),
+                SgstMinor: lines.Sum(line => line.SgstMinor));
+        });
+
+        snapshot.TaxableMinor.ShouldBe(15_000_000L);   // ₹1,000 B2B + ₹500 B2C
+        snapshot.IgstMinor.ShouldBe(1_800_000L);       // B2B to Maharashtra at 18%
+        snapshot.CgstMinor.ShouldBe(450_000L);         // B2C intra-state halves of ₹90
+        snapshot.SgstMinor.ShouldBe(450_000L);
+
+        gstr1.Totals.TaxableValueMinor.ShouldBe(snapshot.TaxableMinor);
+        gstr1.Totals.IgstMinor.ShouldBe(snapshot.IgstMinor);
+        gstr1.Totals.CgstMinor.ShouldBe(snapshot.CgstMinor);
+        gstr1.Totals.SgstMinor.ShouldBe(snapshot.SgstMinor);
+
+        // B2B/B2C classification followed the counterparty GSTIN, and Table 12 is split.
+        gstr1.B2B.Single().CounterpartyGstin.ShouldBe("27AAPFU0939F1ZV");
+        gstr1.B2B.Single().InvoiceValueMinor.ShouldBe(11_800_000L);
+        gstr1.B2C.Single().PlaceOfSupplyStateCode.ShouldBe("29");
+        gstr1.HsnSummary.Count(row => row.IsB2B).ShouldBeGreaterThan(0);
+        gstr1.HsnSummary.Count(row => !row.IsB2B).ShouldBeGreaterThan(0);
+
+        // ITC from the two non-reverse-charge purchases; nothing reverse-charge in this run.
+        gstr3b.ItcClaimed.IgstMinor.ShouldBe(540_000L);
+        gstr3b.InwardReverseChargeSupplies.TotalTaxMinor.ShouldBe(0L);
+    }
+
+    // ---------------------------------------------------------------- C5.1 — pinned JSON export
+
+    [Fact]
+    public async Task ExportGstr1_StampsPinnedSchemaVersion_AndIsSelfConsistent()
+    {
+        await using var host = new SqliteTestHost();
+        await host.MigrateAsync();
+        var world = await ArrangeAsync(host);
+
+        await PostSalesInvoicesAsync(host, world);
+
+        var json = await ReturnAsync(host, service => service.ExportGstr1JsonAsync(PeriodStart, PeriodEnd));
+
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        // The stamp spec §2 demands: which schema wrote this file, and when.
+        root.GetProperty("version").GetString().ShouldBe(GstSchemaVersions.CurrentGstr1);
+        root.GetProperty("gen_dt").GetString().ShouldNotBeNullOrWhiteSpace();
+        root.GetProperty("gstin").GetString().ShouldBe(world.CompanyGstin);
+        root.GetProperty("fp").GetString().ShouldBe("202627");
+
+        // Grand totals equal the books: ₹1,500 taxable, ₹180 IGST + ₹45 + ₹45 CGST/SGST.
+        var totals = root.GetProperty("gtotals");
+        totals.GetProperty("txval").GetDecimal().ShouldBe(1500m);
+        totals.GetProperty("iamt").GetDecimal().ShouldBe(180m);
+        totals.GetProperty("camt").GetDecimal().ShouldBe(45m);
+        totals.GetProperty("samt").GetDecimal().ShouldBe(45m);
+
+        // One B2B buyer with one invoice carrying its rate line; B2C aggregated by POS + rate.
+        var b2b = root.GetProperty("b2b");
+        b2b.GetArrayLength().ShouldBe(1);
+        var invoice = b2b[0].GetProperty("inv")[0];
+        invoice.GetProperty("inum").GetString().ShouldBe("INV/0001");
+        invoice.GetProperty("rchrg").GetString().ShouldBe("N");
+        invoice.GetProperty("itms")[0].GetProperty("rt").GetDecimal().ShouldBe(18m);
+
+        root.GetProperty("b2c")[0].GetProperty("pos").GetString().ShouldBe("29");
+
+        // Table 12 present for both supply types; documents-issued accounts for both invoices.
+        var hsnRows = root.GetProperty("hsn").GetProperty("data");
+        hsnRows.GetArrayLength().ShouldBe(2);
+
+        var docs = root.GetProperty("docs").GetProperty("inv")[0];
+        docs.GetProperty("tot").GetInt32().ShouldBe(2);
+        docs.GetProperty("cancel").GetInt32().ShouldBe(0);
+        docs.GetProperty("net").GetInt32().ShouldBe(2);
+    }
+
+    // ---------------------------------------------------------------- C5.4 — GSTR-2B matching
+
+    [Fact]
+    public async Task ReconcileGstr2B_ClassifiesMatchedMissingInBooksAndMissingInPortal()
+    {
+        await using var host = new SqliteTestHost();
+        await host.MigrateAsync();
+        var world = await ArrangeAsync(host);
+
+        await PostPurchaseInvoiceAsync(host, world, "SP-2201", 200m);
+        await PostPurchaseInvoiceAsync(host, world, "SP-2202", 100m);
+
+        // Portal file: SP-2201 exists (with a value difference beyond tolerance), SP-9999 does not
+        // exist in the books at all; the books' SP-2202 never reached the portal.
+        const string portalJson = """
+            {
+              "gstin": "29ABCDE1234F1Z5",
+              "fp": "202627",
+              "b2b": [
+                {
+                  "ctin": "24AACCE9487K1ZP",
+                  "inv": [
+                    { "inum": "SP-2201", "idt": "19-08-2026", "val": 999.00, "pos": "24",
+                      "itms": [ { "rt": 18, "txval": 846.61, "iamt": 152.39 } ] },
+                    { "inum": "SP-9999", "idt": "21-08-2026", "val": 118.00, "pos": "24",
+                      "itms": [ { "rt": 18, "txval": 100.00, "iamt": 18.00 } ] }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        var result = await ReturnAsync(host, service => service.ReconcileGstr2BAsync(
+            portalJson, PeriodStart, PeriodEnd));
+
+        result.MatchedCount.ShouldBe(1);
+        result.MissingInBooksCount.ShouldBe(1);
+        result.MissingInPortalCount.ShouldBe(1);
+
+        var matched = result.Results.Single(row => row.Classification == Gstr2bClassification.Matched);
+        matched.InvoiceNumber.ShouldBe("SP-2201");
+        matched.BooksInvoiceNumber.ShouldBe("BILL/0001");
+        matched.PortalInvoiceValueMinor.ShouldBe(9_990_000L);
+        matched.MismatchDetails.ShouldNotBeEmpty();
+
+        result.Results.Single(row => row.Classification == Gstr2bClassification.MissingInBooks)
+            .InvoiceNumber.ShouldBe("SP-9999");
+
+        var missingInPortal =
+            result.Results.Single(row => row.Classification == Gstr2bClassification.MissingInPortal);
+        missingInPortal.InvoiceNumber.ShouldBe("SP-2202");
+        missingInPortal.BooksInvoiceValueMinor.ShouldBe(1_180_000L);
+    }
+
+    // ---------------------------------------------------------------- arrange
+
+    private sealed record GstWorld(
+        Guid CompanyId,
+        string CompanyGstin,
+        Guid MainGodownId,
+        Guid CustomerLedgerId,
+        Guid SupplierLedgerId,
+        Guid ItemId);
+
+    /// <summary>Runs one return operation in its own DI scope, as the shell would.</summary>
+    private static Task<T> ReturnAsync<T>(SqliteTestHost host, Func<IGstReturnService, Task<T>> action) =>
+        host.InScopeAsync(sp => action(sp.GetRequiredService<IGstReturnService>()));
+
+    private static async Task<GstWorld> ArrangeAsync(SqliteTestHost host)
+    {
+        var companyId = await AddFullyProvisionedCompanyAsync(host);
+
+        return await host.InScopeAsync(async sp =>
+        {
+            var unitOfWork = sp.GetRequiredService<IUnitOfWork>();
+            var chartOfAccounts = sp.GetRequiredService<IChartOfAccountsService>();
+            var hsnSacService = sp.GetRequiredService<IHsnSacService>();
+            var rateService = sp.GetRequiredService<IGstRateService>();
+
+            var company = await unitOfWork.Repository<Company>().GetByIdAsync(companyId);
+            company!.SetGstin("29ABCDE1234F1Z5");
+            unitOfWork.Repository<Company>().Update(company);
+            await unitOfWork.SaveChangesAsync();
+
+            var godown = (await unitOfWork.Repository<Godown>().ListAsync())
+                .Single(candidate => candidate.CompanyId == companyId);
+
+            var groups = await unitOfWork.Repository<AccountGroup>().ListAsync();
+            var debtorsGroup = groups.Single(group => group.CompanyId == companyId && group.Name == "Sundry Debtors");
+            var creditorsGroup = groups.Single(group => group.CompanyId == companyId && group.Name == "Sundry Creditors");
+
+            var customerLedger = await chartOfAccounts.CreateLedgerAsync(
+                new CreateLedgerRequest("Ram Motors", debtorsGroup.Id));
+            var supplierLedger = await chartOfAccounts.CreateLedgerAsync(
+                new CreateLedgerRequest("Cisno Pumps Ltd", creditorsGroup.Id));
+
+            // A registered B2B customer billing into Maharashtra; everything else stays B2C.
+            var category = (await unitOfWork.Repository<CustomerCategory>().ListAsync())
+                .First(candidate => candidate.CompanyId == companyId);
+            await unitOfWork.Repository<Customer>().AddAsync(new Customer(
+                companyId,
+                "Ram Motors",
+                customerLedger.Id,
+                category.Id,
+                gstin: "27AAPFU0939F1ZV",
+                placeOfSupplyStateCode: "27"));
+            await unitOfWork.SaveChangesAsync();
+
+            var savedCode = await hsnSacService.SaveAsync(
+                new SaveHsnSacRequest(Id: null, Code: "84137010", Description: "Centrifugal pumps"));
+            await rateService.AddAsync(new SaveGstRateScheduleRequest(
+                savedCode.Id, 180_000L, EffectiveFrom: new DateOnly(2026, 4, 1)));
+
+            var unit = (await unitOfWork.Repository<UnitOfMeasure>().ListAsync())
+                .Single(candidate => candidate.CompanyId == companyId && candidate.Code == "NOS");
+            var item = new Item(companyId, "Openwell Pump", unit.Id);
+            item.AssignHsnSac(savedCode.Id);
+            await unitOfWork.Repository<Item>().AddAsync(item);
+            await unitOfWork.SaveChangesAsync();
+
+            return new GstWorld(
+                companyId,
+                "29ABCDE1234F1Z5",
+                godown.Id,
+                customerLedger.Id,
+                supplierLedger.Id,
+                item.Id);
+        });
+    }
+
+    private static async Task<Guid> AddFullyProvisionedCompanyAsync(SqliteTestHost host)
+    {
+        var companyId = await host.InScopeAsync(async sp =>
+        {
+            var unitOfWork = sp.GetRequiredService<IUnitOfWork>();
+            var company = new Company("Vinayaka Agencies", "Vinayaka Agencies (Regd.)", "29");
+            await unitOfWork.Repository<Company>().AddAsync(company);
+            await unitOfWork.SaveChangesAsync();
+            return company.Id;
+        });
+
+        await host.InScopeAsync(sp =>
+            sp.GetRequiredService<ICompanyProvisioningService>().ProvisionAsync(companyId));
+        await host.InScopeAsync(sp =>
+            sp.GetRequiredService<ICompanyProvisioningService>().EnsureInventorySeedAsync(companyId));
+        await host.InScopeAsync(sp =>
+            sp.GetRequiredService<ICompanyProvisioningService>().EnsurePipelineSeedAsync(companyId));
+        await host.InScopeAsync(sp =>
+            sp.GetRequiredService<ICompanyProvisioningService>().EnsureCustomerSeedAsync(companyId));
+        await host.InScopeAsync(sp =>
+            sp.GetRequiredService<ICompanyProvisioningService>().EnsureGstSeedAsync(companyId));
+
+        return companyId;
+    }
+
+    private static Task PostSalesInvoicesAsync(SqliteTestHost host, GstWorld world) =>
+        host.InScopeAsync(async sp =>
+        {
+            var trade = sp.GetRequiredService<ITradeDocumentService>();
+            var stock = sp.GetRequiredService<IStockVoucherService>();
+
+            await stock.PostAsync(new PostStockVoucherRequest(
+                StockVoucherPurpose.Receipt,
+                PeriodStart,
+                [
+                    new StockVoucherLineRequest(
+                        StockMovementDirection.Increase,
+                        world.ItemId,
+                        world.MainGodownId,
+                        10m,
+                        UnitCost: 100m),
+                ],
+                Narration: "opening stock",
+                CounterLedgerId: world.SupplierLedgerId));
+
+            // B2B: ₹1,000 taxable into Maharashtra at 18% → ₹1,180 billed, all whole rupees.
+            var b2bDraft = await trade.CreateAsync(new SaveTradeDocumentRequest(
+                TradeDocumentKind.TaxInvoice,
+                InPeriod,
+                world.CustomerLedgerId,
+                [new TradeDocumentLineInput(world.ItemId, world.MainGodownId, 2m, 500m)]));
+            await trade.PostInvoiceAsync(b2bDraft.Id);
+
+            // B2C: ₹500 taxable intra-state → CGST ₹45 + SGST ₹45.
+            var b2cDraft = await trade.CreateAsync(new SaveTradeDocumentRequest(
+                TradeDocumentKind.TaxInvoice,
+                InPeriod,
+                world.SupplierLedgerId,
+                [new TradeDocumentLineInput(world.ItemId, world.MainGodownId, 1m, 500m)]));
+            await trade.PostInvoiceAsync(b2cDraft.Id);
+        });
+
+    private static Task PostPurchaseInvoiceAsync(
+        SqliteTestHost host,
+        GstWorld world,
+        string supplierInvoiceNumber,
+        decimal rate) =>
+        host.InScopeAsync(async sp =>
+        {
+            var trade = sp.GetRequiredService<ITradeDocumentService>();
+
+            var draft = await trade.CreateAsync(new SaveTradeDocumentRequest(
+                TradeDocumentKind.PurchaseInvoice,
+                InPeriod,
+                world.SupplierLedgerId,
+                [new TradeDocumentLineInput(world.ItemId, world.MainGodownId, 1m, rate)],
+                PartyReferenceNumber: supplierInvoiceNumber,
+                PartyGstin: "24AACCE9487K1ZP"));
+
+            await trade.PostInvoiceAsync(draft.Id);
+        });
+}

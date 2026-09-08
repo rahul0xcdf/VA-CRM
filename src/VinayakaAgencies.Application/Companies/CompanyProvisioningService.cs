@@ -1,4 +1,5 @@
 using VinayakaAgencies.Application.Customers;
+using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
@@ -6,6 +7,7 @@ using VinayakaAgencies.Domain.Accounting;
 using VinayakaAgencies.Domain.Common;
 using VinayakaAgencies.Domain.Customers;
 using VinayakaAgencies.Domain.Entities;
+using VinayakaAgencies.Domain.Gst;
 using VinayakaAgencies.Domain.Inventory;
 using VinayakaAgencies.Domain.Printing;
 using VinayakaAgencies.Domain.Trade;
@@ -502,6 +504,103 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// The GST seed: the output/input tax ledgers and the settings row naming the round-off ledger
+    /// (phase-5-gst-returns.md §2). Row-granular and idempotent for the same reason as its
+    /// Phase 2/3/4 siblings. No HSN codes and no rates are seeded — those are master data, not
+    /// provisioning (CLAUDE.md non-negotiable #6).
+    /// </summary>
+    public async Task EnsureGstSeedAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        if (companyId == Guid.Empty)
+        {
+            throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+        }
+
+        var company = await _unitOfWork.Repository<Company>()
+            .GetByIdAsync(companyId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (company is null)
+        {
+            throw new InvalidOperationException(
+                $"Company '{companyId}' does not exist, so there is nothing to seed GST into.");
+        }
+
+        await using var transaction = await _unitOfWork
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var ledgerName in GstSeedData.OutputLedgerNames)
+        {
+            await EnsureTaxLedgerAsync(
+                    companyId,
+                    ledgerName,
+                    GstSeedData.DutiesAndTaxesGroupName,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        foreach (var ledgerName in GstSeedData.InputLedgerNames)
+        {
+            await EnsureTaxLedgerAsync(
+                    companyId,
+                    ledgerName,
+                    GstSeedData.CurrentAssetsGroupName,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (!await _unitOfWork.Repository<GstSettings>()
+                .AnyAsync(new GstSettingsOfCompany(companyId), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            await _unitOfWork.Repository<GstSettings>().AddAsync(
+                new GstSettings(companyId, GstSettings.DefaultRoundOffLedgerName),
+                cancellationToken).ConfigureAwait(false);
+            await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureTaxLedgerAsync(
+        Guid companyId,
+        string ledgerName,
+        string groupName,
+        CancellationToken cancellationToken)
+    {
+        var normalised = NameNormaliser.Normalise(ledgerName);
+
+        if (await _unitOfWork.Repository<Ledger>()
+                .AnyAsync(new LedgerByName(companyId, normalised), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var group = await _unitOfWork.Repository<AccountGroup>()
+            .SingleOrDefaultAsync(
+                new GroupByName(companyId, NameNormaliser.Normalise(groupName)),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (group is null)
+        {
+            throw new InvalidOperationException(
+                $"The '{groupName}' account group is missing from this company's chart of " +
+                $"accounts, so the '{ledgerName}' ledger has nowhere to hang. Provision the " +
+                "company first.");
+        }
+
+        await _unitOfWork.Repository<Ledger>().AddAsync(
+            new Ledger(companyId, ledgerName, group.Id),
+            cancellationToken).ConfigureAwait(false);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task EnsureKindVoucherTypeAsync(
         Guid companyId,
         PipelineSeedData.KindSeed kind,
@@ -724,6 +823,15 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
     private sealed class SettingsByCompany : Specification<InventorySettings>
     {
         public SettingsByCompany(Guid companyId)
+        {
+            Where(settings => settings.CompanyId == companyId);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class GstSettingsOfCompany : Specification<GstSettings>
+    {
+        public GstSettingsOfCompany(Guid companyId)
         {
             Where(settings => settings.CompanyId == companyId);
             ApplyNoTracking();

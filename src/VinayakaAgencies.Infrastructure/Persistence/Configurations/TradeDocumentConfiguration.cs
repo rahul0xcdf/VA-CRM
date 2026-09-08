@@ -46,6 +46,13 @@ internal sealed class TradeDocumentConfiguration : IEntityTypeConfiguration<Trad
         builder.Property(document => document.Narration).HasMaxLength(ColumnLengths.Narration);
         builder.Property(document => document.PartyReferenceNumber).HasMaxLength(ColumnLengths.Name);
 
+        // 15 characters, fixed by the GST registration format — same as Company.Gstin.
+        builder.Property(document => document.PartyGstin).HasMaxLength(15);
+
+        // Phase 5 tax snapshot (phase-5-gst-returns.md §2): written once at posting time.
+        builder.Property(document => document.PlaceOfSupplyStateCode).HasMaxLength(2);
+        builder.Property(document => document.IsReverseCharge).IsRequired();
+
         builder.Property(document => document.Number).HasMaxLength(ColumnLengths.VoucherNumber);
         builder.Property(document => document.ConvertedFromNumber).HasMaxLength(ColumnLengths.VoucherNumber);
         builder.Property(document => document.PostedNumber).HasMaxLength(ColumnLengths.VoucherNumber);

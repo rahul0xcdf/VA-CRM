@@ -210,6 +210,24 @@ public sealed class TradeDocumentLine : Entity, ICreationStamped, IBelongsToAggr
     /// <summary>Which pricing tier produced <see cref="AppliedRateMinor"/>.</summary>
     public SalePriceSource PriceSource { get; private set; }
 
+    /// <summary>
+    /// Taxable value at posting time, in minor units (ADR-0003) — the net line value the GST rate
+    /// applied to. Written once by the posting-time computation; zero on lines that never posted.
+    /// </summary>
+    public long TaxableValueMinor { get; private set; }
+
+    /// <summary>Resolved GST rate as a percent in minor units (18% = 180_000), snapshotted with
+    /// the tax figures so returns never have to re-resolve schedules.</summary>
+    public long GstRatePercentMinor { get; private set; }
+
+    public long IgstMinor { get; private set; }
+
+    public long CgstMinor { get; private set; }
+
+    public long SgstMinor { get; private set; }
+
+    public long CessMinor { get; private set; }
+
     /// <summary>The line's parsed serial list, or an empty list when none were staged.</summary>
     public IReadOnlyList<string> ParsedSerials =>
         SerialNumbersText?
@@ -247,6 +265,52 @@ public sealed class TradeDocumentLine : Entity, ICreationStamped, IBelongsToAggr
 
         RateMinor = MoneyScale.ToMinor(rounded);
         IsPriceOverridden = true;
+    }
+
+    /// <summary>
+    /// Records the posting-time tax computation for this line (phase-5-gst-returns.md §2):
+    /// taxable value, the rate that resolved on the document date, and the four tax heads.
+    /// Written exactly once — a line that already carries a snapshot is either posted or being
+    /// re-posted, and neither may be silently overwritten.
+    /// </summary>
+    public void AttachTaxSnapshot(
+        long taxableValueMinor,
+        long ratePercentMinor,
+        long igstMinor,
+        long cgstMinor,
+        long sgstMinor,
+        long cessMinor)
+    {
+        if (TaxableValueMinor != 0L || IgstMinor != 0L || CgstMinor != 0L
+            || SgstMinor != 0L || CessMinor != 0L)
+        {
+            throw new InvalidOperationException(
+                "This invoice line already carries a GST snapshot; reverse the invoice instead of "
+                + "overwriting its tax.");
+        }
+
+        GuardNonNegative(taxableValueMinor, nameof(taxableValueMinor));
+        GuardNonNegative(ratePercentMinor, nameof(ratePercentMinor));
+        GuardNonNegative(igstMinor, nameof(igstMinor));
+        GuardNonNegative(cgstMinor, nameof(cgstMinor));
+        GuardNonNegative(sgstMinor, nameof(sgstMinor));
+        GuardNonNegative(cessMinor, nameof(cessMinor));
+
+        TaxableValueMinor = taxableValueMinor;
+        GstRatePercentMinor = ratePercentMinor;
+        IgstMinor = igstMinor;
+        CgstMinor = cgstMinor;
+        SgstMinor = sgstMinor;
+        CessMinor = cessMinor;
+    }
+
+    private static void GuardNonNegative(long value, string parameterName)
+    {
+        if (value < 0L)
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName, value, "A tax snapshot figure cannot be negative.");
+        }
     }
 
     /// <summary>Value before discount, rounded once at birth (banker's, ADR-0003).</summary>

@@ -5,6 +5,7 @@ using VinayakaAgencies.Application.Auditing;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.Customers;
+using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Reporting;
@@ -66,6 +67,14 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ISalesSettingsService, SalesSettingsService>();
         services.AddScoped<ICreditLimitService, CreditLimitService>();
         services.AddScoped<ICustomerStatementService, CustomerStatementService>();
+
+        // Phase 5 GST returns & tax invoice compliance: HSN/SAC and rate masters as data, the
+        // posting-time tax computation, and the returns built from posted snapshots
+        // (phase-5-gst-returns.md §2).
+        services.AddScoped<IHsnSacService, HsnSacService>();
+        services.AddScoped<IGstRateService, GstRateService>();
+        services.AddScoped<IGstComputationService, GstComputationService>();
+        services.AddScoped<IGstReturnService, GstReturnService>();
 
         return services;
     }

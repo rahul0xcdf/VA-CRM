@@ -138,6 +138,13 @@ public sealed class Item : Entity, IAuditStamped
 
     public bool IsActive { get; private set; } = true;
 
+    /// <summary>
+    /// The HSN/SAC code this item bills under (phase-5-gst-returns.md §2), or null while GST is
+    /// unconfigured — an item without a code computes tax at zero and the invoice still posts,
+    /// with a warning.
+    /// </summary>
+    public Guid? HsnSacId { get; private set; }
+
     public DateTimeOffset CreatedAtUtc { get; set; }
 
     public string CreatedBy { get; set; } = string.Empty;
@@ -160,6 +167,20 @@ public sealed class Item : Entity, IAuditStamped
 
     public void MoveToGroup(Guid? stockGroupId) =>
         StockGroupId = stockGroupId;
+
+    /// <summary>
+    /// Assigns the item's HSN/SAC master row (null clears it) — phase-5-gst-returns.md §2.
+    /// </summary>
+    public void AssignHsnSac(Guid? hsnSacId)
+    {
+        if (hsnSacId.HasValue && hsnSacId.Value == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "HsnSacId must be null or a real id — never Guid.Empty.", nameof(hsnSacId));
+        }
+
+        HsnSacId = hsnSacId;
+    }
 
     /// <summary>
     /// Sets the alternate unit pair. A null alternate clears both; otherwise the conversion factor

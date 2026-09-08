@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.DayBookView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.DayBookView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -14,13 +14,13 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Day book — cancelled vouchers are shown and flagged, never hidden (spec 8.4)"
-                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+        <TextBlock Grid.Row="0" Text="Day book â€” cancelled vouchers are shown and flagged, never hidden (spec 8.4)"
+                   Style="{StaticResource ScreenTitleText}" />
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <TextBlock Text="From:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <TextBlock Text="From:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
             <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding FromDate}" />
-            <TextBlock Text="To:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <TextBlock Text="To:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
             <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding ToDate}" />
             <Button Content="Load" Padding="16,5" Command="{Binding LoadCommand}" />
         </StackPanel>
@@ -34,7 +34,7 @@
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsCancelled}" Value="True">
-                            <Setter Property="Foreground" Value="#FF9C3B3B" />
+                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
                             <Setter Property="FontStyle" Value="Italic" />
                         </DataTrigger>
                     </Style.Triggers>
@@ -53,11 +53,11 @@
         </DataGrid>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="4,8,0,0">
-            <TextBlock Text="Dr:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+            <TextBlock Text="Dr:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
             <TextBlock Text="{Binding TotalDebit, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-            <TextBlock Text="Cr:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+            <TextBlock Text="Cr:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
             <TextBlock Text="{Binding TotalCredit, StringFormat=N2}" Margin="6,0,20,0" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding Status}" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
         </StackPanel>
     </Grid>
 </UserControl>

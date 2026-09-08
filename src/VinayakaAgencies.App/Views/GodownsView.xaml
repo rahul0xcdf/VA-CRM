@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.GodownsView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.GodownsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -15,8 +15,8 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Godowns — the locations stock is held and moved between"
-                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+                   Text="Godowns â€” the locations stock is held and moved between"
+                   Style="{StaticResource ScreenTitleText}" />
 
         <DataGrid Grid.Row="1"
                   ItemsSource="{Binding Godowns}"
@@ -32,13 +32,13 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Row="2" Background="#FFF7F9FC" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="#FFE1E7EF" BorderThickness="1">
+        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                 <TextBox Width="180" Margin="6,0,16,0"
                          Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Text="Address:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                <TextBlock Text="Address:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                 <TextBox Width="300" Margin="6,0,16,0"
                          Text="{Binding EditAddress, UpdateSourceTrigger=PropertyChanged}" />
                 <Button Content="New" Padding="14,5" Command="{Binding NewCommand}" />
@@ -51,7 +51,7 @@
             <Button DockPanel.Dock="Left" Content="Refresh" Padding="14,5" Margin="0,8,0,0"
                     Command="{Binding RefreshCommand}" />
             <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="#FF5A6B85" TextWrapping="Wrap" />
+                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
         </DockPanel>
     </Grid>
 </UserControl>

@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.ProfitAndLossView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.ProfitAndLossView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -15,13 +15,13 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Profit &amp; loss — the gross block above the line, indirect items below it"
-                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+        <TextBlock Grid.Row="0" Text="Profit &amp; loss â€” the gross block above the line, indirect items below it"
+                   Style="{StaticResource ScreenTitleText}" />
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <TextBlock Text="From:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <TextBlock Text="From:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
             <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding FromDate}" />
-            <TextBlock Text="To:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <TextBlock Text="To:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
             <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding ToDate}" />
             <Button Content="Load" Padding="16,5" Command="{Binding LoadCommand}" />
         </StackPanel>
@@ -56,24 +56,24 @@
             </DataGrid>
         </Grid>
 
-        <Border Grid.Row="3" Background="#FFF7F9FC" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="#FFE1E7EF" BorderThickness="1">
+        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Total income:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+                    <TextBlock Text="Total income:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding TotalIncome, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                    <TextBlock Text="Total expense:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+                    <TextBlock Text="Total expense:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding TotalExpense, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                    <TextBlock Text="Gross profit:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+                    <TextBlock Text="Gross profit:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding GrossProfit, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                    <TextBlock Text="Net profit:" Foreground="#FF5A6B85" VerticalAlignment="Center" />
+                    <TextBlock Text="Net profit:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding NetProfit, StringFormat=N2}" Margin="6,0,0,0" FontWeight="Bold" FontSize="14" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Foreground="#FF5A6B85" />
+        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" />
     </Grid>
 </UserControl>

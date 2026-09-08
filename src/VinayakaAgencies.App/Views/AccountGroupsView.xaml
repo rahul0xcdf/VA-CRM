@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.AccountGroupsView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.AccountGroupsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -20,8 +20,8 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Account groups — system groups are shown but locked (spec §2)"
-                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+                   Text="Account groups â€” system groups are shown but locked (spec Â§2)"
+                   Style="{StaticResource ScreenTitleText}" />
 
         <DataGrid Grid.Row="1" Margin="0,12,0,12"
                   ItemsSource="{Binding Groups}"
@@ -39,16 +39,16 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Row="2" Background="#FFF7F9FC" Padding="12" CornerRadius="6"
-                BorderBrush="#FFE1E7EF" BorderThickness="1">
+        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" Padding="12" CornerRadius="6"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="New / renamed group:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#FF5A6B85" />
+                <TextBlock Text="New / renamed group:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource SecondaryTextBrush}" />
                 <TextBox Width="200" Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" />
-                <TextBlock Text="Under:" VerticalAlignment="Center" Margin="16,0,8,0" Foreground="#FF5A6B85" />
+                <TextBlock Text="Under:" VerticalAlignment="Center" Margin="16,0,8,0" Foreground="{StaticResource SecondaryTextBrush}" />
                 <ComboBox Width="220" ItemsSource="{Binding ParentChoices}"
                           SelectedItem="{Binding NewParentGroup}"
                           DisplayMemberPath="Name" VerticalAlignment="Center" />
-                <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="16,0,8,0" Foreground="#FF5A6B85" />
+                <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="16,0,8,0" Foreground="{StaticResource SecondaryTextBrush}" />
                 <TextBox Width="50" Text="{Binding NewSortOrder}" VerticalAlignment="Center" />
                 <Button Content="Add group" Margin="16,0,0,0" Padding="14,5"
                         Command="{Binding AddGroupCommand}" />
@@ -59,6 +59,6 @@
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="3" Margin="4,8,0,0" Text="{Binding Status}" Foreground="#FF5A6B85" />
+        <TextBlock Grid.Row="3" Margin="4,8,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" />
     </Grid>
 </UserControl>

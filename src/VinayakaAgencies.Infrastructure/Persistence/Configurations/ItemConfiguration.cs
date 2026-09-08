@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using VinayakaAgencies.Domain.Entities;
+using VinayakaAgencies.Domain.Gst;
 using VinayakaAgencies.Domain.Inventory;
 
 namespace VinayakaAgencies.Infrastructure.Persistence.Configurations;
@@ -59,6 +60,11 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item>
             .HasConversion<string>()
             .HasMaxLength(ColumnLengths.EnumName);
 
+        // Phase 5 (phase-5-gst-returns.md §2): the optional HSN/SAC assignment. Restrict — a code
+        // an item bills under cannot be deleted out from under its rate history.
+        builder.Property(item => item.HsnSacId);
+        builder.HasIndex(item => new { item.CompanyId, item.HsnSacId });
+
         builder.Property(item => item.CreatedAtUtc).IsRequired();
         builder.Property(item => item.CreatedBy).IsRequired().HasMaxLength(ColumnLengths.UserName);
         builder.Property(item => item.ModifiedBy).HasMaxLength(ColumnLengths.UserName);
@@ -94,6 +100,11 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item>
         builder.HasOne<UnitOfMeasure>()
             .WithMany()
             .HasForeignKey(item => item.AlternateUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<HsnSac>()
+            .WithMany()
+            .HasForeignKey(item => item.HsnSacId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

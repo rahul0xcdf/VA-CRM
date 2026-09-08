@@ -1,0 +1,68 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.HsnSacMasterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="560" d:DesignWidth="900">
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="HSN/SAC codes — with the rate effective today from the schedule master"
+                   Style="{StaticResource ScreenTitleText}" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
+            <CheckBox Content="Show inactive" VerticalAlignment="Center"
+                      IsChecked="{Binding IncludeInactive}" />
+            <Button Content="Refresh" Margin="16,0,0,0" Padding="14,5" Command="{Binding RefreshCommand}" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Rows}"
+                  SelectedItem="{Binding SelectedRow}"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*" />
+                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
+                <DataGridTextColumn Header="Rate %" Binding="{Binding RatePercent}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Cess %" Binding="{Binding CessPercent}" Width="SizeToCells" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="3" Style="{StaticResource SectionBorderStyle}" Margin="0,12,0,0">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Code:" Style="{StaticResource FieldLabelText}" />
+                    <TextBox Width="120" Margin="6,0,16,0"
+                             Text="{Binding EditCode, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Description:" Style="{StaticResource FieldLabelText}" />
+                    <TextBox Width="280" Margin="6,0,16,0"
+                             Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}" />
+                    <CheckBox Content="Active" VerticalAlignment="Center"
+                              IsChecked="{Binding EditIsActive}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="New" Padding="14,5" Command="{Binding ClearEditorCommand}" />
+                    <Button Content="Save" Margin="8,0,0,0" Padding="14,5" Command="{Binding SaveCommand}" />
+                    <Button Content="Deactivate" Margin="8,0,0,0" Padding="14,5"
+                            Command="{Binding DeactivateSelectedCommand}" />
+                    <Button Content="Reactivate" Margin="8,0,0,0" Padding="14,5"
+                            Command="{Binding ActivateSelectedCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Style="{StaticResource StatusText}" />
+    </Grid>
+</UserControl>

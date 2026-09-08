@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.StockVoucherView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.StockVoucherView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -15,31 +15,31 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Stock vouchers — opening balances, receipts, issues and transfers"
-                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+                   Text="Stock vouchers â€” opening balances, receipts, issues and transfers"
+                   Style="{StaticResource ScreenTitleText}" />
 
-        <Border Grid.Row="1" Background="#FFF7F9FC" Padding="12" Margin="0,10,0,8" CornerRadius="6"
-                BorderBrush="#FFE1E7EF" BorderThickness="1">
+        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,10,0,8" CornerRadius="6"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Purpose:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Purpose:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="140" Margin="6,0,16,0"
                               ItemsSource="{Binding PurposeChoices}"
                               SelectedItem="{Binding Purpose}" />
-                    <TextBlock Text="Date:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Date:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding VoucherDate}" />
-                    <TextBlock Text="Counter ledger:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Counter ledger:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="220" Margin="6,0,16,0"
                               ItemsSource="{Binding LedgerChoices}"
                               SelectedItem="{Binding CounterLedger}"
                               DisplayMemberPath="Name" />
-                    <TextBlock Text="Narration:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Narration:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="260" Margin="6,0,0,0"
                              Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Find item:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Find item:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="200" Margin="6,0,6,0"
                              Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" />
                     <Button Content="Search" Padding="14,5" Command="{Binding SearchItemsCommand}" />
@@ -47,7 +47,7 @@
                               ItemsSource="{Binding ItemChoices}"
                               SelectedItem="{Binding SelectedNewItem}"
                               DisplayMemberPath="Name" />
-                    <TextBlock Text="Default godown:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Default godown:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="150" Margin="6,0,0,0"
                               ItemsSource="{Binding GodownChoices}"
                               SelectedItem="{Binding DefaultGodown}"
@@ -92,11 +92,11 @@
                         Command="{Binding RefreshCommand}" />
             </StackPanel>
 
-            <TextBlock Margin="4,8,0,0" Text="{Binding Status}" Foreground="#FF5A6B85"
+            <TextBlock Margin="4,8,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}"
                        TextWrapping="Wrap" />
 
             <TextBlock Margin="4,12,0,2" Text="Recent movements" FontWeight="SemiBold"
-                       Foreground="#FF1B2A4A" />
+                       Foreground="{StaticResource PrimaryTextBrush}" />
             <DataGrid Height="160"
                       ItemsSource="{Binding RecentVouchers}"
                       AutoGenerateColumns="False" IsReadOnly="True"

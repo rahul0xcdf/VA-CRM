@@ -10,7 +10,8 @@ Blocks: Phase 6
 Agent: compliance-agent (frontier tier — do not downgrade)
 ```
 
-> **Draft.** Do not implement until `Status: Approved`.
+> **Approved 23 Aug 2026** by the project owner, with the §4 questions closed into §4a below.
+> Implementation proceeds within this scope.
 
 ## 1. Deliverables (project.md §10)
 
@@ -31,6 +32,10 @@ GSTR-2A/2B reconciliation.
   so a schema change is a visible, dated event rather than a silent break.
 - Rounding rules applied per invoice per GST convention, and the rounding difference posted to a
   designated ledger — never silently dropped.
+- **Batch addition (owner-directed, 23 Aug 2026):** this batch also delivers the Tally
+  Prime-inspired UI foundation described in `specs/adr/ADR-0005-tally-inspired-ui-and-keyboard-navigation.md`.
+  Phase 5 screens are built on that foundation and existing screens migrate onto it as part of the
+  same effort; the GST scope above is unchanged by it.
 
 ## 3. Checkpoint criteria (project.md §10)
 
@@ -53,3 +58,14 @@ Additional:
 - Is the business under composition scheme for any registration? Any reverse-charge purchases in practice?
 - Are exports / SEZ / e-commerce supplies in scope, or purely domestic B2B/B2C?
 - Which GSTN schema version to target at implementation time — record it here before approval.
+
+## 4a. Decisions recorded at approval (23 Aug 2026)
+
+Closed from §4 by the project owner:
+
+| Question | Decision |
+|---|---|
+| Registrations | **Single GSTIN billing from this install, one state.** The schema stays multi-company-ready (per open-questions #8), but Phase 5 builds single-registration flows only — no per-GSTIN document tagging or per-registration return filing. |
+| Scheme / reverse charge | **Regular scheme. Reverse-charge paths are built** (flagged RCM purchases, self-assessed tax, restricted ITC) even though they are rare in practice. No composition-dealer regime anywhere in Phase 5. |
+| Supply types | **Domestic B2B + B2C only.** No exports / SEZ / e-commerce supplies. Their GSTR-1 sections stay out of scope; generated returns simply do not carry those tables rather than emitting empty structures the portal rejects. Table 12 B2B/B2C HSN split remains in scope. |
+| GSTN schema version | **Target whatever the current GSTN offline-utility schema version is when implementation starts; pin its exact version string** in config/code and stamp every export with it (per §2), so a later schema change is a visible, dated event. |

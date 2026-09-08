@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.ItemsView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.ItemsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -20,11 +20,11 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Items — the catalogue everything stocks, moves and bills"
-                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+                   Text="Items â€” the catalogue everything stocks, moves and bills"
+                   Style="{StaticResource ScreenTitleText}" />
 
         <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">
-            <TextBlock Text="Filter:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <TextBlock Text="Filter:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
             <TextBox Width="220" Margin="6,0,16,0"
                      Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
             <Button Content="Refresh / apply filter" Padding="14,5" Command="{Binding RefreshCommand}" />
@@ -50,23 +50,23 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Row="3" Background="#FFF7F9FC" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="#FFE1E7EF" BorderThickness="1">
+        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="180" Margin="6,0,12,0"
                              Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Code:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Code:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="90" Margin="6,0,12,0" Text="{Binding EditCode}" />
-                    <TextBlock Text="Barcode:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Barcode:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="110" Margin="6,0,12,0" Text="{Binding EditBarcode}" />
-                    <TextBlock Text="Group:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Group:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="130" Margin="6,0,12,0"
                               ItemsSource="{Binding GroupChoices}"
                               SelectedValue="{Binding EditStockGroupId}"
                               SelectedValuePath="Id" DisplayMemberPath="Name" />
-                    <TextBlock Text="Base unit:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Base unit:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="80" Margin="6,0,12,0"
                               ItemsSource="{Binding UnitChoices}"
                               SelectedValue="{Binding EditBaseUnitId}"
@@ -74,18 +74,18 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Alt. unit:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Alt. unit:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="80" Margin="6,0,12,0"
                               ItemsSource="{Binding UnitChoices}"
                               SelectedValue="{Binding EditAlternateUnitId}"
                               SelectedValuePath="Id" DisplayMemberPath="Code" />
-                    <TextBlock Text="× factor:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Ã— factor:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="70" Margin="6,0,16,0" Text="{Binding EditConversionFactor}" />
                     <CheckBox Content="Serial-tracked" VerticalAlignment="Center" Margin="0,0,12,0"
                               IsChecked="{Binding EditIsSerialTracked}" />
                     <CheckBox Content="Batch-tracked" VerticalAlignment="Center" Margin="0,0,12,0"
                               IsChecked="{Binding EditIsBatchTracked}" />
-                    <TextBlock Text="Valuation:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Valuation:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="140" Margin="6,0,12,0"
                               ItemsSource="{Binding ValuationChoices}"
                               SelectedItem="{Binding EditValuationOverride}">
@@ -95,8 +95,13 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <TextBlock Text="Reorder at:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Reorder at:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="60" Margin="6,0,16,0" Text="{Binding EditReorderLevel}" />
+                    <TextBlock Text="HSN/SAC:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+                    <ComboBox Width="130" Margin="6,0,12,0"
+                              ItemsSource="{Binding HsnSacChoices}"
+                              SelectedValue="{Binding EditHsnSacId}"
+                              SelectedValuePath="Id" DisplayMemberPath="Code" />
                     <CheckBox Content="Kit item" VerticalAlignment="Center"
                               IsChecked="{Binding EditIsKit}" />
                 </StackPanel>
@@ -105,12 +110,12 @@
                 <StackPanel Margin="0,8,0,0"
                             Visibility="{Binding EditIsKit, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Component:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                        <TextBlock Text="Component:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                         <ComboBox Width="240" Margin="6,0,12,0"
                                   ItemsSource="{Binding ComponentChoices}"
                                   SelectedItem="{Binding NewComponentItem}"
                                   DisplayMemberPath="Name" />
-                        <TextBlock Text="Qty per kit:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                        <TextBlock Text="Qty per kit:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                         <TextBox Width="60" Margin="6,0,12,0"
                                  Text="{Binding NewComponentQuantity, UpdateSourceTrigger=PropertyChanged}" />
                         <Button Content="Add component" Padding="14,5" Command="{Binding AddComponentCommand}" />
@@ -144,7 +149,7 @@
 
         <DockPanel Grid.Row="4" LastChildFill="False">
             <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="#FF5A6B85" TextWrapping="Wrap" />
+                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
         </DockPanel>
     </Grid>
 </UserControl>

@@ -3,5 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- No StartupUri: the generic host owns the composition root and decides which window opens,
          so that no view is constructed before configuration, logging and the schema are ready. -->
-    <Application.Resources />
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Presentation/Themes/Colors.xaml" />
+                <ResourceDictionary Source="Presentation/Themes/Typography.xaml" />
+                <ResourceDictionary Source="Presentation/Themes/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>

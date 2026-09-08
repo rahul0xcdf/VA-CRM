@@ -102,6 +102,27 @@ public sealed class TradeDocument : Entity, IAuditStamped
     /// <summary>The posted voucher's business number, carried for the same reason as on stock vouchers.</summary>
     public string? PostedNumber { get; private set; }
 
+    /// <summary>
+    /// The party's GSTIN as keyed on this document, when it differs from (or exists without) a
+    /// customer master row — the purchase side has no supplier master, so its supplier GSTIN can
+    /// only live here. Drives the B2B vs B2C split and GSTR-2B matching.
+    /// </summary>
+    public string? PartyGstin { get; private set; }
+
+    /// <summary>
+    /// GST state code of the place of supply, snapshotted at posting time by the tax computation
+    /// step (phase-5-gst-returns.md §2): resolution order is this document, then the customer
+    /// master, then the company's own state. Null on documents that never posted.
+    /// </summary>
+    public string? PlaceOfSupplyStateCode { get; private set; }
+
+    /// <summary>
+    /// Whether supplies under this invoice are liable to tax on a reverse-charge basis — the
+    /// recipient self-assesses instead of being billed. Snapshotted at posting time alongside the
+    /// place of supply.
+    /// </summary>
+    public bool IsReverseCharge { get; private set; }
+
     public TradeDocumentStatus Status { get; private set; }
 
     public IReadOnlyList<TradeDocumentLine> Lines => _lines;
@@ -232,6 +253,57 @@ public sealed class TradeDocument : Entity, IAuditStamped
             ? null
             : referenceNumber.Trim();
         PartyReferenceDate = PartyReferenceNumber is null ? null : referenceDate;
+    }
+
+    /// <summary>
+    /// Sets the party's GSTIN (null clears it). Stored upper-case, exactly as the customer master
+    /// and the GSTN portal expect.
+    /// </summary>
+    public void SetPartyGstin(string? gstin) =>
+        PartyGstin = string.IsNullOrWhiteSpace(gstin) ? null : gstin.Trim().ToUpperInvariant();
+
+    /// <summary>
+    /// Flags this document as a reverse-charge supply while it is still editable: the recipient
+    /// self-assesses instead of being billed (phase-5-gst-returns.md §4a). The posted snapshot
+    /// keeps whatever was flagged here.
+    /// </summary>
+    public void SetReverseCharge(bool isReverseCharge)
+    {
+        if (Status == TradeDocumentStatus.Issued)
+        {
+            throw new InvalidOperationException(
+                "A posted invoice's reverse-charge flag is part of its tax snapshot and cannot change.");
+        }
+
+        IsReverseCharge = isReverseCharge;
+    }
+
+    /// <summary>
+    /// Records the tax snapshot the posting-time computation resolved: where the supply was made,
+    /// and whether it is reverse-charge. Only a posting invoice carries one, and it is written
+    /// once — returns are built from what was snapshotted, never recomputed ad hoc.
+    /// </summary>
+    public void AttachGstSnapshot(string placeOfSupplyStateCode, bool isReverseCharge)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(placeOfSupplyStateCode);
+
+        var trimmed = placeOfSupplyStateCode.Trim();
+
+        if (trimmed.Length != 2)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(placeOfSupplyStateCode),
+                placeOfSupplyStateCode,
+                "A place-of-supply state code is exactly two characters (e.g. \"29\").");
+        }
+
+        if (!StockMoving)
+        {
+            throw new InvalidOperationException($"A {Kind} never posts, so it carries no GST snapshot.");
+        }
+
+        PlaceOfSupplyStateCode = trimmed;
+        IsReverseCharge = isReverseCharge;
     }
 
     /// <summary>Records the number this document was given in its kind's series.</summary>

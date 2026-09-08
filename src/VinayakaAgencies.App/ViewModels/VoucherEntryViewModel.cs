@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VinayakaAgencies.Application.Accounting;
@@ -18,8 +19,14 @@ namespace VinayakaAgencies.App.ViewModels;
 /// writes a new one; the previous revision stays readable through the history pane, which is the
 /// edit log grouped under the voucher.
 /// </remarks>
-public sealed partial class VoucherEntryViewModel : ObservableObject
+public sealed partial class VoucherEntryViewModel : ObservableObject, IScreenShortcuts
 {
+    ICommand? IScreenShortcuts.AcceptCommand => PostCommand;
+
+    ICommand? IScreenShortcuts.CancelCommand => CancelVoucherCommand;
+
+    string? IScreenShortcuts.StatusBarHints => "Ctrl+A Post · Ctrl+Q Cancel voucher · Esc Back";
+
     private readonly IVoucherPostingService _postingService;
     private readonly IChartOfAccountsService _chartOfAccounts;
     private readonly IAuditLogReader _auditLogReader;

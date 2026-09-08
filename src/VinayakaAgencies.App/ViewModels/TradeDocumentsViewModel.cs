@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VinayakaAgencies.App.Presentation;
@@ -148,8 +149,14 @@ public sealed partial class TradeDocumentLineEditor : ObservableObject
 /// atomically (C3.3) and refuses until negative-stock warnings are confirmed — exactly the manual
 /// stock voucher's contract.
 /// </remarks>
-public sealed partial class TradeDocumentsViewModel : ObservableObject
+public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenShortcuts
 {
+    ICommand? IScreenShortcuts.AcceptCommand => SaveDraftCommand;
+
+    ICommand? IScreenShortcuts.CancelCommand => StartNewDocumentCommand;
+
+    string? IScreenShortcuts.StatusBarHints => "Ctrl+A Save draft · Ctrl+Q New document · Esc Back";
+
     private readonly ITradeDocumentService _pipeline;
     private readonly IChartOfAccountsService _chartOfAccounts;
     private readonly IInventoryMasterService _masters;

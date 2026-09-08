@@ -1145,6 +1145,137 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.ToTable("Companies", (string)null);
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Gst.GstRateSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CompensationCessPercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("HsnSacId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("RatePercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HsnSacId");
+
+                    b.HasIndex("CompanyId", "EffectiveFrom");
+
+                    b.HasIndex("CompanyId", "HsnSacId", "EffectiveFrom");
+
+                    b.ToTable("GstRateSchedules", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Gst.GstSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RoundOffLedgerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("GstSettings", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Gst.HsnSac", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.HasIndex("CompanyId", "IsActive");
+
+                    b.ToTable("HsnSac", (string)null);
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.Godown", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1268,6 +1399,9 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.Property<long?>("DefaultSalePriceMinor")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("HsnSacId")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
@@ -1313,6 +1447,8 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BaseUnitId");
 
+                    b.HasIndex("HsnSacId");
+
                     b.HasIndex("StockGroupId");
 
                     b.HasIndex("CompanyId", "Barcode");
@@ -1320,6 +1456,8 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.HasIndex("CompanyId", "BaseUnitId");
 
                     b.HasIndex("CompanyId", "Code");
+
+                    b.HasIndex("CompanyId", "HsnSacId");
 
                     b.HasIndex("CompanyId", "NameNormalised")
                         .IsUnique();
@@ -1853,6 +1991,9 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("DocumentDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsReverseCharge")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -1873,6 +2014,10 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PartyGstin")
+                        .HasMaxLength(15)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("PartyLedgerId")
                         .HasColumnType("TEXT");
 
@@ -1881,6 +2026,10 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("PartyReferenceNumber")
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PlaceOfSupplyStateCode")
+                        .HasMaxLength(2)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PostedNumber")
@@ -1928,6 +2077,12 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
+                    b.Property<long>("CessMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CgstMinor")
+                        .HasColumnType("INTEGER");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("TEXT");
 
@@ -1944,6 +2099,12 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid?>("GodownId")
                         .HasColumnType("TEXT");
+
+                    b.Property<long>("GstRatePercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("IgstMinor")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsPriceOverridden")
                         .HasColumnType("INTEGER");
@@ -1968,6 +2129,12 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.Property<string>("SerialNumbersText")
                         .HasMaxLength(2000)
                         .HasColumnType("TEXT");
+
+                    b.Property<long>("SgstMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("TaxableValueMinor")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("TradeDocumentId")
                         .HasColumnType("TEXT");
@@ -2287,6 +2454,39 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Gst.GstRateSchedule", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Gst.HsnSac", null)
+                        .WithMany()
+                        .HasForeignKey("HsnSacId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Gst.GstSettings", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Gst.HsnSac", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.Godown", b =>
                 {
                     b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
@@ -2323,6 +2523,11 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Gst.HsnSac", null)
+                        .WithMany()
+                        .HasForeignKey("HsnSacId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VinayakaAgencies.Domain.Inventory.StockGroup", null)
                         .WithMany()

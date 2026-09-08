@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.TradeDocumentsView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.TradeDocumentsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -21,37 +21,37 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Documents — quotations, orders, challans and invoices, sales and purchase"
-                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+                   Text="Documents â€” quotations, orders, challans and invoices, sales and purchase"
+                   Style="{StaticResource ScreenTitleText}" />
 
-        <Border Grid.Row="1" Background="#FFF7F9FC" Padding="12" Margin="0,10,0,8" CornerRadius="6"
-                BorderBrush="#FFE1E7EF" BorderThickness="1">
+        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,10,0,8" CornerRadius="6"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Document:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Document:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="140" Margin="6,0,16,0"
                               ItemsSource="{Binding KindChoices}"
                               SelectedItem="{Binding NewDocumentKind}" />
                     <Button Content="New document" Padding="14,5" Command="{Binding StartNewDocumentCommand}" />
                     <TextBlock Text="{Binding EditingCaption}" Margin="16,0,16,0"
-                               VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
-                    <TextBlock Text="Date:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                               VerticalAlignment="Center" Style="{StaticResource SectionHeaderText}" />
+                    <TextBlock Text="Date:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <DatePicker Width="120" Margin="6,0,16,0" SelectedDate="{Binding DocumentDate}" />
-                    <TextBlock Text="Party:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Party:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="220" Margin="6,0,16,0"
                               ItemsSource="{Binding LedgerChoices}"
                               SelectedItem="{Binding PartyLedger}"
                               DisplayMemberPath="Name" />
-                    <TextBlock Text="Your ref:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Your ref:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="110" Margin="6,0,0,0"
                              Text="{Binding PartyReferenceNumber, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Narration:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Narration:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="300" Margin="6,0,16,0"
                              Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Find item:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Find item:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="160" Margin="6,0,6,0"
                              Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" />
                     <Button Content="Search" Padding="14,5" Command="{Binding SearchItemsCommand}" />
@@ -59,7 +59,7 @@
                               ItemsSource="{Binding ItemChoices}"
                               SelectedItem="{Binding SelectedNewItem}"
                               DisplayMemberPath="Name" />
-                    <TextBlock Text="Default godown:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+                    <TextBlock Text="Default godown:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <ComboBox Width="130" Margin="6,0,0,0"
                               ItemsSource="{Binding GodownChoices}"
                               SelectedItem="{Binding DefaultGodown}"
@@ -104,7 +104,7 @@
                         <Style TargetType="TextBlock">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsPriceOverridden}" Value="True">
-                                    <Setter Property="Foreground" Value="#FFB45309" />
+                                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
                                     <Setter Property="FontWeight" Value="SemiBold" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -121,17 +121,17 @@
                 <Button Content="Save draft" Padding="14,5" Command="{Binding SaveDraftCommand}" />
                 <Button Content="Remove line" Margin="8,0,0,0" Padding="14,5"
                         Command="{Binding RemoveLineCommand}" />
-                <Button Content="Load selected ↓" Margin="16,0,0,0" Padding="14,5"
+                <Button Content="Load selected â†“" Margin="16,0,0,0" Padding="14,5"
                         Command="{Binding LoadSelectedCommand}" />
                 <Button Content="Delete draft" Margin="8,0,0,0" Padding="14,5"
                         Command="{Binding DeleteDocumentCommand}" />
                 <TextBlock Text="Convert into:" VerticalAlignment="Center" Margin="20,0,4,0"
-                           Foreground="#FF5A6B85" />
+                           Foreground="{StaticResource SecondaryTextBrush}" />
                 <ComboBox Width="130"
                           ItemsSource="{Binding ConvertTargets}"
                           SelectedItem="{Binding SelectedTargetKind}" />
                 <TextBlock Text="godown:" VerticalAlignment="Center" Margin="6,0,4,0"
-                           Foreground="#FF5A6B85" />
+                           Foreground="{StaticResource SecondaryTextBrush}" />
                 <ComboBox Width="120"
                           ItemsSource="{Binding GodownChoices}"
                           SelectedItem="{Binding ConvertGodown}"
@@ -155,13 +155,13 @@
                         Command="{Binding RefreshCommand}" />
             </StackPanel>
 
-            <TextBlock Margin="4,8,0,0" Text="{Binding EditingStatus}" Foreground="#FF5A6B85"
+            <TextBlock Margin="4,8,0,0" Text="{Binding EditingStatus}" Foreground="{StaticResource SecondaryTextBrush}"
                        TextWrapping="Wrap" />
-            <TextBlock Margin="4,4,0,0" Text="{Binding Status}" Foreground="#FF5A6B85"
+            <TextBlock Margin="4,4,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}"
                        TextWrapping="Wrap" />
 
             <TextBlock Margin="4,12,0,2" Text="All documents (latest 100)" FontWeight="SemiBold"
-                       Foreground="#FF1B2A4A" />
+                       Foreground="{StaticResource PrimaryTextBrush}" />
             <DataGrid Height="190"
                       ItemsSource="{Binding Documents}"
                       SelectedItem="{Binding SelectedDocument}"

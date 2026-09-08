@@ -52,6 +52,23 @@ with India GST/TDS compliance as a core requirement.
   read straight from the books (C4.3/C4.6); credit limit warn/block gates orders and invoices.
   Remaining before Phase 4 sign-off: owner walkthrough of the five new screens and screenshots
   for `specs/evidence/phase-4-evidence.md`.
+- **Phase 5 (GST returns & tax invoice compliance) — implemented and verified by tests.** Spec
+  approved 23 Aug 2026; decisions in §4a (single GSTIN / one state, regular scheme with
+  reverse-charge paths built though rare, domestic B2B + B2C only, GSTN schema pinned at
+  **v3.2.4** and stamped on every export). HSN/SAC masters with effective-dated rate schedules
+  (C5.5), posting-time tax snapshots on trade documents — CGST/SGST vs IGST by place of supply,
+  cess, RCM self-assessment, rupee round-off posted to `Gst.RoundOffLedger` (C5.2); GSTR-1 with
+  Table 12 B2B/B2C HSN split + JSON export pinned and stamped (C5.1), GSTR-3B reconciled to
+  GSTR-1 and the books (C5.3), GSTR-9, GSTR-2B import reconciliation classifying matched /
+  missing-in-books / missing-in-portal (C5.4). No rates/codes seeded anywhere — owner data only.
+  The same batch delivered the Tally Prime-inspired presentation foundation per ADR-0005: shared
+  theme dictionaries under `App/Presentation/Themes`, shell rework (header / numbered Home menu /
+  status bar), Alt+G Go To palette, Esc back-stack, Ctrl+A/Ctrl+Q via `IScreenShortcuts`, digit
+  module jumps, all existing views migrated onto the theme, four new GST screens built on it,
+  and the shortcut map at `docs/user-guide/keyboard-shortcuts.md`. Feature docs:
+  `gst-computation-and-rates.md`, `gst-returns-and-json-export.md`, `tally-style-ui-foundation.md`.
+  Remaining before Phase 5 sign-off: owner walkthrough of the four GST screens + reworked shell,
+  screenshots for `specs/evidence/phase-5-evidence.md`.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,

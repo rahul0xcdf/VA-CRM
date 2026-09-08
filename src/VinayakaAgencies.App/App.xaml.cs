@@ -128,6 +128,12 @@ public partial class App : System.Windows.Application
                 .RefreshCommand.ExecuteAsync(null).ConfigureAwait(true);
 
             var elapsed = DateTimeOffset.UtcNow - startedAt;
+
+            // ADR-0005 header: company legal name, GSTIN and active financial-year period.
+            splash.ReportStatus("Loading company header…");
+            await _shellScope.ServiceProvider.GetRequiredService<ShellViewModel>()
+                .LoadCompanyHeaderAsync()
+                .ConfigureAwait(true);
             if (elapsed < MinimumSplashDuration)
             {
                 await Task.Delay(MinimumSplashDuration - elapsed).ConfigureAwait(true);

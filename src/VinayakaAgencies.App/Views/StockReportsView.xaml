@@ -1,4 +1,4 @@
-<UserControl x:Class="VinayakaAgencies.App.Views.StockReportsView"
+﻿<UserControl x:Class="VinayakaAgencies.App.Views.StockReportsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -16,20 +16,20 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Stock reports — on hand, valuation, reorder alerts and aging"
-                   FontSize="16" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+                   Text="Stock reports â€” on hand, valuation, reorder alerts and aging"
+                   Style="{StaticResource ScreenTitleText}" />
 
         <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,4">
-            <TextBlock Text="Report:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <TextBlock Text="Report:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
             <ComboBox Width="260" Margin="6,0,16,0"
                       ItemsSource="{Binding ReportChoices}"
                       SelectedItem="{Binding SelectedReport}" />
-            <TextBlock Text="As of:" VerticalAlignment="Center" Foreground="#FF5A6B85" />
+            <TextBlock Text="As of:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
             <DatePicker Width="130" Margin="6,0,0,0" SelectedDate="{Binding AsOfDate}" />
         </DockPanel>
 
         <TextBlock Grid.Row="2" Margin="4,2,0,8" Text="{Binding Summary}"
-                   Foreground="#FF1B2A4A" FontWeight="SemiBold"
+                   Foreground="{StaticResource PrimaryTextBrush}" FontWeight="SemiBold"
                    Visibility="{Binding ReconciliationBannerVisibility}" />
 
         <DataGrid Grid.Row="3"
@@ -42,7 +42,7 @@
             <Button DockPanel.Dock="Left" Content="Run report" Padding="14,5" Margin="0,8,0,0"
                     Command="{Binding RefreshCommand}" />
             <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="#FF5A6B85" TextWrapping="Wrap" />
+                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
         </DockPanel>
     </Grid>
 </UserControl>

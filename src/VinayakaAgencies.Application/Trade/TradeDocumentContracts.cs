@@ -38,7 +38,9 @@ public sealed record SaveTradeDocumentRequest(
     string? Narration = null,
     string? PartyReferenceNumber = null,
     DateOnly? PartyReferenceDate = null,
-    bool ConfirmNegativeStockWarnings = false);
+    bool ConfirmNegativeStockWarnings = false,
+    string? PartyGstin = null,
+    bool IsReverseCharge = false);
 
 /// <summary>Read model for one posted or staged line of a trade document.</summary>
 /// <param name="AppliedRateMinor">
@@ -123,15 +125,26 @@ public sealed record InvoiceValidationResult(
     public bool HasWarnings => Warnings.Count > 0;
 }
 
-/// <summary>The outcome of posting an invoice atomically.</summary>
+/// <summary>The outcome of posting an invoice.</summary>
 /// <param name="CostOfGoodsSoldValueMinor">What the stock issues were expensed at, minor units.</param>
+/// <param name="TotalTaxMinor">GST computed and posted with this invoice, minor units
+/// (phase-5-gst-returns.md §2); zero while items carry no HSN/rate.</param>
+/// <param name="RoundOffMinor">The per-invoice rupee round-off routed to the round-off ledger,
+/// minor units; positive adds to the bill, negative subtracts.</param>
+/// <param name="TaxWarnings">
+/// Non-blocking GST findings — an item without an HSN/SAC code or a covering rate schedule computes
+/// at zero so the owner may still raise non-GST invoices (spec §4a).
+/// </param>
 public sealed record PostedInvoiceResult(
     Guid DocumentId,
     string DocumentNumber,
     string PostedVoucherNumber,
     DateOnly DocumentDate,
     decimal TotalNetValue,
-    long CostOfGoodsSoldValueMinor);
+    long CostOfGoodsSoldValueMinor,
+    long TotalTaxMinor = 0L,
+    long RoundOffMinor = 0L,
+    IReadOnlyList<string>? TaxWarnings = null);
 
 /// <summary>One pending row of the order-outstanding report (checkpoint C3.4).</summary>
 public sealed record OrderOutstandingRow(

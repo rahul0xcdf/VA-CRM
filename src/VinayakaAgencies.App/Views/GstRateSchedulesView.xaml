@@ -1,0 +1,64 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.GstRateSchedulesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="560" d:DesignWidth="900">
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="GST rate schedules — dated rows per code; a new row supersedes the open one, history is never edited"
+                   Style="{StaticResource ScreenTitleText}" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
+            <TextBlock Text="Code:" Style="{StaticResource FieldLabelText}" />
+            <ComboBox Width="160" Margin="6,0,16,0" ItemsSource="{Binding CodeChoices}"
+                      SelectedItem="{Binding SelectedCode}" DisplayMemberPath="Code" />
+            <Button Content="Refresh codes" Padding="14,5" Command="{Binding RefreshCommand}" />
+            <Button Content="Show all histories" Margin="8,0,0,0" Padding="14,5"
+                    Command="{Binding LoadHistoryCommand}" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding ScheduleRows}"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Effective from" Binding="{Binding EffectiveFrom}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Effective to" Binding="{Binding EffectiveTo}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Rate %" Binding="{Binding RatePercent}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Cess %" Binding="{Binding CessPercent}" Width="SizeToCells" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="3" Style="{StaticResource SectionBorderStyle}" Margin="0,12,0,0">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Rate %:" Style="{StaticResource FieldLabelText}" />
+                    <TextBox Width="70" Margin="6,0,16,0"
+                             Text="{Binding EditRatePercent, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Cess %:" Style="{StaticResource FieldLabelText}" />
+                    <TextBox Width="70" Margin="6,0,16,0"
+                             Text="{Binding EditCessPercent, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Effective from:" Style="{StaticResource FieldLabelText}" />
+                    <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding EditEffectiveFrom}" />
+                    <Button Content="Add schedule" Padding="14,5" Command="{Binding AddScheduleCommand}" />
+                </StackPanel>
+                <TextBlock Margin="0,6,0,0" Style="{StaticResource StatusHintText}"
+                           Text="Adding a row closes the previous open-ended row the day before the new one starts — exactly one rate covers any given date." />
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Style="{StaticResource StatusText}" />
+    </Grid>
+</UserControl>

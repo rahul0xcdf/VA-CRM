@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using VinayakaAgencies.App.ViewModels;
 using VinayakaAgencies.App.Views;
 using VinayakaAgencies.Application.Accounting;
+using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Inventory;
 
 namespace VinayakaAgencies.App.Navigation;
@@ -20,7 +21,8 @@ public sealed class InventoryScreenModule : IScreenModule
         new ScreenDescriptor(
             "Items",
             services => new ItemsViewModel(
-                services.GetRequiredService<IInventoryMasterService>()),
+                services.GetRequiredService<IInventoryMasterService>(),
+                services.GetRequiredService<IHsnSacService>()),
             typeof(ItemsView)),
 
         new ScreenDescriptor(

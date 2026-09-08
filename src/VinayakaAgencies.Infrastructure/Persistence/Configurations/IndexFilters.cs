@@ -36,6 +36,13 @@ internal static class IndexFilters
     internal static string IsNotNull(string columnName) =>
         string.Concat(Quote(columnName), " IS NOT NULL");
 
+    /// <summary>
+    /// The predicate for "only rows where this boolean column is set", e.g. soft-uniqueness among
+    /// active master rows.
+    /// </summary>
+    internal static string IsTrue(string columnName) =>
+        string.Concat(Quote(columnName), " = 1");
+
     private static string Quote(string columnName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(columnName);

@@ -1,0 +1,84 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.Gstr2BReconciliationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="620" d:DesignWidth="1020">
+
+    <UserControl.Resources>
+        <CollectionViewSource x:Key="GroupedResults" Source="{Binding Results}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Classification" />
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+    </UserControl.Resources>
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="GSTR-2B reconciliation — portal file vs posted purchase invoices, keyed by supplier GSTIN + invoice number"
+                   Style="{StaticResource ScreenTitleText}" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
+            <TextBlock Text="Books from:" Style="{StaticResource FieldLabelText}" />
+            <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding BooksFromDate}" />
+            <TextBlock Text="to:" Style="{StaticResource FieldLabelText}" />
+            <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding BooksToDate}" />
+            <Button Content="Import &amp; reconcile…" Padding="14,5" Command="{Binding ImportAndReconcileCommand}" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Style="{StaticResource SectionBorderStyle}" Margin="0,4,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Matched:" Style="{StaticResource FieldLabelText}" />
+                <TextBlock Text="{Binding MatchedSummary}" Margin="6,0,16,0" FontWeight="SemiBold" />
+                <TextBlock Text="Missing in books:" Style="{StaticResource FieldLabelText}" />
+                <TextBlock Text="{Binding MissingInBooksSummary}" Margin="6,0,16,0"
+                           FontWeight="SemiBold" Foreground="{StaticResource WarningBrush}" />
+                <TextBlock Text="Missing in portal:" Style="{StaticResource FieldLabelText}" />
+                <TextBlock Text="{Binding MissingInPortalSummary}" FontWeight="SemiBold"
+                           Foreground="{StaticResource WarningBrush}" />
+            </StackPanel>
+        </Border>
+
+        <DataGrid Grid.Row="3"
+                  ItemsSource="{Binding Source={StaticResource GroupedResults}}"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  CanUserAddRows="False">
+            <DataGrid.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="2,3">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}" />
+                                <TextBlock Text="{Binding ItemCount, StringFormat={} · {0} line(s)}"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </DataGrid.GroupStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Supplier GSTIN" Binding="{Binding SupplierGstin}" Width="SizeToHeader" />
+                <DataGridTextColumn Header="Portal invoice" Binding="{Binding PortalInvoiceNumber}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Portal date" Binding="{Binding PortalInvoiceDate}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Portal value" Binding="{Binding PortalInvoiceValue, StringFormat=N2}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Books invoice" Binding="{Binding BooksInvoiceNumber}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Books date" Binding="{Binding BooksInvoiceDate}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Books value" Binding="{Binding BooksInvoiceValue, StringFormat=N2}" Width="SizeToCells" />
+                <DataGridTextColumn Header="Mismatch details" Binding="{Binding MismatchDetails}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Style="{StaticResource StatusText}" />
+    </Grid>
+</UserControl>

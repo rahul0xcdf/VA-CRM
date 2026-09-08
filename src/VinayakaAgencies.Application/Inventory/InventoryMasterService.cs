@@ -344,6 +344,7 @@ public sealed class InventoryMasterService(
             item.SetTracking(request.IsSerialTracked, request.IsBatchTracked);
             item.SetValuationOverride(request.ValuationOverride);
             item.SetReorderLevel(request.ReorderLevel);
+            item.AssignHsnSac(request.HsnSacId);
 
             if (request.IsKit)
             {
@@ -368,6 +369,7 @@ public sealed class InventoryMasterService(
             item.SetTracking(request.IsSerialTracked, request.IsBatchTracked);
             item.SetValuationOverride(request.ValuationOverride);
             item.SetReorderLevel(request.ReorderLevel);
+            item.AssignHsnSac(request.HsnSacId);
 
             if (request.IsKit)
             {
@@ -567,6 +569,7 @@ public sealed class InventoryMasterService(
             item.ValuationOverride,
             item.ReorderLevel,
             item.IsKit,
+            item.HsnSacId,
             item.IsActive);
 
     private async Task<StockGroup> RequireStockGroupAsync(

@@ -1,12 +1,12 @@
-<Window x:Class="VinayakaAgencies.App.Views.FirstRunCompanyWindow"
+﻿<Window x:Class="VinayakaAgencies.App.Views.FirstRunCompanyWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Welcome — create your company"
+        Title="Welcome â€” create your company"
         Width="560" Height="460"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
-        Background="#FFF7F9FC">
+        Background="{StaticResource PanelBrush}">
 
     <Grid Margin="32,24">
         <Grid.RowDefinitions>
@@ -18,9 +18,9 @@
 
         <StackPanel Grid.Row="0">
             <TextBlock Text="Welcome to Vinayaka Agencies"
-                       FontSize="18" FontWeight="SemiBold" Foreground="#FF1B2A4A" />
+                       Style="{StaticResource ScreenTitleText}" />
             <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                       Foreground="#FF5A6B85"
+                       Foreground="{StaticResource SecondaryTextBrush}"
                        Text="There are no books on this install yet. A company carries the legal name and state code that appear on filed returns, so it is created here, once, with real details." />
         </StackPanel>
 
@@ -38,24 +38,24 @@
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Grid.Column="0" Text="Trading name:" VerticalAlignment="Center"
-                       Foreground="#FF5A6B85" />
+                       Foreground="{StaticResource SecondaryTextBrush}" />
             <TextBox Grid.Row="0" Grid.Column="1" Margin="0,4"
                      Text="{Binding TradingName, UpdateSourceTrigger=PropertyChanged}" />
 
             <TextBlock Grid.Row="1" Grid.Column="0" Text="Legal name:" VerticalAlignment="Center"
-                       Foreground="#FF5A6B85" />
+                       Foreground="{StaticResource SecondaryTextBrush}" />
             <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4"
                      Text="{Binding LegalName, UpdateSourceTrigger=PropertyChanged}" />
 
             <TextBlock Grid.Row="2" Grid.Column="0" Text="State (GST):" VerticalAlignment="Center"
-                       Foreground="#FF5A6B85" />
+                       Foreground="{StaticResource SecondaryTextBrush}" />
             <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,4"
                       ItemsSource="{Binding States}"
                       SelectedItem="{Binding SelectedState}"
                       DisplayMemberPath="Name" />
 
             <TextBlock Grid.Row="3" Grid.Column="0" Text="GSTIN (optional):" VerticalAlignment="Center"
-                       Foreground="#FF5A6B85" />
+                       Foreground="{StaticResource SecondaryTextBrush}" />
             <TextBox Grid.Row="3" Grid.Column="1" Margin="0,4"
                      Text="{Binding Gstin, UpdateSourceTrigger=PropertyChanged}" />
         </Grid>
@@ -67,7 +67,7 @@
                     Command="{Binding CreateCommand}" />
 
             <TextBlock Margin="2,10,0,0" Text="{Binding Status}" TextWrapping="Wrap"
-                       Foreground="#FF5A6B85" />
+                       Foreground="{StaticResource SecondaryTextBrush}" />
         </StackPanel>
     </Grid>
 </Window>

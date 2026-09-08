@@ -7,10 +7,12 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:ShellViewModel}"
         Title="{Binding Title}"
-        Height="640" Width="1040"
+        Height="680" Width="1120"
         WindowStartupLocation="CenterScreen"
-        Background="#FFF4F6F9">
+        Background="{StaticResource SurfaceAltBrush}">
 
+    <!-- ADR-0005 shell: top header (company, GSTIN, financial year), left home menu of numbered
+         modules, content host, bottom status bar (mode · period · shortcut hints). -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -18,63 +20,94 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Brand green to blue, sampled from Assets\logo.png (#38AE71 / #1B7EB7). -->
-        <Border Grid.Row="0" Padding="24,14">
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#FF38AE71" Offset="0.0" />
-                    <GradientStop Color="#FF1B7EB7" Offset="1.0" />
-                </LinearGradientBrush>
-            </Border.Background>
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="0,0,0,1"
+                Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-            <StackPanel>
-                <TextBlock Text="{Binding Title}"
-                           FontSize="20"
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding CompanyLegalName}"
+                               Style="{StaticResource ScreenTitleText}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <TextBlock Style="{StaticResource StatusHintText}"
+                                   Text="{Binding CompanyGstin, StringFormat=GSTIN: {0}}" />
+                        <TextBlock Style="{StaticResource StatusHintText}" Margin="12,0,0,0"
+                                   Text="{Binding ActivePeriod}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                           FontSize="{StaticResource FontSize.Title}"
                            FontWeight="SemiBold"
-                           Foreground="White" />
-                <TextBlock Text="{Binding Tagline}"
-                           Margin="0,2,0,0"
-                           FontSize="11"
-                           Foreground="#CCFFFFFF" />
-            </StackPanel>
+                           Foreground="{StaticResource PrimaryTextBrush}"
+                           Text="{Binding Title}" />
+            </Grid>
         </Border>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="230" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="#FFEDF1F6">
+            <Border Grid.Column="0" Background="{StaticResource MenuBackgroundBrush}">
                 <ListBox ItemsSource="{Binding Screens}"
                          SelectedItem="{Binding SelectedScreen}"
-                         BorderThickness="0"
-                         Background="Transparent"
-                         Margin="8,12"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                         Style="{StaticResource HomeMenuListStyle}"
+                         ItemContainerStyle="{StaticResource HomeMenuItemContainerStyle}"
+                         Margin="6,10">
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"
+                                               Margin="4,8,0,2"
+                                               FontSize="{StaticResource FontSize.Caption}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource SecondaryTextBrush}" />
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="6,4" MinWidth="180">
-                                <TextBlock Text="{Binding Group}"
-                                           FontSize="10"
-                                           FontWeight="SemiBold"
-                                           Foreground="#FF7A8AA3" />
+                            <StackPanel Orientation="Horizontal" MinWidth="180">
+                                <TextBlock Text="{Binding ScreenKey}" Width="18"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
                                 <TextBlock Text="{Binding Screen.Header}"
-                                           FontSize="13"
-                                           Margin="0,2,0,0"
-                                           Foreground="#FF12314F" />
+                                           FontSize="{StaticResource FontSize.BodyLarge}"
+                                           Foreground="{StaticResource PrimaryTextBrush}" />
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </Border>
 
-            <ContentControl Grid.Column="1" Content="{Binding ActiveView}" />
+            <ContentControl Grid.Column="1" Content="{Binding ActiveView}"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
         </Grid>
 
-        <Border Grid.Row="2" Background="#FFEDF1F6" Padding="24,8">
-            <TextBlock Text="Vinayaka Agencies — accounting, billing and inventory"
-                       FontSize="11" Foreground="#FF5A6B85" />
+        <Border Grid.Row="2" Style="{StaticResource StatusBarBorderStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Style="{StaticResource StatusHintText}"
+                           FontWeight="SemiBold"
+                           Text="{Binding CurrentMode}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource StatusHintText}"
+                           HorizontalAlignment="Center"
+                           Text="{Binding ActivePeriod}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource StatusHintText}"
+                           Text="{Binding ShortcutHints}" />
+            </Grid>
         </Border>
     </Grid>
 </Window>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using VinayakaAgencies.Application.Accounting;
 using VinayakaAgencies.Application.Common;
+using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
@@ -34,7 +35,8 @@ public sealed class TradeDocumentService(
     ICompanyContext companyContext,
     IVoucherNumberAllocator numberAllocator,
     IVoucherPostingService voucherPostingService,
-    IStockValuationService valuationService) : ITradeDocumentService
+    IStockValuationService valuationService,
+    IGstComputationService taxComputationService) : ITradeDocumentService
 {
     /// <summary>The seeded control account stock value reconciles to (checkpoint C2.1).</summary>
     public const string ControlLedgerName = "Stock-in-Hand";
@@ -59,6 +61,9 @@ public sealed class TradeDocumentService(
 
     private readonly IStockValuationService _valuationService = valuationService
         ?? throw new ArgumentNullException(nameof(valuationService));
+
+    private readonly IGstComputationService _taxComputationService = taxComputationService
+        ?? throw new ArgumentNullException(nameof(taxComputationService));
 
     /// <summary>Where each kind may be carried forward to. Anything else refuses.</summary>
     private static IReadOnlyList<TradeDocumentKind> AllowedTargets(TradeDocumentKind source) => source switch
@@ -154,6 +159,8 @@ public sealed class TradeDocumentService(
         document.SetParty(request.PartyLedgerId);
         document.SetNarration(request.Narration);
         document.SetPartyReference(request.PartyReferenceNumber, request.PartyReferenceDate);
+        document.SetPartyGstin(request.PartyGstin);
+        document.SetReverseCharge(request.IsReverseCharge);
 
         // The previous lines are removed explicitly — Restrict delete behaviour deliberately has no
         // orphan sweep — then the replacement set goes through the aggregate, which enforces the
@@ -340,6 +347,8 @@ public sealed class TradeDocumentService(
             request.Narration ?? source.Narration);
 
         successor.SetPartyReference(source.PartyReferenceNumber, source.PartyReferenceDate);
+        successor.SetPartyGstin(source.PartyGstin);
+        successor.SetReverseCharge(source.IsReverseCharge);
         successor.SetConvertedFrom(
             source.Id,
             source.Number ?? throw new InvalidOperationException(
@@ -445,13 +454,21 @@ public sealed class TradeDocumentService(
         // serial receipts and sales, valuation replay — while posting nothing itself.
         var mirror = BuildMirrorVoucher(document, plan);
 
+        // Phase 5: resolve the tax snapshot inside the same transaction — rates effective on the
+        // document date, place of supply, per-line figures — and stamp it onto the aggregate so
+        // returns read what was posted, never recompute it (phase-5-gst-returns.md §2).
+        var tax = await _taxComputationService.ComputeAndApplyAsync(document, cancellationToken)
+            .ConfigureAwait(false);
+        var gstLedgers = await RequireGstLedgersAsync(companyId, plan.IsSale, tax, cancellationToken)
+            .ConfigureAwait(false);
+
         // One number, one posting: the journal engine allocates the invoice's number from the Tax
         // Invoice / Purchase Invoice series as it posts.
         var posted = await _voucherPostingService.PostAsync(
                 new PostVoucherRequest(
                     plan.VoucherType.Id,
                     document.DocumentDate,
-                    BuildAccountingLines(document, plan),
+                    BuildAccountingLines(document, plan, tax, gstLedgers),
                     Narration: ComposeNarration(document, plan),
                     ReferenceNumber: document.PartyReferenceNumber,
                     ReferenceDate: document.PartyReferenceDate,
@@ -515,7 +532,10 @@ public sealed class TradeDocumentService(
             posted.Number,
             document.DocumentDate,
             document.Lines.Sum(line => line.NetValue),
-            plan.CostMinorTotal);
+            plan.CostMinorTotal,
+            tax.TotalTaxMinor,
+            tax.RoundOffMinor,
+            tax.Warnings);
     }
 
     /// <inheritdoc />
@@ -814,6 +834,8 @@ public sealed class TradeDocumentService(
             request.Narration);
 
         document.SetPartyReference(request.PartyReferenceNumber, request.PartyReferenceDate);
+        document.SetPartyGstin(request.PartyGstin);
+        document.SetReverseCharge(request.IsReverseCharge);
 
         foreach (var line in request.Lines)
         {
@@ -1618,10 +1640,14 @@ public sealed class TradeDocumentService(
     }
 
     /// <summary>
-    /// The four legs. A sale balances twice over — party/sales at what was billed, COGS/control at
-    /// what the goods were worth — and either pair drops out cleanly if it would post nothing. A
+    /// The posting legs. A sale balances twice over — party/sales at what was billed, COGS/control
+    /// at what the goods were worth — and either pair drops out cleanly if it would post nothing. A
     /// purchase books the goods at cost and sends any difference between invoice total and stock
-    /// value to Purchases, so the control account still ties to the stock ledger exactly.
+    /// value to Purchases, so the control account still ties to the stock ledger exactly. Phase 5
+    /// adds the tax heads (phase-5-gst-returns.md §2): output tax on a sale credits the Output
+    /// ledgers; input credit on a purchase debits the Input ledgers; a reverse-charge supply
+    /// self-assesses through the same pair without touching the party; and the per-invoice rupee
+    /// round-off lands on its designated ledger — never silently dropped.
     /// </summary>
     /// <remarks>
     /// <see cref="PostVoucherLine"/> carries rupee decimals — it is the journal engine's entry
@@ -1629,16 +1655,30 @@ public sealed class TradeDocumentService(
     /// figure this builder holds in minor units is converted exactly once, here, on its way out;
     /// handing a minor-unit long to a decimal parameter silently bills ten-thousand-fold.
     /// </remarks>
-    private static List<PostVoucherLine> BuildAccountingLines(TradeDocument document, InvoicePlan plan)
+    private static List<PostVoucherLine> BuildAccountingLines(
+        TradeDocument document,
+        InvoicePlan plan,
+        InvoiceTaxComputationResult tax,
+        IReadOnlyDictionary<string, Ledger> gstLedgers)
     {
-        var totalMinor = MoneyScale.ToMinor(document.Lines.Sum(line => line.NetValue));
-        var total = MoneyScale.FromMinor(totalMinor);
-        var lines = new List<PostVoucherLine>(4);
+        var taxableMinor = MoneyScale.ToMinor(document.Lines.Sum(line => line.NetValue));
+        var lines = new List<PostVoucherLine>(8);
+
+        // Reverse charge bills the party net only: the self-assessed tax moves Input↔Output.
+        var billableMinor = tax.IsReverseCharge
+            ? taxableMinor
+            : tax.RoundedInvoiceValueMinor;
+
+        var billable = MoneyScale.FromMinor(billableMinor);
 
         if (plan.IsSale)
         {
-            lines.Add(new PostVoucherLine(plan.PartyLedger.Id, total, 0m, Narration: "Customer"));
-            lines.Add(new PostVoucherLine(plan.IncomeOrExpenseLedger.Id, 0m, total, Narration: "Sales"));
+            lines.Add(new PostVoucherLine(plan.PartyLedger.Id, billable, 0m, Narration: "Customer"));
+            lines.Add(new PostVoucherLine(
+                plan.IncomeOrExpenseLedger.Id,
+                0m,
+                MoneyScale.FromMinor(taxableMinor),
+                Narration: "Sales"));
 
             if (plan.CostMinorTotal > 0L)
             {
@@ -1658,7 +1698,7 @@ public sealed class TradeDocumentService(
                     Narration: "Stock received"));
             }
 
-            var difference = totalMinor - plan.ReceiptValueMinor;
+            var difference = taxableMinor - plan.ReceiptValueMinor;
 
             if (difference > 0L)
             {
@@ -1677,10 +1717,154 @@ public sealed class TradeDocumentService(
                     Narration: "Receipt below cost"));
             }
 
-            lines.Add(new PostVoucherLine(plan.PartyLedger.Id, 0m, total, Narration: "Supplier"));
+            lines.Add(new PostVoucherLine(plan.PartyLedger.Id, 0m, billable, Narration: "Supplier"));
         }
 
+        AddTaxLegs(lines, plan, tax, gstLedgers);
+        AddRoundOffLeg(lines, plan, tax, gstLedgers);
+
         return lines;
+    }
+
+    /// <summary>
+    /// The four tax heads as they post: charged-to-party taxes credit Output (sale) or debit Input
+    /// (purchase); reverse-charge self-assessment does both, booking the credit alongside the
+    /// matching input claim (the common treatment, flagged for GSTR-3B reporting via the snapshot).
+    /// </summary>
+    private static void AddTaxLegs(
+        List<PostVoucherLine> lines,
+        InvoicePlan plan,
+        InvoiceTaxComputationResult tax,
+        IReadOnlyDictionary<string, Ledger> gstLedgers)
+    {
+        foreach (var (ledgerName, amountMinor) in new[]
+                 {
+                     (GstSeedData.OutputLedgerNames[0], tax.TotalCgstMinor),
+                     (GstSeedData.OutputLedgerNames[1], tax.TotalSgstMinor),
+                     (GstSeedData.OutputLedgerNames[2], tax.TotalIgstMinor),
+                     (GstSeedData.OutputLedgerNames[3], tax.TotalCessMinor),
+                 })
+        {
+            if (amountMinor == 0L)
+            {
+                continue;
+            }
+
+            var amount = MoneyScale.FromMinor(amountMinor);
+
+            // Self-assessed reverse charge: credit the output liability…
+            if (tax.IsReverseCharge)
+            {
+                lines.Add(new PostVoucherLine(gstLedgers[ledgerName].Id, 0m, amount, Narration: "Self-assessed reverse-charge tax"));
+            }
+            else if (plan.IsSale)
+            {
+                // …and an ordinary sale simply charges it out.
+                lines.Add(new PostVoucherLine(gstLedgers[ledgerName].Id, 0m, amount, Narration: ledgerName));
+            }
+
+            // The matching input leg: claimed directly on a non-reverse-charge purchase, and set
+            // against the self-assessment when the tax arrived under reverse charge.
+            var inputName = InputLedgerNameFor(ledgerName);
+
+            if (!plan.IsSale || tax.IsReverseCharge)
+            {
+                lines.Add(new PostVoucherLine(gstLedgers[inputName].Id, amount, 0m, Narration: inputName));
+            }
+        }
+    }
+
+    private static string InputLedgerNameFor(string outputLedgerName) => outputLedgerName switch
+    {
+        "Output CGST" => GstSeedData.InputLedgerNames[0],
+        "Output SGST" => GstSeedData.InputLedgerNames[1],
+        "Output IGST" => GstSeedData.InputLedgerNames[2],
+        "Output Cess" => GstSeedData.InputLedgerNames[3],
+        _ => throw new ArgumentOutOfRangeException(nameof(outputLedgerName), outputLedgerName, "Unknown output tax ledger."),
+    };
+
+    /// <summary>The rupee round-off difference posts visibly or not at all (phase-5-gst-returns.md §2).</summary>
+    private static void AddRoundOffLeg(
+        List<PostVoucherLine> lines,
+        InvoicePlan plan,
+        InvoiceTaxComputationResult tax,
+        IReadOnlyDictionary<string, Ledger> gstLedgers)
+    {
+        if (tax.RoundOffMinor == 0L || (plan.IsSale && tax.IsReverseCharge))
+        {
+            return;
+        }
+
+        var roundOff = MoneyScale.FromMinor(Math.Abs(tax.RoundOffMinor));
+        var ledger = gstLedgers[tax.RoundOffLedgerName];
+
+        // On a sale the difference pads (credits) or trims (debits) the billed side; on a purchase
+        // it mirrors onto the expense side so the party still owes exactly what was billed.
+        var isCredit = plan.IsSale ? tax.RoundOffMinor > 0L : tax.RoundOffMinor < 0L;
+
+        lines.Add(isCredit
+            ? new PostVoucherLine(ledger.Id, 0m, roundOff, Narration: "Round off")
+            : new PostVoucherLine(ledger.Id, roundOff, 0m, Narration: "Round off"));
+    }
+
+    /// <summary>
+    /// Resolves only the tax ledgers this invoice actually uses, so a company raising plain
+    /// unconfigured invoices needs nothing beyond the chart of accounts it already has. A missing
+    /// ledger that the computed figures demand stops the posting loudly — inside the transaction,
+    /// which rolls back with everything else.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, Ledger>> RequireGstLedgersAsync(
+        Guid companyId,
+        bool isSale,
+        InvoiceTaxComputationResult tax,
+        CancellationToken cancellationToken)
+    {
+        var wanted = new List<string>();
+
+        foreach (var (outputName, amountMinor) in new[]
+                 {
+                     (GstSeedData.OutputLedgerNames[0], tax.TotalCgstMinor),
+                     (GstSeedData.OutputLedgerNames[1], tax.TotalSgstMinor),
+                     (GstSeedData.OutputLedgerNames[2], tax.TotalIgstMinor),
+                     (GstSeedData.OutputLedgerNames[3], tax.TotalCessMinor),
+                 })
+        {
+            if (amountMinor == 0L)
+            {
+                continue;
+            }
+
+            wanted.Add(outputName);
+
+            // Reverse charge books both sides of the head; a purchase claims the input side; a
+            // plain sale charges output only.
+            if (tax.IsReverseCharge || !isSale)
+            {
+                wanted.Add(InputLedgerNameFor(outputName));
+            }
+        }
+
+        if (tax.RoundOffMinor != 0L && !(isSale && tax.IsReverseCharge))
+        {
+            wanted.Add(tax.RoundOffLedgerName);
+        }
+
+        var resolved = new Dictionary<string, Ledger>(StringComparer.Ordinal);
+
+        foreach (var name in wanted.Distinct(StringComparer.Ordinal))
+        {
+            var normalised = NameNormaliser.Normalise(name);
+
+            var ledger = await _unitOfWork.Repository<Ledger>()
+                .SingleOrDefaultAsync(new LedgerByName(companyId, normalised), cancellationToken)
+                .ConfigureAwait(false);
+
+            resolved[name] = ledger ?? throw new InvalidOperationException(
+                $"The '{name}' account is missing from this company's chart of accounts, so this "
+                + "invoice's GST cannot post. Run GST provisioning before posting configured invoices.");
+        }
+
+        return resolved;
     }
 
     private static string ComposeNarration(TradeDocument document, InvoicePlan plan) =>

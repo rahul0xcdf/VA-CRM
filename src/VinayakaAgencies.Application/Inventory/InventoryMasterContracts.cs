@@ -55,6 +55,7 @@ public sealed record ItemSummary(
     ValuationMethod? ValuationOverride,
     decimal ReorderLevel,
     bool IsKit,
+    Guid? HsnSacId,
     bool IsActive);
 
 public sealed record SaveItemRequest(
@@ -70,7 +71,8 @@ public sealed record SaveItemRequest(
     bool IsBatchTracked = false,
     ValuationMethod? ValuationOverride = null,
     decimal ReorderLevel = 0m,
-    bool IsKit = false);
+    bool IsKit = false,
+    Guid? HsnSacId = null);
 
 /// <summary>One kit component row on the item screen.</summary>
 public sealed record KitComponentLine(

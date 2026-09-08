@@ -71,4 +71,18 @@ public interface ICompanyProvisioningService
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
     Task EnsureCustomerSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures the GST setup a company needs before its first invoice posts: the output/input
+    /// tax ledgers the computation posts through, and the settings row naming the round-off
+    /// ledger — phase-5-gst-returns.md §2.
+    /// </summary>
+    /// <remarks>
+    /// Idempotent and row-granular exactly like its Phase 2/3/4 siblings. Deliberately seeds no
+    /// HSN codes and no rates: nothing tax-related may be hardcoded, so codes and rates are the
+    /// owner's master data entered through <see cref="VinayakaAgencies.Application.Gst.IHsnSacService"/>
+    /// and <see cref="VinayakaAgencies.Application.Gst.IGstRateService"/>.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
+    Task EnsureGstSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
 }

@@ -40,6 +40,15 @@ internal sealed class TradeDocumentLineConfiguration : IEntityTypeConfiguration<
             .HasMaxLength(ColumnLengths.EnumName)
             .IsRequired();
 
+        // Phase 5 tax snapshot (phase-5-gst-returns.md §2), written once at posting time: taxable
+        // value, the resolved rate, and the four tax heads — all minor units (ADR-0003).
+        builder.Property(line => line.TaxableValueMinor).IsRequired();
+        builder.Property(line => line.GstRatePercentMinor).IsRequired();
+        builder.Property(line => line.IgstMinor).IsRequired();
+        builder.Property(line => line.CgstMinor).IsRequired();
+        builder.Property(line => line.SgstMinor).IsRequired();
+        builder.Property(line => line.CessMinor).IsRequired();
+
         builder.Ignore(line => line.Quantity);
         builder.Ignore(line => line.Rate);
         builder.Ignore(line => line.DiscountPercent);
