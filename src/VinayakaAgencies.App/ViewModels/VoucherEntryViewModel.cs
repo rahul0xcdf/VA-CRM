@@ -25,7 +25,7 @@ public sealed partial class VoucherEntryViewModel : ObservableObject, IScreenSho
 
     ICommand? IScreenShortcuts.CancelCommand => CancelVoucherCommand;
 
-    string? IScreenShortcuts.StatusBarHints => "Ctrl+A Post · Ctrl+Q Cancel voucher · Esc Back";
+    string? IScreenShortcuts.StatusBarHints => "Ctrl+A Post · Alt+X Cancel voucher · Esc Back";
 
     private readonly IVoucherPostingService _postingService;
     private readonly IChartOfAccountsService _chartOfAccounts;

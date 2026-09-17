@@ -6,7 +6,8 @@
              mc:Ignorable="d"
              d:DesignHeight="560" d:DesignWidth="900">
 
-    <Grid Margin="24,20">
+    <!-- Master-list page (ADR-0006): header, filter band, grid, entry band, status. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -15,62 +16,89 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Ledgers — grouped by account group, searchable by name or alias"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Ledgers" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="grouped by account group, searchable by name or alias"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <TextBlock Text="Group:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <ComboBox Width="180" Margin="6,0,16,0" ItemsSource="{Binding GroupChoices}"
-                      SelectedItem="{Binding GroupFilter}" DisplayMemberPath="Name" />
-            <TextBlock Text="Search:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <TextBox Width="200" Margin="6,0,16,0"
-                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-            <CheckBox Content="Show inactive" VerticalAlignment="Center"
-                      IsChecked="{Binding IncludeInactive}" />
-        </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Group" Style="{StaticResource FieldLabel}" />
+                <ComboBox Width="190" Style="{StaticResource FieldCombo}"
+                          ItemsSource="{Binding GroupChoices}"
+                          SelectedItem="{Binding GroupFilter}" DisplayMemberPath="Name" />
 
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding VisibleLedgers}"
-                  SelectedItem="{Binding SelectedLedger}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-                <DataGridTextColumn Header="Alias" Binding="{Binding Alias}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="*" />
-                <DataGridCheckBoxColumn Header="System" Binding="{Binding IsSystem}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Manual posting" Binding="{Binding AllowsManualPosting}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
-            </DataGrid.Columns>
-        </DataGrid>
+                <TextBlock Text="Search" Style="{StaticResource FieldLabel}" />
+                <TextBox Width="220" Style="{StaticResource FieldBox}"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
 
-        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
+                <CheckBox Content="Show inactive" Style="{StaticResource FieldCheck}"
+                          IsChecked="{Binding IncludeInactive}" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}"
+                      ItemsSource="{Binding VisibleLedgers}"
+                      SelectedItem="{Binding SelectedLedger}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                    <DataGridTextColumn Header="Alias" Binding="{Binding Alias}" Width="120" />
+                    <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="*" />
+                    <DataGridCheckBoxColumn Header="System" Binding="{Binding IsSystem}" Width="70" />
+                    <DataGridCheckBoxColumn Header="Manual posting" Binding="{Binding AllowsManualPosting}" Width="110" />
+                    <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="60" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Shown only when the filter matches nothing, so an empty page explains itself. -->
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No ledger matches this filter. Clear the search, or create one below."
+                       Visibility="{Binding VisibleLedgers.Count,
+                           Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
             <StackPanel>
+                <TextBlock Text="CREATE / ALTER" Style="{StaticResource EntryHeadingText}" />
+
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="180" Margin="6,0,16,0"
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="220" Style="{StaticResource FieldBox}"
                              Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Group:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="180" Margin="6,0,16,0" ItemsSource="{Binding GroupChoices}"
+
+                    <TextBlock Text="Group" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="190" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding GroupChoices}"
                               SelectedValue="{Binding EditGroupId}"
                               SelectedValuePath="Id" DisplayMemberPath="Name" />
-                    <TextBlock Text="Alias:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="100" Margin="6,0,16,0" Text="{Binding EditAlias}" />
-                    <Button Content="New" Padding="14,5" Command="{Binding NewLedgerCommand}" />
-                    <Button Content="Save changes" Margin="8,0,0,0" Padding="14,5" Command="{Binding SaveLedgerCommand}" />
+
+                    <TextBlock Text="Alias" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="120" Style="{StaticResource FieldBox}" Text="{Binding EditAlias}" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Content="Deactivate" Padding="14,5" Command="{Binding DeactivateSelectedCommand}" />
-                    <Button Content="Reactivate" Margin="8,0,0,0" Padding="14,5" Command="{Binding ActivateSelectedCommand}" />
-                    <Button Content="Delete (only if never posted to)" Margin="8,0,0,0" Padding="14,5"
+
+                <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+                    <Button Content="New" Style="{StaticResource BandButton}"
+                            Command="{Binding NewLedgerCommand}" />
+                    <Button Content="Save" Style="{StaticResource BandButton}"
+                            Command="{Binding SaveLedgerCommand}" />
+                    <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+                    <Button Content="Deactivate" Style="{StaticResource BandButton}"
+                            Command="{Binding DeactivateSelectedCommand}" />
+                    <Button Content="Reactivate" Style="{StaticResource BandButton}"
+                            Command="{Binding ActivateSelectedCommand}" />
+                    <Button Content="Delete" Style="{StaticResource BandButton}"
+                            ToolTip="Allowed only for a ledger that has never been posted to."
                             Command="{Binding DeleteSelectedCommand}" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

@@ -11,7 +11,8 @@
         <nav:GroupIndentConverter x:Key="IndentConverter" />
     </UserControl.Resources>
 
-    <Grid Margin="24,20">
+    <!-- Master-list page (ADR-0006). -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -19,46 +20,66 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Account groups — system groups are shown but locked (spec §2)"
-                   Style="{StaticResource ScreenTitleText}" />
-
-        <DataGrid Grid.Row="1" Margin="0,12,0,12"
-                  ItemsSource="{Binding Groups}"
-                  SelectedItem="{Binding SelectedGroup}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Group (tree order)" Binding="{Binding Converter={StaticResource IndentConverter}}" Width="3*" />
-                <DataGridTextColumn Header="Nature" Binding="{Binding Nature}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Gross profit" Binding="{Binding AffectsGrossProfit}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Primary" Binding="{Binding IsPrimary}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="System" Binding="{Binding IsSystem}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" Padding="12" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="New / renamed group:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource SecondaryTextBrush}" />
-                <TextBox Width="200" Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" />
-                <TextBlock Text="Under:" VerticalAlignment="Center" Margin="16,0,8,0" Foreground="{StaticResource SecondaryTextBrush}" />
-                <ComboBox Width="220" ItemsSource="{Binding ParentChoices}"
-                          SelectedItem="{Binding NewParentGroup}"
-                          DisplayMemberPath="Name" VerticalAlignment="Center" />
-                <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="16,0,8,0" Foreground="{StaticResource SecondaryTextBrush}" />
-                <TextBox Width="50" Text="{Binding NewSortOrder}" VerticalAlignment="Center" />
-                <Button Content="Add group" Margin="16,0,0,0" Padding="14,5"
-                        Command="{Binding AddGroupCommand}" />
-                <Button Content="Rename selected" Margin="8,0,0,0" Padding="14,5"
-                        Command="{Binding RenameSelectedCommand}" />
-                <Button Content="Refresh" Margin="8,0,0,0" Padding="14,5"
-                        Command="{Binding RefreshCommand}" />
+                <TextBlock Text="Account groups" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="system groups are shown but locked (spec §2)"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="3" Margin="4,8,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" />
+        <Grid Grid.Row="1">
+            <DataGrid Style="{StaticResource PageGrid}"
+                      ItemsSource="{Binding Groups}"
+                      SelectedItem="{Binding SelectedGroup}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Group (tree order)" Width="3*"
+                                        Binding="{Binding Converter={StaticResource IndentConverter}}" />
+                    <DataGridTextColumn Header="Nature" Binding="{Binding Nature}" Width="130" />
+                    <DataGridCheckBoxColumn Header="Gross profit" Binding="{Binding AffectsGrossProfit}" Width="90" />
+                    <DataGridCheckBoxColumn Header="Primary" Binding="{Binding IsPrimary}" Width="70" />
+                    <DataGridCheckBoxColumn Header="System" Binding="{Binding IsSystem}" Width="70" />
+                    <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="60" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No account groups yet."
+                       Visibility="{Binding Groups.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel>
+                <TextBlock Text="CREATE / RENAME" Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="210" Style="{StaticResource FieldBox}"
+                             Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Under" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="220" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding ParentChoices}"
+                              SelectedItem="{Binding NewParentGroup}" DisplayMemberPath="Name" />
+
+                    <TextBlock Text="Sort" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="56" MinWidth="0" Style="{StaticResource FieldBox}"
+                             Text="{Binding NewSortOrder}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+                    <Button Content="Add group" Style="{StaticResource BandButton}"
+                            Command="{Binding AddGroupCommand}" />
+                    <Button Content="Rename selected" Style="{StaticResource BandButton}"
+                            Command="{Binding RenameSelectedCommand}" />
+                    <Button Content="Refresh" Style="{StaticResource BandButton}"
+                            Command="{Binding RefreshCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

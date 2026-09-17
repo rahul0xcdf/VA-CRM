@@ -10,6 +10,7 @@
                 <ResourceDictionary Source="Presentation/Themes/Typography.xaml" />
                 <ResourceDictionary Source="Presentation/Themes/Controls.xaml" />
                 <ResourceDictionary Source="Presentation/Themes/Shell.xaml" />
+                <ResourceDictionary Source="Presentation/Themes/Pages.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

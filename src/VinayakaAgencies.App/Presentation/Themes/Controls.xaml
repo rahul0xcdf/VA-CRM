@@ -121,15 +121,17 @@
             </Setter.Value>
         </Setter>
         <Style.Triggers>
+            <!-- Amber, not a soft tint: the selected row is what an operator tracks by eye while
+                 typing, so it has to be findable at a glance across a dense grid (ADR-0006). -->
             <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{StaticResource SelectionSoftBrush}" />
+                <Setter Property="Background" Value="{StaticResource MenuHighlightBrush}" />
                 <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style TargetType="DataGridRow">
-        <Setter Property="MinHeight" Value="26" />
+        <Setter Property="MinHeight" Value="22" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{StaticResource HoverBrush}" />
@@ -146,7 +148,7 @@
         <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}" />
         <Setter Property="BorderThickness" Value="0,0,1,1" />
         <Setter Property="Padding" Value="6,4" />
-        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="MinHeight" Value="24" />
     </Style>
 
     <Style TargetType="DataGrid">
@@ -156,7 +158,7 @@
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="RowHeight" Value="26" />
+        <Setter Property="RowHeight" Value="22" />
         <Setter Property="RowBackground" Value="{StaticResource SurfaceBrush}" />
         <Setter Property="AlternatingRowBackground" Value="{StaticResource SurfaceBrush}" />
         <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}" />

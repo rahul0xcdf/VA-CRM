@@ -10,7 +10,9 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Grid Margin="24,20">
+    <!-- Master-list page (ADR-0006). The entry band is two rows because an item genuinely has that
+         many attributes; the kit row appears only for kit items. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -19,74 +21,95 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Items — the catalogue everything stocks, moves and bills"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Items" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="the catalogue everything stocks, moves and bills"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">
-            <TextBlock Text="Filter:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <TextBox Width="220" Margin="6,0,16,0"
-                     Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
-            <Button Content="Refresh / apply filter" Padding="14,5" Command="{Binding RefreshCommand}" />
-        </DockPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Filter" Style="{StaticResource FieldLabel}" />
+                <TextBox Width="260" Style="{StaticResource FieldBox}"
+                         Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
+                <Button Content="Apply" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
 
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding Items}"
-                  SelectedItem="{Binding SelectedItem}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-                <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Barcode" Binding="{Binding Barcode}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Group" Binding="{Binding StockGroupName}" Width="*" />
-                <DataGridTextColumn Header="Unit" Binding="{Binding BaseUnitCode}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Serials" Binding="{Binding IsSerialTracked}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Batches" Binding="{Binding IsBatchTracked}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Kit" Binding="{Binding IsKit}" Width="SizeToHeader" />
-                <DataGridTextColumn Header="Reorder at" Binding="{Binding ReorderLevel}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}"
+                      ItemsSource="{Binding Items}"
+                      SelectedItem="{Binding SelectedItem}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                    <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="100" />
+                    <DataGridTextColumn Header="Barcode" Binding="{Binding Barcode}" Width="120" />
+                    <DataGridTextColumn Header="Group" Binding="{Binding StockGroupName}" Width="*" />
+                    <DataGridTextColumn Header="Unit" Binding="{Binding BaseUnitCode}" Width="60" />
+                    <DataGridCheckBoxColumn Header="Serials" Binding="{Binding IsSerialTracked}" Width="60" />
+                    <DataGridCheckBoxColumn Header="Batches" Binding="{Binding IsBatchTracked}" Width="62" />
+                    <DataGridCheckBoxColumn Header="Kit" Binding="{Binding IsKit}" Width="44" />
+                    <DataGridTextColumn Header="Reorder at" Binding="{Binding ReorderLevel}" Width="86"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="56" />
+                </DataGrid.Columns>
+            </DataGrid>
 
-        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No items match. Clear the filter, or create one below."
+                       Visibility="{Binding Items.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
             <StackPanel>
+                <TextBlock Text="CREATE / ALTER" Style="{StaticResource EntryHeadingText}" />
+
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="180" Margin="6,0,12,0"
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="190" Style="{StaticResource FieldBox}"
                              Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Code:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="90" Margin="6,0,12,0" Text="{Binding EditCode}" />
-                    <TextBlock Text="Barcode:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="110" Margin="6,0,12,0" Text="{Binding EditBarcode}" />
-                    <TextBlock Text="Group:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="130" Margin="6,0,12,0"
+
+                    <TextBlock Text="Code" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="100" MinWidth="0" Style="{StaticResource FieldBox}" Text="{Binding EditCode}" />
+
+                    <TextBlock Text="Barcode" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}" Text="{Binding EditBarcode}" />
+
+                    <TextBlock Text="Group" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding GroupChoices}"
                               SelectedValue="{Binding EditStockGroupId}"
                               SelectedValuePath="Id" DisplayMemberPath="Name" />
-                    <TextBlock Text="Base unit:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="80" Margin="6,0,12,0"
+
+                    <TextBlock Text="Unit" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="80" MinWidth="0" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding UnitChoices}"
                               SelectedValue="{Binding EditBaseUnitId}"
                               SelectedValuePath="Id" DisplayMemberPath="Code" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Alt. unit:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="80" Margin="6,0,12,0"
+                    <TextBlock Text="Alt. unit" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="80" MinWidth="0" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding UnitChoices}"
                               SelectedValue="{Binding EditAlternateUnitId}"
                               SelectedValuePath="Id" DisplayMemberPath="Code" />
-                    <TextBlock Text="× factor:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="70" Margin="6,0,16,0" Text="{Binding EditConversionFactor}" />
-                    <CheckBox Content="Serial-tracked" VerticalAlignment="Center" Margin="0,0,12,0"
+
+                    <TextBlock Text="× factor" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="70" MinWidth="0" Style="{StaticResource FieldBox}"
+                             Text="{Binding EditConversionFactor}" />
+
+                    <CheckBox Content="Serial-tracked" Style="{StaticResource FieldCheck}"
                               IsChecked="{Binding EditIsSerialTracked}" />
-                    <CheckBox Content="Batch-tracked" VerticalAlignment="Center" Margin="0,0,12,0"
+                    <CheckBox Content="Batch-tracked" Style="{StaticResource FieldCheck}"
                               IsChecked="{Binding EditIsBatchTracked}" />
-                    <TextBlock Text="Valuation:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="140" Margin="6,0,12,0"
+
+                    <TextBlock Text="Valuation" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding ValuationChoices}"
                               SelectedItem="{Binding EditValuationOverride}">
                         <ComboBox.ItemTemplate>
@@ -95,61 +118,62 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <TextBlock Text="Reorder at:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="60" Margin="6,0,16,0" Text="{Binding EditReorderLevel}" />
-                    <TextBlock Text="HSN/SAC:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="130" Margin="6,0,12,0"
+
+                    <TextBlock Text="Reorder at" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="70" MinWidth="0" Style="{StaticResource FieldBox}"
+                             Text="{Binding EditReorderLevel}" />
+
+                    <TextBlock Text="HSN/SAC" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="130" MinWidth="0" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding HsnSacChoices}"
                               SelectedValue="{Binding EditHsnSacId}"
                               SelectedValuePath="Id" DisplayMemberPath="Code" />
-                    <CheckBox Content="Kit item" VerticalAlignment="Center"
+
+                    <CheckBox Content="Kit item" Style="{StaticResource FieldCheck}"
                               IsChecked="{Binding EditIsKit}" />
                 </StackPanel>
 
-                <!-- Kit components: only meaningful for saved kit items. -->
+                <!-- Kit components: only meaningful for kit items, so only shown for them. -->
                 <StackPanel Margin="0,8,0,0"
                             Visibility="{Binding EditIsKit, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Component:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                        <ComboBox Width="240" Margin="6,0,12,0"
+                        <TextBlock Text="Component" Style="{StaticResource FieldLabel}" />
+                        <ComboBox Width="250" Style="{StaticResource FieldCombo}"
                                   ItemsSource="{Binding ComponentChoices}"
-                                  SelectedItem="{Binding NewComponentItem}"
-                                  DisplayMemberPath="Name" />
-                        <TextBlock Text="Qty per kit:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                        <TextBox Width="60" Margin="6,0,12,0"
+                                  SelectedItem="{Binding NewComponentItem}" DisplayMemberPath="Name" />
+
+                        <TextBlock Text="Qty per kit" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="70" MinWidth="0" Style="{StaticResource FieldBox}"
                                  Text="{Binding NewComponentQuantity, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Content="Add component" Padding="14,5" Command="{Binding AddComponentCommand}" />
-                        <Button Content="Remove selected" Margin="8,0,0,0" Padding="14,5"
+
+                        <Button Content="Add" Style="{StaticResource BandButton}"
+                                Command="{Binding AddComponentCommand}" />
+                        <Button Content="Remove" Style="{StaticResource BandButton}"
                                 Command="{Binding RemoveComponentCommand}" />
-                        <Button Content="Save components" Margin="8,0,0,0" Padding="14,5"
+                        <Button Content="Save components" Style="{StaticResource BandButton}"
                                 Command="{Binding SaveComponentsCommand}" />
                     </StackPanel>
-                    <ListBox Height="72" Margin="6,8,0,0" Width="420" HorizontalAlignment="Left"
+
+                    <ListBox Height="66" Margin="0,7,0,0" Width="460" HorizontalAlignment="Left"
                              ItemsSource="{Binding KitComponents}"
-                             SelectedItem="{Binding SelectedComponent}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" />
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                             SelectedItem="{Binding SelectedComponent}" />
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <Button Content="New" Padding="14,5" Command="{Binding NewCommand}" />
-                    <Button Content="Save item" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding SaveCommand}" />
-                    <Button Content="Deactivate" Margin="8,0,0,0" Padding="14,5"
+                <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+                    <Button Content="New" Style="{StaticResource BandButton}" Command="{Binding NewCommand}" />
+                    <Button Content="Save" Style="{StaticResource BandButton}" Command="{Binding SaveCommand}" />
+                    <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+                    <Button Content="Deactivate" Style="{StaticResource BandButton}"
                             Command="{Binding DeactivateSelectedCommand}" />
-                    <Button Content="Delete (only if never moved)" Margin="8,0,0,0" Padding="14,5"
+                    <Button Content="Delete" Style="{StaticResource BandButton}"
+                            ToolTip="Allowed only for an item that has never moved in the stock ledger."
                             Command="{Binding DeleteSelectedCommand}" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <DockPanel Grid.Row="4" LastChildFill="False">
-            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
-        </DockPanel>
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

@@ -4,9 +4,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="1000">
+             d:DesignHeight="520" d:DesignWidth="860">
 
-    <Grid Margin="24,20">
+    <!-- Master-list page (ADR-0006). -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -15,59 +16,72 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Customer categories — each customer prices from exactly one category"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Customer categories" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="each customer prices from exactly one category"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">
-            <CheckBox Content="Include inactive" VerticalAlignment="Center"
-                      IsChecked="{Binding IncludeInactive}" />
-            <Button Content="Refresh" Margin="16,0,0,0" Padding="14,5"
-                    Command="{Binding RefreshCommand}" />
-        </DockPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Include inactive" Style="{StaticResource FieldCheck}"
+                          IsChecked="{Binding IncludeInactive}" />
+                <Button Content="Refresh" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
 
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding Categories}"
-                  SelectedItem="{Binding SelectedCategory}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="3*" />
-                <DataGridTextColumn Header="Customers" Binding="{Binding CustomerCount}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}"
+                      ItemsSource="{Binding Categories}"
+                      SelectedItem="{Binding SelectedCategory}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="3*" />
+                    <DataGridTextColumn Header="Customers" Binding="{Binding CustomerCount}" Width="90"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="60" />
+                </DataGrid.Columns>
+            </DataGrid>
 
-        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No customer categories. Create one below — every customer needs one to price from."
+                       Visibility="{Binding Categories.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
             <StackPanel>
+                <TextBlock Text="CREATE / ALTER" Style="{StaticResource EntryHeadingText}" />
+
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="200" Margin="6,0,12,0"
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="210" Style="{StaticResource FieldBox}"
                              Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Description:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="380" Margin="6,0,12,0" Text="{Binding EditDescription}" />
+
+                    <TextBlock Text="Description" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="400" Style="{StaticResource FieldBox}" Text="{Binding EditDescription}" />
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <Button Content="New" Padding="14,5" Command="{Binding NewCommand}" />
-                    <Button Content="Save category" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding SaveCommand}" />
-                    <Button Content="Deactivate" Margin="8,0,0,0" Padding="14,5"
+                <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+                    <Button Content="New" Style="{StaticResource BandButton}" Command="{Binding NewCommand}" />
+                    <Button Content="Save" Style="{StaticResource BandButton}" Command="{Binding SaveCommand}" />
+                    <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+                    <Button Content="Deactivate" Style="{StaticResource BandButton}"
                             Command="{Binding DeactivateSelectedCommand}" />
-                    <Button Content="Reactivate" Margin="8,0,0,0" Padding="14,5"
+                    <Button Content="Reactivate" Style="{StaticResource BandButton}"
                             Command="{Binding ActivateSelectedCommand}" />
-                    <Button Content="Delete (only if never used)" Margin="8,0,0,0" Padding="14,5"
+                    <Button Content="Delete" Style="{StaticResource BandButton}"
+                            ToolTip="Allowed only for a category no customer has ever used."
                             Command="{Binding DeleteSelectedCommand}" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <DockPanel Grid.Row="4" LastChildFill="False">
-            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
-        </DockPanel>
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

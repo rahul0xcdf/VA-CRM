@@ -26,7 +26,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// </remarks>
 public sealed partial class EinvoiceSettingsViewModel : ObservableObject, IScreenShortcuts
 {
-    public const string ShortcutHints = "Ctrl+A Save · Ctrl+Q Reload · Alt+G Go To";
+    public const string ShortcutHints = "Ctrl+A Save · Alt+X Reload";
 
     private readonly IEinvoiceSettingsService _settings;
 

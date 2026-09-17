@@ -18,7 +18,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// </remarks>
 public sealed partial class HsnSacMasterViewModel : ObservableObject, IScreenShortcuts
 {
-    public const string ShortcutHints = "Ctrl+A Save · Ctrl+Q Cancel · Alt+G Go To";
+    public const string ShortcutHints = "Ctrl+A Save · Alt+X Cancel";
 
     private readonly IHsnSacService _hsnSac;
     private readonly IGstRateService _rates;

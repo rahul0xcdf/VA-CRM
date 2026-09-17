@@ -29,7 +29,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// </remarks>
 public sealed partial class EinvoiceRegistrationsViewModel : ObservableObject, IScreenShortcuts
 {
-    public const string ShortcutHints = "Ctrl+A Get IRN · Ctrl+Q Clear · Alt+G Go To";
+    public const string ShortcutHints = "Ctrl+A Get IRN · Alt+X Clear";
 
     private readonly IEinvoiceService _einvoices;
     private readonly ITradeDocumentService _documents;

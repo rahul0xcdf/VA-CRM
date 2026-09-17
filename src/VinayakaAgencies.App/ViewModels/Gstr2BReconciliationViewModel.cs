@@ -19,7 +19,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// </summary>
 public sealed partial class Gstr2BReconciliationViewModel : ObservableObject, IScreenShortcuts
 {
-    public const string ShortcutHints = "Ctrl+A Save · Ctrl+Q Cancel · Alt+G Go To";
+    public const string ShortcutHints = "Ctrl+A Save · Alt+X Cancel";
 
     private readonly IGstReturnService _returns;
 

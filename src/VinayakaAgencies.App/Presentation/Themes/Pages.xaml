@@ -1,0 +1,222 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:presentation="clr-namespace:VinayakaAgencies.App.Presentation">
+
+    <!--
+      ADR-0006 page patterns.
+
+      Tally has four page shapes, not thirty: a master list with an entry block, a voucher with a line
+      grid, a report, and a settings form. Every screen in this application is one of those four, so
+      the shapes live here and the screens compose them. That is what makes thirty-one screens look
+      like one product rather than thirty-one afternoons.
+
+      The rules these encode, which the screens must not re-litigate:
+
+        * Bands, not cards. A page is horizontal bands separated by hairlines, edge to edge. No
+          rounded panels floating inside padding — they waste the vertical space a dense grid needs
+          and make every screen look like a different application.
+        * The grid gets the room. Headers and entry blocks are as short as they can be; whatever is
+          left belongs to the data.
+        * Labels sit tight against their fields, and fields are sized to their content. A 180-wide box
+          for a two-character state code tells the operator nothing and costs a column elsewhere.
+        * Numbers right-align, always. A column of rupee figures that does not line up cannot be
+          scanned, which is the only thing anybody does with it.
+    -->
+
+    <presentation:ZeroToVisibilityConverter x:Key="ZeroToVisibility" />
+
+    <!-- ===== Page header band ===== -->
+
+    <Style x:Key="PageHeaderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="16,9" />
+    </Style>
+
+    <Style x:Key="PageTitleText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Subheading}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- The one-line explanation that used to be crammed into the title with an em dash. -->
+    <Style x:Key="PageHintText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <!-- ===== Filter / criteria band ===== -->
+
+    <Style x:Key="FilterBarStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="16,7" />
+    </Style>
+
+    <Style x:Key="FieldLabel" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,6,0" />
+    </Style>
+
+    <!-- Spacing after a field, so screens stop hand-rolling Margin="6,0,16,0" everywhere. -->
+    <Style x:Key="FieldBox" TargetType="TextBox">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,16,0" />
+        <Setter Property="MinWidth" Value="120" />
+    </Style>
+
+    <Style x:Key="FieldCombo" TargetType="ComboBox">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,16,0" />
+        <Setter Property="MinWidth" Value="140" />
+    </Style>
+
+    <Style x:Key="FieldCheck" TargetType="CheckBox">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,16,0" />
+    </Style>
+
+    <!-- A compact button for a band; the default Button style is sized for dialogs. -->
+    <Style x:Key="BandButton" TargetType="Button">
+        <Setter Property="Padding" Value="11,3" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="MinWidth" Value="0" />
+    </Style>
+
+    <!-- ===== The data region ===== -->
+
+    <!--
+      Grids sit flush inside their band: the surrounding bands already draw the separating lines, and
+      a second border inside them reads as a box drawn around a box.
+    -->
+    <Style x:Key="PageGrid" TargetType="DataGrid">
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="CanUserAddRows" Value="False" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="SelectionMode" Value="Single" />
+        <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+    </Style>
+
+    <!-- Right-aligned cells for money and quantity columns. -->
+    <Style x:Key="NumericCell" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+    </Style>
+
+    <Style x:Key="NumericColumnHeader" TargetType="DataGridColumnHeader"
+           BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+    </Style>
+
+    <!-- Shown in place of the grid when a query returned nothing, so the page is never just blank. -->
+    <Style x:Key="EmptyStateText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="MaxWidth" Value="420" />
+        <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+
+    <!-- ===== Entry block ===== -->
+
+    <!--
+      The create/alter fields, as a band across the foot of the page rather than a rounded card. Tally
+      keeps entry and list on one screen so an operator can type, save, and keep going without a
+      dialog ever appearing.
+    -->
+    <Style x:Key="EntryPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="16,10" />
+    </Style>
+
+    <Style x:Key="EntryHeadingText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="Margin" Value="0,0,0,7" />
+    </Style>
+
+    <!-- ===== Totals band ===== -->
+
+    <Style x:Key="TotalsBandStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource HeaderRowBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="16,6" />
+    </Style>
+
+    <Style x:Key="TotalsLabelText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+
+    <!-- Tabular figures, so totals line up with the grid column above them. -->
+    <Style x:Key="TotalsValueText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,20,0" />
+    </Style>
+
+    <!-- ===== Page status line ===== -->
+
+    <Style x:Key="PageStatusStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="16,5" />
+    </Style>
+
+    <Style x:Key="PageStatusText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- ===== Settings form ===== -->
+
+    <Style x:Key="SettingsSectionStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="16,12" />
+    </Style>
+
+    <Style x:Key="SettingsCaptionText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="MaxWidth" Value="620" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+</ResourceDictionary>

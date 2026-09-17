@@ -6,7 +6,8 @@
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1100">
 
-    <Grid Margin="24,20">
+    <!-- Master-list page (ADR-0006). -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -15,75 +16,91 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Category price lists — what each category pays, per item"
-                   Style="{StaticResource ScreenTitleText}" />
-
-        <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">
-            <TextBlock Text="Category:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <ComboBox Width="200" Margin="6,0,16,0"
-                      ItemsSource="{Binding CategoryChoices}"
-                      SelectedItem="{Binding SelectedCategory}"
-                      DisplayMemberPath="Name" />
-            <Button Content="Refresh" Padding="14,5" Command="{Binding RefreshCommand}" />
-        </DockPanel>
-
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding PriceLines}"
-                  SelectedItem="{Binding SelectedLine}"
-                  AutoGenerateColumns="False"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
-                <DataGridTemplateColumn Header="Basis" Width="190">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Basis}" VerticalAlignment="Center" Margin="4,0" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox SelectedItem="{Binding Basis}"
-                                      ItemsSource="{Binding DataContext.BasisChoices, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Fixed ₹ / percent" Binding="{Binding ValueText}" Width="160" />
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Add line — item:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="260" Margin="6,0,12,0"
-                              ItemsSource="{Binding ItemChoices}"
-                              SelectedItem="{Binding NewItem}"
-                              DisplayMemberPath="Name" />
-                    <ComboBox Width="180" Margin="0,0,6,0"
-                              ItemsSource="{Binding BasisChoices}"
-                              SelectedItem="{Binding NewBasis}" />
-                    <TextBox Width="110"
-                             ToolTip="Rupees on a fixed price, otherwise a percent (margin on cost, discount on MRP)"
-                             Text="{Binding NewValue, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Content="Add line" Margin="6,0,0,0" Padding="14,5"
-                            Command="{Binding AddLineCommand}" />
-                    <Button Content="Remove selected" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding RemoveSelectedCommand}" />
-                    <Button Content="Save prices" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding SavePricesCommand}" />
-                </StackPanel>
-
-                <TextBlock Margin="0,8,0,0" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap"
-                           Text="Fixed price bills that rupee amount. 'MarginOnCost' adds the percent to the item's current cost. 'MarginOnSalePrice' discounts the percent off the item's default sale price (set it on the item master)." />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Category price lists" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="what each category pays, per item"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
             </StackPanel>
         </Border>
 
-        <DockPanel Grid.Row="4" LastChildFill="False">
-            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
-        </DockPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Category" Style="{StaticResource FieldLabel}" />
+                <ComboBox Width="220" Style="{StaticResource FieldCombo}"
+                          ItemsSource="{Binding CategoryChoices}"
+                          SelectedItem="{Binding SelectedCategory}" DisplayMemberPath="Name" />
+                <Button Content="Refresh" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}" IsReadOnly="False"
+                      ItemsSource="{Binding PriceLines}"
+                      SelectedItem="{Binding SelectedLine}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
+                    <DataGridTemplateColumn Header="Basis" Width="200">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Basis}" VerticalAlignment="Center" Margin="4,0" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <ComboBox SelectedItem="{Binding Basis}"
+                                          ItemsSource="{Binding DataContext.BasisChoices,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Fixed ₹ / percent" Binding="{Binding ValueText}" Width="170"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No price lines for this category. Add one below, or leave it empty to bill at the item's own rate."
+                       Visibility="{Binding PriceLines.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel>
+                <TextBlock Text="ADD A PRICE LINE" Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Item" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="270" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding ItemChoices}"
+                              SelectedItem="{Binding NewItem}" DisplayMemberPath="Name" />
+
+                    <TextBlock Text="Basis" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="190" MinWidth="0" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding BasisChoices}"
+                              SelectedItem="{Binding NewBasis}" />
+
+                    <TextBlock Text="Value" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}"
+                             ToolTip="Rupees on a fixed price, otherwise a percent."
+                             Text="{Binding NewValue, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Button Content="Add line" Style="{StaticResource BandButton}"
+                            Command="{Binding AddLineCommand}" />
+                    <Button Content="Remove" Style="{StaticResource BandButton}"
+                            Command="{Binding RemoveSelectedCommand}" />
+                    <Button Content="Save prices" Style="{StaticResource BandButton}"
+                            Command="{Binding SavePricesCommand}" />
+                </StackPanel>
+
+                <TextBlock Margin="0,7,0,0" Style="{StaticResource SettingsCaptionText}"
+                           Text="Fixed price bills that rupee amount. Margin on cost adds the percent to the item's current cost. Margin on sale price discounts the percent off the item's default sale price, which is set on the item master." />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

@@ -3,11 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:local="clr-namespace:VinayakaAgencies.App.Views"
              mc:Ignorable="d"
              d:DesignHeight="860" d:DesignWidth="1280">
 
-    <Grid Margin="24,20">
+    <!-- Master-list page (ADR-0006). The entry band scrolls: a customer carries identity, tax,
+         terms, two addresses and a special-price list, which is more than one band can hold on a
+         laptop screen without squeezing the grid above it to nothing. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -16,139 +18,174 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Customers — who buys, what they pay, and the terms they buy on"
-                   Style="{StaticResource ScreenTitleText}" />
-
-        <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">
-            <TextBlock Text="Search:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <TextBox Width="220" Margin="6,0,16,0"
-                     Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
-            <CheckBox Content="Include inactive" VerticalAlignment="Center"
-                      IsChecked="{Binding IncludeInactive}" />
-            <Button Content="Refresh / search" Margin="16,0,0,0" Padding="14,5"
-                    Command="{Binding RefreshCommand}" />
-        </DockPanel>
-
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding Customers}"
-                  SelectedItem="{Binding SelectedCustomer}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-                <DataGridTextColumn Header="Category" Binding="{Binding CustomerCategoryName}" Width="*" />
-                <DataGridTextColumn Header="Phone" Binding="{Binding PhoneNumber}" Width="SizeToCells" />
-                <DataGridTextColumn Header="GSTIN" Binding="{Binding Gstin}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Place of supply" Binding="{Binding PlaceOfSupplyStateCode}" Width="SizeToHeader" />
-                <DataGridTextColumn Header="Credit limit" Binding="{Binding CreditLimit}" Width="SizeToHeader" />
-                <DataGridTextColumn Header="Credit days" Binding="{Binding CreditPeriodDays}" Width="SizeToHeader" />
-                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="180" Margin="6,0,12,0"
-                             Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Category:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="140" Margin="6,0,12,0"
-                              ItemsSource="{Binding CategoryChoices}"
-                              SelectedValue="{Binding EditCategoryId}"
-                              SelectedValuePath="Id" DisplayMemberPath="Name" />
-                    <TextBlock Text="Contact:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="120" Margin="6,0,12,0" Text="{Binding EditContactPerson}" />
-                    <TextBlock Text="Phone:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="110" Margin="6,0,12,0" Text="{Binding EditPhoneNumber}" />
-                    <TextBlock Text="Email:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="140" Margin="6,0,0,0" Text="{Binding EditEmail}" />
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="GSTIN:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="150" Margin="6,0,12,0" Text="{Binding EditGstin}" />
-                    <TextBlock Text="Place of supply (state code):" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="40" Margin="6,0,16,0" Text="{Binding EditPlaceOfSupply}" />
-                    <TextBlock Text="Credit limit (₹, 0 = none):" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="80" Margin="6,0,12,0" Text="{Binding EditCreditLimit}" />
-                    <TextBlock Text="Credit period (days):" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="50" Margin="6,0,0,0" Text="{Binding EditCreditPeriodDays}" />
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Billing address:" VerticalAlignment="Top" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="300" Height="44" Margin="6,0,12,0" TextWrapping="Wrap"
-                             AcceptsReturn="True" Text="{Binding EditBillingAddress}" />
-                    <TextBlock Text="Shipping address:" VerticalAlignment="Top" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="300" Height="44" Margin="6,0,0,0" TextWrapping="Wrap"
-                             AcceptsReturn="True" Text="{Binding EditShippingAddress}" />
-                </StackPanel>
-
-                <!-- Per-customer special prices: win over the category price list (spec §4a). -->
-                <TextBlock Text="Special prices for this customer (win over the category list)"
-                           Margin="0,12,0,4" Style="{StaticResource SectionHeaderText}" />
-                <DataGrid Height="110"
-                          ItemsSource="{Binding SpecialPrices}"
-                          SelectedItem="{Binding SelectedSpecialPrice}"
-                          AutoGenerateColumns="False"
-                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                          CanUserAddRows="False">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
-                        <DataGridTemplateColumn Header="Basis" Width="170">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Basis}" VerticalAlignment="Center" Margin="4,0" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                            <DataGridTemplateColumn.CellEditingTemplate>
-                                <DataTemplate>
-                                    <ComboBox SelectedItem="{Binding Basis}"
-                                              ItemsSource="{Binding DataContext.BasisChoices, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellEditingTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Fixed ₹ / percent" Binding="{Binding ValueText}" Width="150" />
-                    </DataGrid.Columns>
-                </DataGrid>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <ComboBox Width="240"
-                              ItemsSource="{Binding ItemChoices}"
-                              SelectedItem="{Binding NewSpecialItem}"
-                              DisplayMemberPath="Name" />
-                    <ComboBox Width="160" Margin="6,0,6,0"
-                              ItemsSource="{Binding BasisChoices}"
-                              SelectedItem="{Binding NewSpecialBasis}" />
-                    <TextBox Width="100"
-                             ToolTip="Rupees on a fixed price, otherwise a percent"
-                             Text="{Binding NewSpecialValue, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Content="Add special price" Margin="6,0,0,0" Padding="14,5"
-                            Command="{Binding AddSpecialPriceCommand}" />
-                    <Button Content="Remove selected" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding RemoveSpecialPriceCommand}" />
-                    <Button Content="Save special prices" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding SaveSpecialPricesCommand}" />
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <Button Content="New" Padding="14,5" Command="{Binding NewCommand}" />
-                    <Button Content="Save customer" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding SaveCommand}" />
-                    <Button Content="Deactivate" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding DeactivateSelectedCommand}" />
-                    <Button Content="Reactivate" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding ActivateSelectedCommand}" />
-                </StackPanel>
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Customers" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="who buys, what they pay, and the terms they buy on"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
             </StackPanel>
         </Border>
 
-        <DockPanel Grid.Row="4" LastChildFill="False">
-            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
-        </DockPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Search" Style="{StaticResource FieldLabel}" />
+                <TextBox Width="260" Style="{StaticResource FieldBox}"
+                         Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
+                <CheckBox Content="Include inactive" Style="{StaticResource FieldCheck}"
+                          IsChecked="{Binding IncludeInactive}" />
+                <Button Content="Search" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}"
+                      ItemsSource="{Binding Customers}"
+                      SelectedItem="{Binding SelectedCustomer}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                    <DataGridTextColumn Header="Category" Binding="{Binding CustomerCategoryName}" Width="*" />
+                    <DataGridTextColumn Header="Phone" Binding="{Binding PhoneNumber}" Width="120" />
+                    <DataGridTextColumn Header="GSTIN" Binding="{Binding Gstin}" Width="150" />
+                    <DataGridTextColumn Header="POS" Binding="{Binding PlaceOfSupplyStateCode}" Width="54"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Credit limit" Binding="{Binding CreditLimit, StringFormat=N2}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Days" Binding="{Binding CreditPeriodDays}" Width="60"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="56" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No customers match. Clear the search, or create one below."
+                       Visibility="{Binding Customers.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
+            <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="CREATE / ALTER" Style="{StaticResource EntryHeadingText}" />
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="190" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="Category" Style="{StaticResource FieldLabel}" />
+                        <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
+                                  ItemsSource="{Binding CategoryChoices}"
+                                  SelectedValue="{Binding EditCategoryId}"
+                                  SelectedValuePath="Id" DisplayMemberPath="Name" />
+
+                        <TextBlock Text="Contact" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="130" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditContactPerson}" />
+
+                        <TextBlock Text="Phone" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditPhoneNumber}" />
+
+                        <TextBlock Text="Email" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="170" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditEmail}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="GSTIN" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="160" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditGstin}" />
+
+                        <TextBlock Text="Place of supply" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="48" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 ToolTip="Two-digit GST state code."
+                                 Text="{Binding EditPlaceOfSupply}" />
+
+                        <TextBlock Text="Credit limit ₹" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="100" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 ToolTip="Zero means no limit."
+                                 Text="{Binding EditCreditLimit}" />
+
+                        <TextBlock Text="Credit days" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="60" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditCreditPeriodDays}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Billing address" Style="{StaticResource FieldLabel}" VerticalAlignment="Top" />
+                        <TextBox Width="320" Height="46" Margin="0,0,16,0" TextWrapping="Wrap"
+                                 AcceptsReturn="True" Text="{Binding EditBillingAddress}" />
+
+                        <TextBlock Text="Shipping address" Style="{StaticResource FieldLabel}" VerticalAlignment="Top" />
+                        <TextBox Width="320" Height="46" TextWrapping="Wrap"
+                                 AcceptsReturn="True" Text="{Binding EditShippingAddress}" />
+                    </StackPanel>
+
+                    <!-- Per-customer special prices: these win over the category list (spec §4a). -->
+                    <TextBlock Text="SPECIAL PRICES FOR THIS CUSTOMER" Margin="0,14,0,7"
+                               Style="{StaticResource EntryHeadingText}" />
+
+                    <DataGrid Height="104" Style="{StaticResource PageGrid}" IsReadOnly="False"
+                              ItemsSource="{Binding SpecialPrices}"
+                              SelectedItem="{Binding SelectedSpecialPrice}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
+                            <DataGridTemplateColumn Header="Basis" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Basis}" VerticalAlignment="Center" Margin="4,0" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding Basis}"
+                                                  ItemsSource="{Binding DataContext.BasisChoices,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Fixed ₹ / percent" Binding="{Binding ValueText}" Width="160"
+                                                ElementStyle="{StaticResource NumericCell}"
+                                                HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <ComboBox Width="250" Style="{StaticResource FieldCombo}"
+                                  ItemsSource="{Binding ItemChoices}"
+                                  SelectedItem="{Binding NewSpecialItem}" DisplayMemberPath="Name" />
+                        <ComboBox Width="170" MinWidth="0" Style="{StaticResource FieldCombo}"
+                                  ItemsSource="{Binding BasisChoices}"
+                                  SelectedItem="{Binding NewSpecialBasis}" />
+                        <TextBox Width="110" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 ToolTip="Rupees on a fixed price, otherwise a percent."
+                                 Text="{Binding NewSpecialValue, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Content="Add" Style="{StaticResource BandButton}"
+                                Command="{Binding AddSpecialPriceCommand}" />
+                        <Button Content="Remove" Style="{StaticResource BandButton}"
+                                Command="{Binding RemoveSpecialPriceCommand}" />
+                        <Button Content="Save special prices" Style="{StaticResource BandButton}"
+                                Command="{Binding SaveSpecialPricesCommand}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Content="New" Style="{StaticResource BandButton}" Command="{Binding NewCommand}" />
+                        <Button Content="Save" Style="{StaticResource BandButton}" Command="{Binding SaveCommand}" />
+                        <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+                        <Button Content="Deactivate" Style="{StaticResource BandButton}"
+                                Command="{Binding DeactivateSelectedCommand}" />
+                        <Button Content="Reactivate" Style="{StaticResource BandButton}"
+                                Command="{Binding ActivateSelectedCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

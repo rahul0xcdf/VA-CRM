@@ -6,7 +6,8 @@
              mc:Ignorable="d"
              d:DesignHeight="560" d:DesignWidth="900">
 
-    <Grid Margin="24,20">
+    <!-- Master-list page (ADR-0006). -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -15,54 +16,77 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="HSN/SAC codes — with the rate effective today from the schedule master"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="HSN/SAC codes" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="with the rate effective today, from the schedule master"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <CheckBox Content="Show inactive" VerticalAlignment="Center"
-                      IsChecked="{Binding IncludeInactive}" />
-            <Button Content="Refresh" Margin="16,0,0,0" Padding="14,5" Command="{Binding RefreshCommand}" />
-        </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Show inactive" Style="{StaticResource FieldCheck}"
+                          IsChecked="{Binding IncludeInactive}" />
+                <Button Content="Refresh" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
 
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding Rows}"
-                  SelectedItem="{Binding SelectedRow}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*" />
-                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="SizeToHeader" />
-                <DataGridTextColumn Header="Rate %" Binding="{Binding RatePercent}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Cess %" Binding="{Binding CessPercent}" Width="SizeToCells" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}"
+                      ItemsSource="{Binding Rows}"
+                      SelectedItem="{Binding SelectedRow}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="120" />
+                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" />
+                    <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="60" />
+                    <DataGridTextColumn Header="Rate %" Binding="{Binding RatePercent}" Width="80"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Cess %" Binding="{Binding CessPercent}" Width="80"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                </DataGrid.Columns>
+            </DataGrid>
 
-        <Border Grid.Row="3" Style="{StaticResource SectionBorderStyle}" Margin="0,12,0,0">
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No HSN/SAC codes yet. Nothing is seeded — enter the codes this business actually bills under."
+                       Visibility="{Binding Rows.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
             <StackPanel>
+                <TextBlock Text="CREATE / ALTER" Style="{StaticResource EntryHeadingText}" />
+
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Code:" Style="{StaticResource FieldLabelText}" />
-                    <TextBox Width="120" Margin="6,0,16,0"
+                    <TextBlock Text="Code" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="130" Style="{StaticResource FieldBox}"
                              Text="{Binding EditCode, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Description:" Style="{StaticResource FieldLabelText}" />
-                    <TextBox Width="280" Margin="6,0,16,0"
+
+                    <TextBlock Text="Description" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="340" Style="{StaticResource FieldBox}"
                              Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}" />
-                    <CheckBox Content="Active" VerticalAlignment="Center"
+
+                    <CheckBox Content="Active" Style="{StaticResource FieldCheck}"
                               IsChecked="{Binding EditIsActive}" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Content="New" Padding="14,5" Command="{Binding ClearEditorCommand}" />
-                    <Button Content="Save" Margin="8,0,0,0" Padding="14,5" Command="{Binding SaveCommand}" />
-                    <Button Content="Deactivate" Margin="8,0,0,0" Padding="14,5"
+
+                <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+                    <Button Content="New" Style="{StaticResource BandButton}"
+                            Command="{Binding ClearEditorCommand}" />
+                    <Button Content="Save" Style="{StaticResource BandButton}" Command="{Binding SaveCommand}" />
+                    <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+                    <Button Content="Deactivate" Style="{StaticResource BandButton}"
                             Command="{Binding DeactivateSelectedCommand}" />
-                    <Button Content="Reactivate" Margin="8,0,0,0" Padding="14,5"
+                    <Button Content="Reactivate" Style="{StaticResource BandButton}"
                             Command="{Binding ActivateSelectedCommand}" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Style="{StaticResource StatusText}" />
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

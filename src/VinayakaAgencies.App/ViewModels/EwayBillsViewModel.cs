@@ -30,7 +30,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// </remarks>
 public sealed partial class EwayBillsViewModel : ObservableObject, IScreenShortcuts
 {
-    public const string ShortcutHints = "Ctrl+A Generate · Ctrl+Q Clear · Alt+G Go To";
+    public const string ShortcutHints = "Ctrl+A Generate · Alt+X Clear";
 
     private readonly IEwayBillService _ewayBills;
     private readonly ITradeDocumentService _documents;
