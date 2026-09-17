@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="VinayakaAgencies.App.Views.CustomerStatementView"
+<UserControl x:Class="VinayakaAgencies.App.Views.CustomerStatementView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -16,7 +16,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Customer statement â€” the account of one customer, straight from the books"
+                   Text="Customer statement — the account of one customer, straight from the books"
                    Style="{StaticResource ScreenTitleText}" />
 
         <Border Grid.Row="1" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,10,0,8" CornerRadius="6"
@@ -57,7 +57,7 @@
         </DataGrid>
 
         <StackPanel Grid.Row="3">
-            <TextBlock Text="Open bills â€” receipts pay the oldest bill first"
+            <TextBlock Text="Open bills — receipts pay the oldest bill first"
                        Style="{StaticResource SectionHeaderText}" Margin="0,10,0,4" />
             <DataGrid Height="170"
                       ItemsSource="{Binding OpenBills}"

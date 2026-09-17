@@ -33,3 +33,24 @@ memory without copying trade dress.
 
 - `ScreenModuleCatalogTests` / `ShellViewModelTests` extended and green; App build clean with
   warnings-as-errors at implementation.
+
+---
+
+## Superseded by ADR-0006 (17 Sep 2026)
+
+The shell this document described — a themed window with a permanent sidebar and three shortcuts —
+was judged unusable by the owner and replaced. What ADR-0005 intended is unchanged; what it produced
+is gone.
+
+The shell is now five bands (top menu, company bar, body, action bar, status line) with a **Gateway**
+menu that is entered and escaped from rather than a sidebar that is always on. Entries carry
+accelerator letters shown highlighted inside the word. The keyboard map moved into code at
+`Presentation/Keyboard/AppShortcut.cs` and covers TallyPrime's published shortcuts; a test forbids
+duplicate gestures.
+
+One binding changed meaning: **`Ctrl+Q` now exits the screen and `Alt+X` cancels**, matching Tally.
+The old shell had `Ctrl+Q` cancelling.
+
+See `specs/adr/ADR-0006-tally-shell-gateway-and-keyboard-map.md` and the rewritten
+`docs/user-guide/keyboard-shortcuts.md`. Per-screen internals — dense entry grids, F4–F9 voucher
+switching, `Alt+C` create-on-the-fly, pop-up selectors — are the next batch, not this one.

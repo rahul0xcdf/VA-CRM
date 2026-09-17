@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="VinayakaAgencies.App.Views.CustomerCategoriesView"
+<UserControl x:Class="VinayakaAgencies.App.Views.CustomerCategoriesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -16,7 +16,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Customer categories â€” each customer prices from exactly one category"
+                   Text="Customer categories — each customer prices from exactly one category"
                    Style="{StaticResource ScreenTitleText}" />
 
         <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">

@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="VinayakaAgencies.App.Views.ItemsView"
+<UserControl x:Class="VinayakaAgencies.App.Views.ItemsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -20,7 +20,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Items â€” the catalogue everything stocks, moves and bills"
+                   Text="Items — the catalogue everything stocks, moves and bills"
                    Style="{StaticResource ScreenTitleText}" />
 
         <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">
@@ -79,7 +79,7 @@
                               ItemsSource="{Binding UnitChoices}"
                               SelectedValue="{Binding EditAlternateUnitId}"
                               SelectedValuePath="Id" DisplayMemberPath="Code" />
-                    <TextBlock Text="Ã— factor:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="× factor:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="70" Margin="6,0,16,0" Text="{Binding EditConversionFactor}" />
                     <CheckBox Content="Serial-tracked" VerticalAlignment="Center" Margin="0,0,12,0"
                               IsChecked="{Binding EditIsSerialTracked}" />

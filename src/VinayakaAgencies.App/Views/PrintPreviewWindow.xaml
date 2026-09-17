@@ -1,4 +1,4 @@
-﻿<Window x:Class="VinayakaAgencies.App.Views.PrintPreviewWindow"
+<Window x:Class="VinayakaAgencies.App.Views.PrintPreviewWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Print preview"
@@ -8,7 +8,7 @@
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,8">
             <ComboBox x:Name="CopySelector" Width="220" Margin="0,0,10,0"
                       SelectionChanged="OnCopySelected" />
-            <Button Content="Printâ€¦" Padding="14,5" Click="OnPrintClicked" />
+            <Button Content="Print…" Padding="14,5" Click="OnPrintClicked" />
             <Button Content="Close" Margin="8,0,0,0" Padding="14,5" Click="OnCloseClicked" />
         </StackPanel>
 

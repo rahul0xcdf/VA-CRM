@@ -47,3 +47,7 @@ specs/session-log.md
 
 ## Claude Code agent worktrees — transient, never committed
 .claude/worktrees/
+
+# Screenshots captured while driving the app; the ones worth keeping are filed
+# under specs/evidence/images/.
+artifacts/

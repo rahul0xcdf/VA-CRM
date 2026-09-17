@@ -1,20 +1,26 @@
-﻿using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Controls;
-using System.Windows.Data;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.App.ViewModels;
 
 namespace VinayakaAgencies.App.Views;
 
 /// <summary>
-/// The main application window.
+/// Interaction logic for ShellWindow.xaml — the application's single keyboard router (ADR-0006).
 /// </summary>
 /// <remarks>
-/// The code-behind is input routing only (ADR-0005): Alt+G opens the Go To palette, Esc walks
-/// back the shell's history stack, Ctrl+A/Ctrl+Q invoke the focused screen's
-/// <see cref="IScreenShortcuts"/>, and digits 1..9 jump to the numbered module â€” the latter only
-/// when a text control does not own keyboard focus. Everything else stays in the view model.
+/// <para>
+/// All global key handling happens here, in <see cref="OnPreviewKeyDown"/>, rather than in per-view
+/// <c>InputBinding</c>s. Preview is the point: a <c>DataGrid</c> or a <c>TextBox</c> will happily
+/// swallow Escape, Ctrl+A or the arrow keys before a bubbling handler ever sees them, so shortcuts
+/// that must work everywhere have to be claimed on the way down.
+/// </para>
+/// <para>
+/// This is code-behind, which the conventions otherwise forbid. It qualifies as interaction logic
+/// rather than behaviour: every branch either forwards to a command on the view model or opens a
+/// window. No decision about what a screen does is taken here.
+/// </para>
 /// </remarks>
 public partial class ShellWindow : Window
 {
@@ -27,55 +33,116 @@ public partial class ShellWindow : Window
         InitializeComponent();
         DataContext = viewModel;
 
-        // Group the home menu by module caption ("1 Masters", "2 Vouchers", â€¦) so the gateway
-        // reads as Tally's does: numbered modules, screens beneath them.
-        var menuView = (ListCollectionView)CollectionViewSource.GetDefaultView(viewModel.Screens);
-        menuView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Navigation.NavigationItem.ModuleLabel)));
+        viewModel.GoToRequested += (_, _) => OpenPalette();
+        viewModel.SwitchToRequested += (_, _) => OpenPalette();
     }
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
         base.OnPreviewKeyDown(e);
 
-        if (DataContext is not ShellViewModel shell)
+        if (e is null || DataContext is not ShellViewModel shell)
         {
             return;
         }
 
-        if (e.KeyboardDevice.Modifiers == ModifierKeys.Alt && e.Key == Key.G)
+        var modifiers = e.KeyboardDevice.Modifiers;
+        var key = e.Key is Key.System ? e.SystemKey : e.Key;
+
+        // Navigation and chrome.
+        if (AppShortcuts.GoTo.Matches(key, modifiers) || AppShortcuts.SwitchTo.Matches(key, modifiers))
         {
             OpenPalette();
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Escape)
+        if (AppShortcuts.Back.Matches(key, modifiers))
+        {
+            // Never handled at the Gateway, so Escape there falls through to the focused control
+            // rather than being silently eaten.
+            if (!shell.IsGatewayVisible)
+            {
+                shell.NavigateBackCommand.Execute(null);
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if (AppShortcuts.Exit.Matches(key, modifiers))
         {
             shell.NavigateBackCommand.Execute(null);
             e.Handled = true;
             return;
         }
 
-        if (e.KeyboardDevice.Modifiers == ModifierKeys.Control)
+        if (AppShortcuts.Help.Matches(key, modifiers))
         {
-            var handled = e.Key switch
-            {
-                Key.A => InvokeScreenShortcut(shell, shortcuts => shortcuts.AcceptCommand),
-                Key.Q => InvokeScreenShortcut(shell, shortcuts => shortcuts.CancelCommand),
-                _ => false,
-            };
-
-            e.Handled = handled;
+            shell.ShowHelpCommand.Execute(null);
+            e.Handled = true;
             return;
         }
 
-        if (e.Key is Key.D1 or Key.D2 or Key.D3 or Key.D4 or Key.D5 or Key.D6 or Key.D7 or Key.D8 or Key.D9
-            && e.KeyboardDevice.Modifiers == ModifierKeys.None
-            && Keyboard.FocusedElement is not System.Windows.Controls.Primitives.TextBoxBase)
+        // Screen actions.
+        if (AppShortcuts.Accept.Matches(key, modifiers))
         {
-            shell.SelectModuleByNumber(e.Key - Key.D1 + 1);
+            e.Handled = Invoke(shell.ActiveAcceptCommand);
+            return;
+        }
+
+        if (AppShortcuts.Cancel.Matches(key, modifiers))
+        {
+            e.Handled = Invoke(shell.ActiveCancelCommand);
+            return;
+        }
+
+        // Anything the active screen declared on either bar.
+        if (TryInvokeBarShortcut(shell, key, modifiers))
+        {
+            e.Handled = true;
+            return;
+        }
+
+        // Gateway accelerators: a bare letter opens the entry that claims it. Only when the Gateway is
+        // showing and no text box has the caret, or typing into a filter would navigate instead.
+        if (shell.IsGatewayVisible
+            && modifiers == ModifierKeys.None
+            && key is >= Key.A and <= Key.Z
+            && Keyboard.FocusedElement is not TextBoxBase
+            && shell.TryOpenByHotkey((char)('A' + (key - Key.A))))
+        {
             e.Handled = true;
         }
+    }
+
+    /// <summary>
+    /// Runs a gesture the active screen put on one of its bars. The bars are the single source of
+    /// truth for what a screen's keys do, so there is nowhere else a screen shortcut can be declared.
+    /// </summary>
+    private static bool TryInvokeBarShortcut(ShellViewModel shell, Key key, ModifierKeys modifiers)
+    {
+        foreach (var button in shell.ButtonBar.Concat(shell.ActionBar))
+        {
+            if (button.Shortcut.Matches(key, modifiers))
+            {
+                return Invoke(button.Command);
+            }
+        }
+
+        return false;
+    }
+
+    private static bool Invoke(ICommand? command)
+    {
+        if (command is null || !command.CanExecute(null))
+        {
+            return false;
+        }
+
+        command.Execute(null);
+
+        return true;
     }
 
     private void OpenPalette()
@@ -94,20 +161,5 @@ public partial class ShellWindow : Window
         _palette = new GoToPaletteWindow(shell) { Owner = this };
         _palette.Closed += (_, _) => _palette = null;
         _palette.Show();
-    }
-
-    private static bool InvokeScreenShortcut(
-        ShellViewModel shell,
-        Func<IScreenShortcuts, ICommand?> selector)
-    {
-        if (shell.ActiveView is FrameworkElement { DataContext: IScreenShortcuts shortcuts }
-            && selector(shortcuts) is { } command
-            && command.CanExecute(null))
-        {
-            command.Execute(null);
-            return true;
-        }
-
-        return false;
     }
 }

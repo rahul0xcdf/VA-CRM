@@ -7,106 +7,220 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:ShellViewModel}"
         Title="{Binding Title}"
-        Height="680" Width="1120"
+        Height="740" Width="1240"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource SurfaceAltBrush}">
 
-    <!-- ADR-0005 shell: top header (company, GSTIN, financial year), left home menu of numbered
-         modules, content host, bottom status bar (mode · period · shortcut hints). -->
+    <!--
+        ADR-0006 shell. Five bands, top to bottom:
+          1. top menu    — Go To / Switch To / Company / Print / Export / Help
+          2. company bar — legal name, GSTIN, period
+          3. body        — Gateway menu or the active screen, with the right button bar beside it
+          4. action bar  — Accept / Cancel / Exit and whatever the screen adds
+          5. status line — current mode and hints
+
+        The right button bar sits inside the body rather than spanning the window, so it lines up with
+        the content it belongs to — it is contextual to the screen, not to the application.
+    -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="0,0,0,1"
-                Padding="16,10">
+        <!-- 1. Top menu -->
+        <Border Grid.Row="0" Style="{StaticResource TopMenuBarStyle}">
+            <ItemsControl ItemsSource="{Binding TopMenu}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource TopMenuButtonStyle}"
+                                Command="{Binding Command}"
+                                IsEnabled="{Binding IsAvailable}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Label}" />
+                                <TextBlock Text="{Binding Gesture}" Margin="6,0,0,0"
+                                           Style="{StaticResource GestureHintText}" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <!-- 2. Company bar -->
+        <Border Grid.Row="1" Style="{StaticResource CompanyBarStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="{Binding CompanyLegalName}"
-                               Style="{StaticResource ScreenTitleText}" />
-                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                        <TextBlock Style="{StaticResource StatusHintText}"
-                                   Text="{Binding CompanyGstin, StringFormat=GSTIN: {0}}" />
-                        <TextBlock Style="{StaticResource StatusHintText}" Margin="12,0,0,0"
-                                   Text="{Binding ActivePeriod}" />
-                    </StackPanel>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CompanyLegalName}" Style="{StaticResource CompanyNameText}" />
+                    <TextBlock Text="{Binding CompanyGstin, StringFormat=GSTIN {0}}"
+                               Margin="18,0,0,0" Style="{StaticResource CompanyMetaText}" />
                 </StackPanel>
 
-                <TextBlock Grid.Column="1" VerticalAlignment="Center"
-                           FontSize="{StaticResource FontSize.Title}"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource PrimaryTextBrush}"
-                           Text="{Binding Title}" />
+                <TextBlock Grid.Column="1" Text="{Binding ActivePeriod}"
+                           VerticalAlignment="Center" Style="{StaticResource CompanyMetaText}" />
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1">
+        <!-- 3. Body -->
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="230" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="{StaticResource MenuBackgroundBrush}">
-                <ListBox ItemsSource="{Binding Screens}"
-                         SelectedItem="{Binding SelectedScreen}"
-                         Style="{StaticResource HomeMenuListStyle}"
-                         ItemContainerStyle="{StaticResource HomeMenuItemContainerStyle}"
-                         Margin="6,10">
-                    <ListBox.GroupStyle>
-                        <GroupStyle>
-                            <GroupStyle.HeaderTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}"
-                                               Margin="4,8,0,2"
-                                               FontSize="{StaticResource FontSize.Caption}"
-                                               FontWeight="SemiBold"
-                                               Foreground="{StaticResource SecondaryTextBrush}" />
-                                </DataTemplate>
-                            </GroupStyle.HeaderTemplate>
-                        </GroupStyle>
-                    </ListBox.GroupStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" MinWidth="180">
-                                <TextBlock Text="{Binding ScreenKey}" Width="18"
-                                           Foreground="{StaticResource SecondaryTextBrush}" />
-                                <TextBlock Text="{Binding Screen.Header}"
-                                           FontSize="{StaticResource FontSize.BodyLarge}"
-                                           Foreground="{StaticResource PrimaryTextBrush}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Border>
+            <!--
+                Gateway: the menu at a fixed width with a company panel beside it. The width is fixed
+                rather than sized to content so the menu's scrollbar sits against the menu's own edge —
+                left to fill the column, it floats in the middle of the window with nothing beside it.
+            -->
+            <Grid Grid.Column="0"
+                  Visibility="{Binding IsGatewayVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="430" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-            <ContentControl Grid.Column="1" Content="{Binding ActiveView}"
-                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                <Border Grid.Column="1" Style="{StaticResource GatewayInfoPanelStyle}">
+                    <StackPanel>
+                        <TextBlock Text="CURRENT COMPANY" Style="{StaticResource GatewaySectionText}" />
+                        <TextBlock Text="{Binding CompanyLegalName}" Margin="0,6,0,0"
+                                   Style="{StaticResource GatewayInfoValueText}" />
+
+                        <TextBlock Text="GSTIN" Margin="0,18,0,0" Style="{StaticResource GatewaySectionText}" />
+                        <TextBlock Text="{Binding CompanyGstin}" Margin="0,6,0,0"
+                                   Style="{StaticResource GatewayInfoValueText}" />
+
+                        <TextBlock Text="PERIOD" Margin="0,18,0,0" Style="{StaticResource GatewaySectionText}" />
+                        <TextBlock Text="{Binding ActivePeriod}" Margin="0,6,0,0"
+                                   Style="{StaticResource GatewayInfoValueText}" />
+
+                        <Border Margin="0,26,0,0" Padding="14,12"
+                                Background="{StaticResource SurfaceBrush}"
+                                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1"
+                                CornerRadius="3">
+                            <StackPanel>
+                                <TextBlock Text="Getting around" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}" />
+                                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           Text="Press the highlighted letter to open a menu entry. Alt+G jumps to any screen by name. Esc comes back here." />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                    <Border Style="{StaticResource GatewayPanelStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Gateway" Style="{StaticResource GatewayTitleText}" />
+
+                        <ItemsControl ItemsSource="{Binding GatewaySections}" Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,14">
+                                        <TextBlock Text="{Binding Title}"
+                                                   Style="{StaticResource GatewaySectionText}" />
+
+                                        <ItemsControl ItemsSource="{Binding Items}" Margin="0,4,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Style="{StaticResource GatewayItemButtonStyle}"
+                                                            Command="{Binding DataContext.OpenGatewayItemCommand,
+                                                                RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}">
+                                                        <!-- Three runs so the accelerator shows highlighted inside the word (ADR-0006). All on one
+                                                             line on purpose: whitespace between Run elements renders as a space. -->
+                                                        <TextBlock><Run Text="{Binding Hotkey.Before, Mode=OneWay}" /><Run Text="{Binding Hotkey.Letter, Mode=OneWay}" Foreground="{StaticResource HotkeyBrush}" FontWeight="Bold" /><Run Text="{Binding Hotkey.After, Mode=OneWay}" /></TextBlock>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- Active screen -->
+            <ContentControl Grid.Column="0"
+                            Content="{Binding ActiveView}"
+                            Visibility="{Binding IsGatewayVisible,
+                                Converter={StaticResource InverseBoolToVisibility}}" />
+
+            <!-- Right button bar -->
+            <Border Grid.Column="1" Style="{StaticResource ButtonBarStyle}">
+                <ItemsControl ItemsSource="{Binding ButtonBar}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource SideButtonStyle}"
+                                    Command="{Binding Command}"
+                                    IsEnabled="{Binding IsAvailable}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Gesture}"
+                                               Style="{StaticResource SideButtonGestureText}" />
+                                    <TextBlock Text="{Binding Label}"
+                                               Style="{StaticResource SideButtonLabelText}" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
         </Grid>
 
-        <Border Grid.Row="2" Style="{StaticResource StatusBarBorderStyle}">
+        <!-- 4. Action bar -->
+        <Border Grid.Row="3" Style="{StaticResource ActionBarStyle}">
+            <ItemsControl ItemsSource="{Binding ActionBar}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource ActionButtonStyle}"
+                                Command="{Binding Command}"
+                                IsEnabled="{Binding IsAvailable}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Gesture}"
+                                           Style="{StaticResource GestureHintText}" />
+                                <TextBlock Text="{Binding Label}" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <!-- 5. Status line -->
+        <Border Grid.Row="4" Style="{StaticResource StatusBarBorderStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Style="{StaticResource StatusHintText}"
-                           FontWeight="SemiBold"
-                           Text="{Binding CurrentMode}" />
-                <TextBlock Grid.Column="1" Style="{StaticResource StatusHintText}"
-                           HorizontalAlignment="Center"
-                           Text="{Binding ActivePeriod}" />
-                <TextBlock Grid.Column="2" Style="{StaticResource StatusHintText}"
-                           Text="{Binding ShortcutHints}" />
+                <TextBlock Grid.Column="0" Text="{Binding CurrentMode}"
+                           Style="{StaticResource StatusHintText}" FontWeight="SemiBold" />
+
+                <TextBlock Grid.Column="1" Text="{Binding ShortcutHints}"
+                           HorizontalAlignment="Right" Style="{StaticResource StatusHintText}" />
             </Grid>
         </Border>
     </Grid>

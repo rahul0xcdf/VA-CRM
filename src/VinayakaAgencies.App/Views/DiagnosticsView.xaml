@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="VinayakaAgencies.App.Views.DiagnosticsView"
+<UserControl x:Class="VinayakaAgencies.App.Views.DiagnosticsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -17,7 +17,7 @@
                    FontSize="12"
                    TextWrapping="Wrap"
                    Foreground="{StaticResource SecondaryTextBrush}"
-                   Text="The composition-root proof, kept as a live diagnostic: configuration, logging, the schema migration, and both database paths. The company count is read twice â€” once through EF Core and once through Dapper â€” and both must agree." />
+                   Text="The composition-root proof, kept as a live diagnostic: configuration, logging, the schema migration, and both database paths. The company count is read twice — once through EF Core and once through Dapper — and both must agree." />
 
         <Border Background="White"
                 CornerRadius="10"

@@ -89,6 +89,18 @@ with India GST/TDS compliance as a core requirement.
   `einvoice-irn-and-qr.md`, `eway-bill.md`. Evidence filed at
   `specs/evidence/phase-6-evidence.md`. Remaining before sign-off: credentials, owner walkthrough of
   the three new screens, screenshots.
+- **UI shell reworked to ADR-0006 (17 Sep 2026, owner-directed).** ADR-0005 delivered a themed
+  sidebar with three shortcuts; the owner judged it unusable and the shell was rebuilt. Five bands
+  (top menu / company bar / body / action bar / status line), a **Gateway** menu that is entered and
+  escaped from rather than an always-on sidebar, accelerator letters highlighted inside each entry,
+  and TallyPrime's published key map centralised in `Presentation/Keyboard/AppShortcut.cs` with a
+  duplicate-gesture test. **`Ctrl+Q` now exits the screen and `Alt+X` cancels** (the old shell had
+  `Ctrl+Q` cancelling). Screens contribute to the two bars through `IScreenShortcuts`; bars are
+  generated from the commands they invoke, and reserved-but-unwired keys (F2/F3/F11/F12) are
+  deliberately not shown. Also fixed 25 files of pre-existing double-encoded text that rendered as
+  `Ledgers â€" grouped by...` on most screens. **Per-screen internals are NOT reworked yet** — dense
+  entry grids, F4-F9 voucher switching, Alt+C create-on-the-fly and pop-up selectors are the next
+  batch. See ADR-0006 and `docs/user-guide/keyboard-shortcuts.md`.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,

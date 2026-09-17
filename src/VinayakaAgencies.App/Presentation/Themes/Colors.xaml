@@ -22,6 +22,21 @@
     <Color x:Key="Color.SelectionSoft">#FFE2F5EB</Color>
     <Color x:Key="Color.Hover">#FFF0F4F9</Color>
 
+    <!--
+      ADR-0006 chrome. The shell bands need their own colours: a top menu and a right button bar that
+      read as chrome rather than as content, an accelerator colour that survives against both, and a
+      menu highlight strong enough to track by eye while typing. These are ours, not Tally's — the
+      structure is borrowed, the palette is not (project.md §1).
+    -->
+    <Color x:Key="Color.Chrome.TopMenu">#FF1E3A5F</Color>
+    <Color x:Key="Color.Chrome.TopMenuText">#FFDCE6F2</Color>
+    <Color x:Key="Color.Chrome.CompanyBar">#FF2C5282</Color>
+    <Color x:Key="Color.Chrome.CompanyBarText">#FFFFFFFF</Color>
+    <Color x:Key="Color.Chrome.ButtonBar">#FFE8EEF6</Color>
+    <Color x:Key="Color.Chrome.ActionBar">#FFF0F4F9</Color>
+    <Color x:Key="Color.Hotkey">#FFB3261E</Color>
+    <Color x:Key="Color.MenuHighlight">#FFFFD24D</Color>
+
     <SolidColorBrush x:Key="PrimaryTextBrush" Color="{StaticResource Color.Text.Primary}" />
     <SolidColorBrush x:Key="SecondaryTextBrush" Color="{StaticResource Color.Text.Secondary}" />
     <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Color.Accent}" />
@@ -37,4 +52,12 @@
     <SolidColorBrush x:Key="HeaderRowBrush" Color="{StaticResource Color.HeaderRow}" />
     <SolidColorBrush x:Key="SelectionSoftBrush" Color="{StaticResource Color.SelectionSoft}" />
     <SolidColorBrush x:Key="HoverBrush" Color="{StaticResource Color.Hover}" />
+    <SolidColorBrush x:Key="TopMenuBrush" Color="{StaticResource Color.Chrome.TopMenu}" />
+    <SolidColorBrush x:Key="TopMenuTextBrush" Color="{StaticResource Color.Chrome.TopMenuText}" />
+    <SolidColorBrush x:Key="CompanyBarBrush" Color="{StaticResource Color.Chrome.CompanyBar}" />
+    <SolidColorBrush x:Key="CompanyBarTextBrush" Color="{StaticResource Color.Chrome.CompanyBarText}" />
+    <SolidColorBrush x:Key="ButtonBarBrush" Color="{StaticResource Color.Chrome.ButtonBar}" />
+    <SolidColorBrush x:Key="ActionBarBrush" Color="{StaticResource Color.Chrome.ActionBar}" />
+    <SolidColorBrush x:Key="HotkeyBrush" Color="{StaticResource Color.Hotkey}" />
+    <SolidColorBrush x:Key="MenuHighlightBrush" Color="{StaticResource Color.MenuHighlight}" />
 </ResourceDictionary>

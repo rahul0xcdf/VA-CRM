@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="VinayakaAgencies.App.Views.BankReconciliationView"
+<UserControl x:Class="VinayakaAgencies.App.Views.BankReconciliationView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -15,7 +15,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Bank reconciliation â€” manual marking only in this phase (spec 12)"
+        <TextBlock Grid.Row="0" Text="Bank reconciliation — manual marking only in this phase (spec 12)"
                    Style="{StaticResource ScreenTitleText}" />
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">

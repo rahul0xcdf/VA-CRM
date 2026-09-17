@@ -1,19 +1,19 @@
-﻿using VinayakaAgencies.Application.Inventory;
+using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.Configuration;
 
 namespace VinayakaAgencies.Infrastructure.Data;
 
 /// <summary>
-/// SQLite statements for the Phase 2 inventory reports (phase-2-inventory.md Â§1).
+/// SQLite statements for the Phase 2 inventory reports (phase-2-inventory.md §1).
 /// </summary>
 /// <remarks>
 /// The same three invariants as <see cref="AccountingSqliteStatements"/>: every statement takes
 /// <c>@CompanyId</c> first, aggregates in exact integer minor units (ADR-0003) and never re-derives
-/// a value in SQL â€” <c>ValueMinor</c> was computed once, in the domain, when the row was born.
+/// a value in SQL — <c>ValueMinor</c> was computed once, in the domain, when the row was born.
 /// <para>
 /// Quantities are stored as TEXT decimals by EF under SQLite, and <c>SUM()</c> over TEXT aggregates
-/// in IEEE-754 double â€” the defect ADR-0003 exists to prevent. Every statement here therefore moves
+/// in IEEE-754 double — the defect ADR-0003 exists to prevent. Every statement here therefore moves
 /// quantities into integer space before aggregating: <c>CAST(ROUND(qty * 10000) AS INTEGER)</c>
 /// yields minor quantities of 1/10,000, and the report-service mappers convert back to decimals
 /// exactly once. Business dates are canonical calendar text (<c>yyyy-MM-dd</c>) so ranges compare
@@ -60,7 +60,7 @@ internal sealed class InventorySqliteStatements : ISqlStatementSource
                 ORDER BY i.NameNormalised, g.NameNormalised;
                 """,
 
-            // Total stock value and quantity per item as of a date â€” the stock side of C2.1.
+            // Total stock value and quantity per item as of a date — the stock side of C2.1.
             [InventoryQueryKeys.StockValuation] = $"""
                 SELECT e.ItemId,
                        i.Name AS ItemName,

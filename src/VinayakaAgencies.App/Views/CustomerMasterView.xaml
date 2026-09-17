@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="VinayakaAgencies.App.Views.CustomerMasterView"
+<UserControl x:Class="VinayakaAgencies.App.Views.CustomerMasterView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -17,7 +17,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Customers â€” who buys, what they pay, and the terms they buy on"
+                   Text="Customers — who buys, what they pay, and the terms they buy on"
                    Style="{StaticResource ScreenTitleText}" />
 
         <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,8">
@@ -73,7 +73,7 @@
                     <TextBox Width="150" Margin="6,0,12,0" Text="{Binding EditGstin}" />
                     <TextBlock Text="Place of supply (state code):" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="40" Margin="6,0,16,0" Text="{Binding EditPlaceOfSupply}" />
-                    <TextBlock Text="Credit limit (â‚¹, 0 = none):" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="Credit limit (₹, 0 = none):" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="80" Margin="6,0,12,0" Text="{Binding EditCreditLimit}" />
                     <TextBlock Text="Credit period (days):" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
                     <TextBox Width="50" Margin="6,0,0,0" Text="{Binding EditCreditPeriodDays}" />
@@ -88,7 +88,7 @@
                              AcceptsReturn="True" Text="{Binding EditShippingAddress}" />
                 </StackPanel>
 
-                <!-- Per-customer special prices: win over the category price list (spec Â§4a). -->
+                <!-- Per-customer special prices: win over the category price list (spec §4a). -->
                 <TextBlock Text="Special prices for this customer (win over the category list)"
                            Margin="0,12,0,4" Style="{StaticResource SectionHeaderText}" />
                 <DataGrid Height="110"
@@ -112,7 +112,7 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellEditingTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Fixed â‚¹ / percent" Binding="{Binding ValueText}" Width="150" />
+                        <DataGridTextColumn Header="Fixed ₹ / percent" Binding="{Binding ValueText}" Width="150" />
                     </DataGrid.Columns>
                 </DataGrid>
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">

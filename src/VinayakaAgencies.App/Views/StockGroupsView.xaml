@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="VinayakaAgencies.App.Views.StockGroupsView"
+<UserControl x:Class="VinayakaAgencies.App.Views.StockGroupsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -15,7 +15,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   Text="Stock groups â€” how items are classified for reporting"
+                   Text="Stock groups — how items are classified for reporting"
                    Style="{StaticResource ScreenTitleText}" />
 
         <DataGrid Grid.Row="1"
