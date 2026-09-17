@@ -6,7 +6,9 @@
              mc:Ignorable="d"
              d:DesignHeight="640" d:DesignWidth="900">
 
-    <Grid Margin="24,20">
+    <!-- Two-column report page (ADR-0006). The halves are divided by a hairline rather than a gap, so
+         the two grids read as one statement instead of two unrelated tables. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -15,65 +17,72 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Profit &amp; loss — the gross block above the line, indirect items below it"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Profit &amp; loss" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="the gross block above the line, indirect items below it"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <TextBlock Text="From:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding FromDate}" />
-            <TextBlock Text="To:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding ToDate}" />
-            <Button Content="Load" Padding="16,5" Command="{Binding LoadCommand}" />
-        </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="From" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="140" Margin="0,0,16,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding FromDate}" />
+                <TextBlock Text="To" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="140" Margin="0,0,16,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding ToDate}" />
+                <Button Content="Load" Style="{StaticResource BandButton}" Command="{Binding LoadCommand}" />
+            </StackPanel>
+        </Border>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <DataGrid Grid.Column="0" ItemsSource="{Binding GrossRows}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
+            <DataGrid Grid.Column="0" Style="{StaticResource PageGrid}" ItemsSource="{Binding GrossRows}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Trading ledger" Binding="{Binding LedgerName}" Width="2*" />
                     <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="*" />
-                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="SizeToCells" />
+                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="130"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
                 </DataGrid.Columns>
             </DataGrid>
 
-            <DataGrid Grid.Column="2" ItemsSource="{Binding IndirectRows}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
+            <Border Grid.Column="1" Width="1" Background="{StaticResource ControlBorderBrush}" />
+
+            <DataGrid Grid.Column="2" Style="{StaticResource PageGrid}" ItemsSource="{Binding IndirectRows}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Indirect ledger" Binding="{Binding LedgerName}" Width="2*" />
                     <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="*" />
-                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="SizeToCells" />
+                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="130"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
 
-        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Total income:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding TotalIncome, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                    <TextBlock Text="Total expense:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding TotalExpense, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                    <TextBlock Text="Gross profit:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding GrossProfit, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                    <TextBlock Text="Net profit:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding NetProfit, StringFormat=N2}" Margin="6,0,0,0" FontWeight="Bold" FontSize="14" />
-                </StackPanel>
+        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="Income" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalIncome, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="Expense" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalExpense, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="Gross profit" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding GrossProfit, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="Net profit" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding NetProfit, StringFormat=N2}" FontSize="14"
+                           Style="{StaticResource TotalsValueText}" />
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" />
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

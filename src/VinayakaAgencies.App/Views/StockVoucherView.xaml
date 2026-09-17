@@ -6,110 +6,123 @@
              mc:Ignorable="d"
              d:DesignHeight="760" d:DesignWidth="1200">
 
-    <Grid Margin="24,20">
+    <!-- Voucher page (ADR-0006): header, item picker, line grid, actions, recent movements. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="170" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Stock vouchers — opening balances, receipts, issues and transfers"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Stock vouchers" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="opening balances, receipts, issues and transfers"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,10,0,8" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Purpose:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="140" Margin="6,0,16,0"
-                              ItemsSource="{Binding PurposeChoices}"
-                              SelectedItem="{Binding Purpose}" />
-                    <TextBlock Text="Date:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding VoucherDate}" />
-                    <TextBlock Text="Counter ledger:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="220" Margin="6,0,16,0"
+                    <TextBlock Text="Purpose" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="150" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding PurposeChoices}" SelectedItem="{Binding Purpose}" />
+
+                    <TextBlock Text="Date" Style="{StaticResource FieldLabel}" />
+                    <DatePicker Width="130" Margin="0,0,16,0" VerticalAlignment="Center"
+                                SelectedDate="{Binding VoucherDate}" />
+
+                    <TextBlock Text="Counter ledger" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="230" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding LedgerChoices}"
-                              SelectedItem="{Binding CounterLedger}"
-                              DisplayMemberPath="Name" />
-                    <TextBlock Text="Narration:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="260" Margin="6,0,0,0"
+                              SelectedItem="{Binding CounterLedger}" DisplayMemberPath="Name" />
+
+                    <TextBlock Text="Narration" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="260" Style="{StaticResource FieldBox}"
                              Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Find item:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="200" Margin="6,0,6,0"
+                    <TextBlock Text="Find item" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="210" Style="{StaticResource FieldBox}"
                              Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Content="Search" Padding="14,5" Command="{Binding SearchItemsCommand}" />
-                    <ComboBox Width="240" Margin="8,0,16,0"
+                    <Button Content="Search" Style="{StaticResource BandButton}"
+                            Command="{Binding SearchItemsCommand}" />
+
+                    <ComboBox Width="250" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding ItemChoices}"
-                              SelectedItem="{Binding SelectedNewItem}"
-                              DisplayMemberPath="Name" />
-                    <TextBlock Text="Default godown:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="150" Margin="6,0,0,0"
+                              SelectedItem="{Binding SelectedNewItem}" DisplayMemberPath="Name" />
+
+                    <TextBlock Text="Godown" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="160" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding GodownChoices}"
-                              SelectedItem="{Binding DefaultGodown}"
-                              DisplayMemberPath="Name" />
-                    <Button Content="Add line" Margin="16,0,0,0" Padding="14,5"
+                              SelectedItem="{Binding DefaultGodown}" DisplayMemberPath="Name" />
+
+                    <Button Content="Add line" Style="{StaticResource BandButton}"
                             Command="{Binding AddLineCommand}" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <DataGrid Grid.Row="2"
+        <DataGrid Grid.Row="2" Style="{StaticResource PageGrid}" IsReadOnly="False"
                   ItemsSource="{Binding Lines}"
-                  SelectedItem="{Binding SelectedLine}"
-                  AutoGenerateColumns="False"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
+                  SelectedItem="{Binding SelectedLine}">
             <DataGrid.Columns>
-                <DataGridComboBoxColumn Header="Direction" Width="90"
-                                        ItemsSource="{Binding DataContext.DirectionChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                <DataGridComboBoxColumn Header="Direction" Width="95"
+                                        ItemsSource="{Binding DataContext.DirectionChoices,
+                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         SelectedItemBinding="{Binding Direction}" />
                 <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
-                <DataGridComboBoxColumn Header="Godown" Width="130"
-                                        ItemsSource="{Binding DataContext.GodownChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                <DataGridComboBoxColumn Header="Godown" Width="140"
+                                        ItemsSource="{Binding DataContext.GodownChoices,
+                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         SelectedValueBinding="{Binding GodownId}"
-                                        SelectedValuePath="Id"
-                                        DisplayMemberPath="Name" />
-                <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="80" />
-                <DataGridTextColumn Header="Unit cost (receipts)" Binding="{Binding UnitCost}" Width="110" />
-                <DataGridTextColumn Header="Batch" Binding="{Binding BatchNumber}" Width="100" />
+                                        SelectedValuePath="Id" DisplayMemberPath="Name" />
+                <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="90"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+                <DataGridTextColumn Header="Unit cost" Binding="{Binding UnitCost}" Width="120"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+                <DataGridTextColumn Header="Batch" Binding="{Binding BatchNumber}" Width="110" />
                 <DataGridTextColumn Header="Serials (; separated)" Binding="{Binding SerialNumbers}" Width="2*" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Grid.Row="3">
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                <Button Content="Validate" Padding="14,5" Command="{Binding ValidateCommand}" />
-                <Button Content="Post voucher" Margin="8,0,0,0" Padding="14,5"
-                        Command="{Binding PostCommand}" />
-                <Button Content="Remove selected line" Margin="16,0,0,0" Padding="14,5"
+        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Validate" Style="{StaticResource BandButton}" Command="{Binding ValidateCommand}" />
+                <Button Content="Post voucher" Style="{StaticResource BandButton}" Command="{Binding PostCommand}" />
+                <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+                <Button Content="Remove line" Style="{StaticResource BandButton}"
                         Command="{Binding RemoveLineCommand}" />
-                <Button Content="Refresh" Margin="16,0,0,0" Padding="14,5"
-                        Command="{Binding RefreshCommand}" />
+                <Button Content="Refresh" Style="{StaticResource BandButton}" Command="{Binding RefreshCommand}" />
             </StackPanel>
+        </Border>
 
-            <TextBlock Margin="4,8,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}"
-                       TextWrapping="Wrap" />
+        <Border Grid.Row="4" Style="{StaticResource TotalsBandStyle}">
+            <TextBlock Text="RECENT MOVEMENTS" Style="{StaticResource EntryHeadingText}" Margin="0" />
+        </Border>
 
-            <TextBlock Margin="4,12,0,2" Text="Recent movements" FontWeight="SemiBold"
-                       Foreground="{StaticResource PrimaryTextBrush}" />
-            <DataGrid Height="160"
-                      ItemsSource="{Binding RecentVouchers}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Number" Binding="{Binding Number}" Width="110" />
-                    <DataGridTextColumn Header="Date" Binding="{Binding VoucherDate}" Width="90" />
-                    <DataGridTextColumn Header="Purpose" Binding="{Binding Purpose}" Width="120" />
-                    <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" />
-                    <DataGridTextColumn Header="Lines" Binding="{Binding Lines.Count}" Width="60" />
-                </DataGrid.Columns>
-            </DataGrid>
-        </StackPanel>
+        <DataGrid Grid.Row="5" Style="{StaticResource PageGrid}" ItemsSource="{Binding RecentVouchers}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Number" Binding="{Binding Number}" Width="120" />
+                <DataGridTextColumn Header="Date" Binding="{Binding VoucherDate}" Width="100" />
+                <DataGridTextColumn Header="Purpose" Binding="{Binding Purpose}" Width="130" />
+                <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" />
+                <DataGridTextColumn Header="Lines" Binding="{Binding Lines.Count}" Width="60"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="6" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

@@ -6,58 +6,81 @@
              mc:Ignorable="d"
              d:DesignHeight="560" d:DesignWidth="900">
 
-    <Grid Margin="24,20">
+    <!-- Report page (ADR-0006). -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Day book — cancelled vouchers are shown and flagged, never hidden (spec 8.4)"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Day book" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="cancelled vouchers are shown and flagged, never hidden (spec 8.4)"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <TextBlock Text="From:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding FromDate}" />
-            <TextBlock Text="To:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding ToDate}" />
-            <Button Content="Load" Padding="16,5" Command="{Binding LoadCommand}" />
-        </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="From" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="140" Margin="0,0,16,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding FromDate}" />
+                <TextBlock Text="To" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="140" Margin="0,0,16,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding ToDate}" />
+                <Button Content="Load" Style="{StaticResource BandButton}" Command="{Binding LoadCommand}" />
+            </StackPanel>
+        </Border>
 
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding Rows}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsCancelled}" Value="True">
-                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
-                            <Setter Property="FontStyle" Value="Italic" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </DataGrid.RowStyle>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Date" Binding="{Binding VoucherDate, StringFormat=dd-MMM-yy}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Number" Binding="{Binding VoucherNumber}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Type" Binding="{Binding VoucherTypeName}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Ledger" Binding="{Binding LedgerName}" Width="2*" />
-                <DataGridTextColumn Header="Debit" Binding="{Binding Debit, StringFormat=N2}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Credit" Binding="{Binding Credit, StringFormat=N2}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" />
-                <DataGridCheckBoxColumn Header="Cancelled" Binding="{Binding IsCancelled}" Width="SizeToHeader" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding Rows}">
+                <DataGrid.RowStyle>
+                    <!-- Cancelled vouchers stay in the book and are marked, not removed. -->
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCancelled}" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+                                <Setter Property="FontStyle" Value="Italic" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Date" Binding="{Binding VoucherDate, StringFormat=dd-MMM-yy}" Width="100" />
+                    <DataGridTextColumn Header="Number" Binding="{Binding VoucherNumber}" Width="130" />
+                    <DataGridTextColumn Header="Type" Binding="{Binding VoucherTypeName}" Width="130" />
+                    <DataGridTextColumn Header="Ledger" Binding="{Binding LedgerName}" Width="2*" />
+                    <DataGridTextColumn Header="Debit" Binding="{Binding Debit, StringFormat=N2}" Width="120"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Credit" Binding="{Binding Credit, StringFormat=N2}" Width="120"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" />
+                    <DataGridCheckBoxColumn Header="Cancelled" Binding="{Binding IsCancelled}" Width="80" />
+                </DataGrid.Columns>
+            </DataGrid>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="4,8,0,0">
-            <TextBlock Text="Dr:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding TotalDebit, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-            <TextBlock Text="Cr:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding TotalCredit, StringFormat=N2}" Margin="6,0,20,0" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-        </StackPanel>
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No vouchers in this period. Widen the dates and press Load."
+                       Visibility="{Binding Rows.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="Dr" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalDebit, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="Cr" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalCredit, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

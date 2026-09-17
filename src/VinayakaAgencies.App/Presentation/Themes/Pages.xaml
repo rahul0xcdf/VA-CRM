@@ -94,6 +94,17 @@
         <Setter Property="MinWidth" Value="0" />
     </Style>
 
+    <!--
+      A label and its field, kept together. Entry rows go in a WrapPanel of these rather than one long
+      StackPanel: a dense master like Items has more fields than fit on a laptop, and a StackPanel
+      clips the overflow silently — the last checkbox simply is not there. Wrapping keeps every field
+      reachable at any window width, and keeps each label attached to its own control while it moves.
+    -->
+    <Style x:Key="FieldPair" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Margin" Value="0,0,0,7" />
+    </Style>
+
     <!-- ===== The data region ===== -->
 
     <!--

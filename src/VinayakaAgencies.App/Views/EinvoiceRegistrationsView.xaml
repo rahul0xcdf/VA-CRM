@@ -6,7 +6,9 @@
              mc:Ignorable="d"
              d:DesignHeight="640" d:DesignWidth="1100">
 
-    <Grid Margin="24,20">
+    <!-- Report page with a side detail panel (ADR-0006): invoices on the left, the selected
+         invoice's registration on the right. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -14,98 +16,105 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="E-invoice (IRN) — register posted tax invoices with the NIC portal"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="E-invoice (IRN)" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="register posted tax invoices with the NIC portal"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <Button Content="Refresh" Padding="14,5" Command="{Binding RefreshCommand}" />
-            <Button Content="Preview payload" Margin="10,0,0,0" Padding="14,5"
-                    Command="{Binding PreviewPayloadCommand}" />
-            <Button Content="Get IRN" Margin="10,0,0,0" Padding="14,5"
-                    Command="{Binding GenerateCommand}" />
-        </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Refresh" Style="{StaticResource BandButton}" Command="{Binding RefreshCommand}" />
+                <Button Content="Preview payload" Style="{StaticResource BandButton}"
+                        ToolTip="Assembles what would be sent, without contacting the portal."
+                        Command="{Binding PreviewPayloadCommand}" />
+                <Button Content="Get IRN" Style="{StaticResource BandButton}"
+                        ToolTip="Idempotent: pressing this twice reports the existing registration rather than creating a second."
+                        Command="{Binding GenerateCommand}" />
+            </StackPanel>
+        </Border>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="420" />
+                <ColumnDefinition Width="430" />
             </Grid.ColumnDefinitions>
 
-            <DataGrid Grid.Column="0"
-                      ItemsSource="{Binding Invoices}"
-                      SelectedItem="{Binding SelectedInvoice}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      HeadersVisibility="Column"
-                      GridLinesVisibility="Horizontal"
-                      HorizontalGridLinesBrush="{StaticResource GridLineBrush}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Invoice" Width="140" Binding="{Binding Number}" />
-                    <DataGridTextColumn Header="Date" Width="100"
-                                        Binding="{Binding DocumentDate, StringFormat=dd MMM yyyy}" />
-                    <DataGridTextColumn Header="Party" Width="*" Binding="{Binding PartyName}" />
-                    <DataGridTextColumn Header="Value" Width="110"
-                                        Binding="{Binding TotalNetValue, StringFormat=N2}" />
-                    <DataGridTextColumn Header="E-invoice" Width="120"
-                                        Binding="{Binding RegistrationStatus}" />
-                </DataGrid.Columns>
-            </DataGrid>
+            <Grid Grid.Column="0">
+                <DataGrid Style="{StaticResource PageGrid}"
+                          ItemsSource="{Binding Invoices}"
+                          SelectedItem="{Binding SelectedInvoice}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Invoice" Binding="{Binding Number}" Width="140" />
+                        <DataGridTextColumn Header="Date" Binding="{Binding DocumentDate, StringFormat=dd MMM yyyy}" Width="110" />
+                        <DataGridTextColumn Header="Party" Binding="{Binding PartyName}" Width="*" />
+                        <DataGridTextColumn Header="Value" Binding="{Binding TotalNetValue, StringFormat=N2}" Width="120"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="E-invoice" Binding="{Binding RegistrationStatus}" Width="130" />
+                    </DataGrid.Columns>
+                </DataGrid>
 
-            <Border Grid.Column="1" Width="1" Margin="14,0"
-                    Background="{StaticResource ControlBorderBrush}" />
+                <TextBlock Style="{StaticResource EmptyStateText}"
+                           Text="No posted tax invoices. Only a posted, numbered invoice can be registered — the IRN is computed from its number."
+                           Visibility="{Binding Invoices.Count, Converter={StaticResource ZeroToVisibility}}" />
+            </Grid>
+
+            <Border Grid.Column="1" Width="1" Background="{StaticResource ControlBorderBrush}" />
 
             <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <TextBlock Text="Registration" Style="{StaticResource SectionHeaderText}" />
+                <StackPanel Margin="16,12,16,12">
+                    <TextBlock Text="REGISTRATION" Style="{StaticResource EntryHeadingText}" />
 
-                    <TextBlock Text="IRN" Style="{StaticResource FieldLabelText}" Margin="0,8,0,2" />
+                    <TextBlock Text="IRN" Style="{StaticResource FieldLabel}" Margin="0,0,0,3" />
                     <TextBox Text="{Binding Irn, Mode=OneWay}" IsReadOnly="True"
-                             TextWrapping="Wrap" FontFamily="Consolas" />
+                             TextWrapping="Wrap" FontFamily="Consolas" FontSize="11" />
 
-                    <TextBlock Text="Status" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
-                    <TextBlock Text="{Binding StatusText}" />
+                    <TextBlock Text="Status" Style="{StaticResource FieldLabel}" Margin="0,10,0,3" />
+                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource PrimaryTextBrush}" />
 
-                    <TextBlock Text="Acknowledgement" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
-                    <TextBlock Text="{Binding Acknowledgement}" />
+                    <TextBlock Text="Acknowledgement" Style="{StaticResource FieldLabel}" Margin="0,10,0,3" />
+                    <TextBlock Text="{Binding Acknowledgement}" Foreground="{StaticResource PrimaryTextBrush}" />
 
-                    <TextBlock Text="Cancellable until" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
-                    <TextBlock Text="{Binding CancellableUntil}" />
+                    <TextBlock Text="Cancellable until" Style="{StaticResource FieldLabel}" Margin="0,10,0,3" />
+                    <TextBlock Text="{Binding CancellableUntil}" Foreground="{StaticResource PrimaryTextBrush}" />
 
-                    <TextBlock Text="Signed QR (as returned by the portal)"
-                               Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
+                    <TextBlock Text="Signed QR, as returned by the portal"
+                               Style="{StaticResource FieldLabel}" Margin="0,10,0,3" />
                     <TextBox Text="{Binding SignedQrCode, Mode=OneWay}" IsReadOnly="True"
                              Height="70" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                              FontFamily="Consolas" FontSize="11" />
 
-                    <TextBlock Text="Cancel at the portal" Style="{StaticResource SectionHeaderText}"
-                               Margin="0,18,0,0" />
+                    <TextBlock Text="CANCEL AT THE PORTAL" Style="{StaticResource EntryHeadingText}" Margin="0,18,0,7" />
 
-                    <TextBlock Text="Reason code" Style="{StaticResource FieldLabelText}" Margin="0,8,0,2" />
-                    <TextBox Text="{Binding CancelReasonCode}" Width="80" HorizontalAlignment="Left" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Reason code" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="80" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 Text="{Binding CancelReasonCode}" />
+                    </StackPanel>
 
-                    <TextBlock Text="Remarks" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
+                    <TextBlock Text="Remarks" Style="{StaticResource FieldLabel}" Margin="0,8,0,3" />
                     <TextBox Text="{Binding CancelRemarks}" />
 
-                    <Button Content="Cancel IRN" Margin="0,12,0,0" Padding="14,5"
-                            HorizontalAlignment="Left"
+                    <Button Content="Cancel IRN" Margin="0,12,0,0" HorizontalAlignment="Left"
+                            Style="{StaticResource BandButton}"
                             IsEnabled="{Binding CanCancel}"
                             Command="{Binding CancelIrnCommand}" />
 
-                    <TextBlock Text="Payload preview" Style="{StaticResource SectionHeaderText}"
-                               Margin="0,18,0,0" />
+                    <TextBlock Text="PAYLOAD PREVIEW" Style="{StaticResource EntryHeadingText}" Margin="0,18,0,7" />
                     <TextBox Text="{Binding PayloadPreview, Mode=OneWay}" IsReadOnly="True"
-                             Height="180" Margin="0,8,0,0"
-                             FontFamily="Consolas" FontSize="11"
+                             Height="180" FontFamily="Consolas" FontSize="11"
                              TextWrapping="NoWrap"
-                             HorizontalScrollBarVisibility="Auto"
-                             VerticalScrollBarVisibility="Auto" />
+                             HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
                 </StackPanel>
             </ScrollViewer>
         </Grid>
 
-        <TextBlock Grid.Row="3" Text="{Binding Status}" Style="{StaticResource StatusText}"
-                   Margin="0,12,0,0" TextWrapping="Wrap" />
+        <Border Grid.Row="3" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

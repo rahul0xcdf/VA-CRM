@@ -10,7 +10,8 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
 
-    <Grid Margin="24,20">
+    <!-- Report page (ADR-0006). One of three bodies shows, depending on the return chosen. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -19,141 +20,182 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="GST returns — built from posted invoices for one month of the open financial year"
-                   Style="{StaticResource ScreenTitleText}" />
-
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <TextBlock Text="Period:" Style="{StaticResource FieldLabelText}" />
-            <ComboBox Width="130" Margin="6,0,16,0" ItemsSource="{Binding PeriodChoices}"
-                      SelectedItem="{Binding SelectedPeriod}" ItemStringFormat="MMM yyyy" />
-            <TextBlock Text="Return:" Style="{StaticResource FieldLabelText}" />
-            <ComboBox Width="110" Margin="6,0,16,0" ItemsSource="{Binding ReturnTypeChoices}"
-                      SelectedItem="{Binding SelectedReturnType}" />
-            <Button Content="Load" Padding="16,5" Command="{Binding LoadCommand}" />
-            <Button Content="Export GSTR-1 JSON…" Margin="16,0,0,0" Padding="14,5"
-                    Command="{Binding ExportGstr1JsonCommand}" />
-        </StackPanel>
-
-        <Border Grid.Row="2" Style="{StaticResource SectionBorderStyle}" Margin="0,4,0,10">
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Taxable:" Style="{StaticResource FieldLabelText}" />
-                <TextBlock Text="{Binding TotalTaxable, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                <TextBlock Text="IGST:" Style="{StaticResource FieldLabelText}" />
-                <TextBlock Text="{Binding TotalIgst, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                <TextBlock Text="CGST:" Style="{StaticResource FieldLabelText}" />
-                <TextBlock Text="{Binding TotalCgst, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                <TextBlock Text="SGST:" Style="{StaticResource FieldLabelText}" />
-                <TextBlock Text="{Binding TotalSgst, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                <TextBlock Text="Cess:" Style="{StaticResource FieldLabelText}" />
-                <TextBlock Text="{Binding TotalCess, StringFormat=N2}" Margin="6,0,16,0" FontWeight="SemiBold" />
-                <TextBlock Text="Total tax:" Style="{StaticResource FieldLabelText}" />
-                <TextBlock Text="{Binding TotalTax, StringFormat=N2}" FontWeight="SemiBold" />
+                <TextBlock Text="GST returns" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="built from posted invoices for one month of the open financial year"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Period" Style="{StaticResource FieldLabel}" />
+                <ComboBox Width="140" Style="{StaticResource FieldCombo}"
+                          ItemsSource="{Binding PeriodChoices}"
+                          SelectedItem="{Binding SelectedPeriod}" ItemStringFormat="MMM yyyy" />
+
+                <TextBlock Text="Return" Style="{StaticResource FieldLabel}" />
+                <ComboBox Width="120" Style="{StaticResource FieldCombo}"
+                          ItemsSource="{Binding ReturnTypeChoices}"
+                          SelectedItem="{Binding SelectedReturnType}" />
+
+                <Button Content="Load" Style="{StaticResource BandButton}" Command="{Binding LoadCommand}" />
+                <Button Content="Export GSTR-1 JSON" Style="{StaticResource BandButton}"
+                        Command="{Binding ExportGstr1JsonCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource TotalsBandStyle}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="Taxable" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalTaxable, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="IGST" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalIgst, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="CGST" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalCgst, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="SGST" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalSgst, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="Cess" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalCess, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="Total tax" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalTax, StringFormat=N2}" FontSize="14"
+                           Style="{StaticResource TotalsValueText}" />
             </StackPanel>
         </Border>
 
         <Grid Grid.Row="3">
-            <!-- GSTR-1: B2B invoice list, B2C aggregates and the Table-12 HSN split. -->
+            <!-- GSTR-1: B2B invoice lines, B2C aggregates, and the Table-12 HSN split. -->
             <ScrollViewer Visibility="{Binding IsGstr1, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
-                    <TextBlock Text="B2B invoices (per rate line)" Style="{StaticResource SectionHeaderText}" Margin="0,0,0,4" />
-                    <DataGrid ItemsSource="{Binding B2bRows}" MaxHeight="220"
-                              AutoGenerateColumns="False" IsReadOnly="True"
-                              HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                              CanUserAddRows="False">
+                    <Border Style="{StaticResource TotalsBandStyle}">
+                        <TextBlock Text="B2B INVOICES (PER RATE LINE)" Style="{StaticResource EntryHeadingText}" Margin="0" />
+                    </Border>
+                    <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding B2bRows}" MaxHeight="220">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Invoice" Binding="{Binding InvoiceNumber}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Date" Binding="{Binding InvoiceDate}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Counterparty GSTIN" Binding="{Binding CounterpartyGstin}" Width="SizeToHeader" />
-                            <DataGridTextColumn Header="POS" Binding="{Binding PlaceOfSupply}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="RCM" Binding="{Binding ReverseCharge}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Rate %" Binding="{Binding RatePercent}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Invoice value" Binding="{Binding InvoiceValue, StringFormat=N2}" Width="SizeToCells" />
+                            <DataGridTextColumn Header="Invoice" Binding="{Binding InvoiceNumber}" Width="120" />
+                            <DataGridTextColumn Header="Date" Binding="{Binding InvoiceDate}" Width="100" />
+                            <DataGridTextColumn Header="Counterparty GSTIN" Binding="{Binding CounterpartyGstin}" Width="160" />
+                            <DataGridTextColumn Header="POS" Binding="{Binding PlaceOfSupply}" Width="56" />
+                            <DataGridTextColumn Header="RCM" Binding="{Binding ReverseCharge}" Width="56" />
+                            <DataGridTextColumn Header="Rate %" Binding="{Binding RatePercent}" Width="70"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="110"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="100"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="100"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="100"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="90"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Invoice value" Binding="{Binding InvoiceValue, StringFormat=N2}" Width="*"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Text="B2C aggregates by place of supply and rate" Style="{StaticResource SectionHeaderText}"
-                               Margin="0,12,0,4" />
-                    <DataGrid ItemsSource="{Binding B2cRows}" MaxHeight="180"
-                              AutoGenerateColumns="False" IsReadOnly="True"
-                              HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                              CanUserAddRows="False">
+                    <Border Style="{StaticResource TotalsBandStyle}">
+                        <TextBlock Text="B2C AGGREGATES BY PLACE OF SUPPLY AND RATE"
+                                   Style="{StaticResource EntryHeadingText}" Margin="0" />
+                    </Border>
+                    <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding B2cRows}" MaxHeight="180">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="POS" Binding="{Binding PlaceOfSupply}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Rate %" Binding="{Binding RatePercent}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Invoices" Binding="{Binding InvoiceCount}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Invoice value" Binding="{Binding InvoiceValue, StringFormat=N2}" Width="SizeToCells" />
+                            <DataGridTextColumn Header="POS" Binding="{Binding PlaceOfSupply}" Width="70" />
+                            <DataGridTextColumn Header="Rate %" Binding="{Binding RatePercent}" Width="80"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Invoices" Binding="{Binding InvoiceCount}" Width="80"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="120"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="110"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="110"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="110"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="100"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Invoice value" Binding="{Binding InvoiceValue, StringFormat=N2}" Width="*"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Text="Table 12 — HSN summary, split B2B/B2C" Style="{StaticResource SectionHeaderText}"
-                               Margin="0,12,0,4" />
-                    <DataGrid ItemsSource="{Binding HsnRows}" MaxHeight="220"
-                              AutoGenerateColumns="False" IsReadOnly="True"
-                              HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                              CanUserAddRows="False">
+                    <Border Style="{StaticResource TotalsBandStyle}">
+                        <TextBlock Text="TABLE 12 — HSN SUMMARY, SPLIT B2B / B2C"
+                                   Style="{StaticResource EntryHeadingText}" Margin="0" />
+                    </Border>
+                    <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding HsnRows}" MaxHeight="220">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="SizeToCells" />
+                            <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="110" />
                             <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="1.5*" />
-                            <DataGridTextColumn Header="Supply" Binding="{Binding SupplyType}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity, StringFormat=0.####}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="SizeToCells" />
-                            <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="SizeToCells" />
+                            <DataGridTextColumn Header="Supply" Binding="{Binding SupplyType}" Width="80" />
+                            <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity, StringFormat=0.####}" Width="100"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="120"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="110"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="110"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="110"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                            <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="*"
+                                                ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Text="{Binding DocumentsSummary}" Style="{StaticResource StatusText}" Margin="0,8,0,8" />
+                    <Border Style="{StaticResource PageStatusStyle}">
+                        <TextBlock Text="{Binding DocumentsSummary}" Style="{StaticResource PageStatusText}" />
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
 
             <!-- GSTR-3B: the four summary sections. -->
-            <DataGrid ItemsSource="{Binding ThreeBSections}" MaxHeight="260"
-                      Visibility="{Binding IsGstr3B, Converter={StaticResource BoolToVisibility}}"
-                      AutoGenerateColumns="False" IsReadOnly="True" VerticalAlignment="Top"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
+            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding ThreeBSections}"
+                      MaxHeight="300" VerticalAlignment="Top"
+                      Visibility="{Binding IsGstr3B, Converter={StaticResource BoolToVisibility}}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Section" Binding="{Binding Section}" Width="2*" />
-                    <DataGridTextColumn Header="Taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="Total tax" Binding="{Binding TotalTax, StringFormat=N2}" Width="SizeToCells" />
+                    <DataGridTextColumn Header="Taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="130"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="120"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="120"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="120"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Total tax" Binding="{Binding TotalTax, StringFormat=N2}" Width="*"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
                 </DataGrid.Columns>
             </DataGrid>
 
             <!-- GSTR-9: monthly aggregation over the financial year so far. -->
-            <DataGrid ItemsSource="{Binding NineMonthRows}" MaxHeight="360"
-                      Visibility="{Binding IsGstr9, Converter={StaticResource BoolToVisibility}}"
-                      AutoGenerateColumns="False" IsReadOnly="True" VerticalAlignment="Top"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
+            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding NineMonthRows}"
+                      MaxHeight="380" VerticalAlignment="Top"
+                      Visibility="{Binding IsGstr9, Converter={StaticResource BoolToVisibility}}">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Month" Binding="{Binding Period}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="Outward taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="SizeToCells" />
-                    <DataGridTextColumn Header="Net tax payable" Binding="{Binding NetTaxPayable, StringFormat=N2}" Width="SizeToCells" />
+                    <DataGridTextColumn Header="Month" Binding="{Binding Period}" Width="120" />
+                    <DataGridTextColumn Header="Outward taxable" Binding="{Binding TaxableValue, StringFormat=N2}" Width="150"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="IGST" Binding="{Binding Igst, StringFormat=N2}" Width="120"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="CGST" Binding="{Binding Cgst, StringFormat=N2}" Width="120"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="SGST" Binding="{Binding Sgst, StringFormat=N2}" Width="120"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Cess" Binding="{Binding Cess, StringFormat=N2}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Net tax payable" Binding="{Binding NetTaxPayable, StringFormat=N2}" Width="*"
+                                        ElementStyle="{StaticResource NumericCell}" HeaderStyle="{StaticResource NumericColumnHeader}" />
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
 
-        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Style="{StaticResource StatusText}" />
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

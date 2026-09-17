@@ -11,95 +11,120 @@
         <local:InverseBooleanConverter x:Key="InverseBooleanConverter" />
     </UserControl.Resources>
 
-    <Grid Margin="24,20">
+    <!-- Voucher page (ADR-0006): document header, line grid, two action bands, then the document
+         list the operator loads from. -->
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="190" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Documents — quotations, orders, challans and invoices, sales and purchase"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Documents" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="quotations, orders, challans and invoices, sales and purchase"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+                <TextBlock Text="{Binding EditingCaption}" Margin="18,0,0,0"
+                           Style="{StaticResource PageTitleText}"
+                           Foreground="{StaticResource AccentBrush}" />
+            </StackPanel>
+        </Border>
 
-        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,10,0,8" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Document:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="140" Margin="6,0,16,0"
-                              ItemsSource="{Binding KindChoices}"
-                              SelectedItem="{Binding NewDocumentKind}" />
-                    <Button Content="New document" Padding="14,5" Command="{Binding StartNewDocumentCommand}" />
-                    <TextBlock Text="{Binding EditingCaption}" Margin="16,0,16,0"
-                               VerticalAlignment="Center" Style="{StaticResource SectionHeaderText}" />
-                    <TextBlock Text="Date:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <DatePicker Width="120" Margin="6,0,16,0" SelectedDate="{Binding DocumentDate}" />
-                    <TextBlock Text="Party:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="220" Margin="6,0,16,0"
+                    <TextBlock Text="Document" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="150" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding KindChoices}" SelectedItem="{Binding NewDocumentKind}" />
+                    <Button Content="New" Style="{StaticResource BandButton}"
+                            Command="{Binding StartNewDocumentCommand}" />
+
+                    <TextBlock Text="Date" Style="{StaticResource FieldLabel}" />
+                    <DatePicker Width="130" Margin="0,0,16,0" VerticalAlignment="Center"
+                                SelectedDate="{Binding DocumentDate}" />
+
+                    <TextBlock Text="Party" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="230" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding LedgerChoices}"
-                              SelectedItem="{Binding PartyLedger}"
-                              DisplayMemberPath="Name" />
-                    <TextBlock Text="Your ref:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="110" Margin="6,0,0,0"
+                              SelectedItem="{Binding PartyLedger}" DisplayMemberPath="Name" />
+
+                    <TextBlock Text="Your ref" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}"
                              Text="{Binding PartyReferenceNumber, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Narration:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="300" Margin="6,0,16,0"
+                    <TextBlock Text="Narration" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="300" Style="{StaticResource FieldBox}"
                              Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Find item:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBox Width="160" Margin="6,0,6,0"
+
+                    <TextBlock Text="Find item" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="170" MinWidth="0" Style="{StaticResource FieldBox}"
                              Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Content="Search" Padding="14,5" Command="{Binding SearchItemsCommand}" />
-                    <ComboBox Width="220" Margin="8,0,16,0"
+                    <Button Content="Search" Style="{StaticResource BandButton}"
+                            Command="{Binding SearchItemsCommand}" />
+
+                    <ComboBox Width="230" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding ItemChoices}"
-                              SelectedItem="{Binding SelectedNewItem}"
-                              DisplayMemberPath="Name" />
-                    <TextBlock Text="Default godown:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="130" Margin="6,0,0,0"
+                              SelectedItem="{Binding SelectedNewItem}" DisplayMemberPath="Name" />
+
+                    <TextBlock Text="Godown" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="140" Style="{StaticResource FieldCombo}"
                               ItemsSource="{Binding GodownChoices}"
-                              SelectedItem="{Binding DefaultGodown}"
-                              DisplayMemberPath="Name" />
-                    <Button Content="Add line" Margin="14,0,0,0" Padding="14,5"
+                              SelectedItem="{Binding DefaultGodown}" DisplayMemberPath="Name" />
+
+                    <Button Content="Add line" Style="{StaticResource BandButton}"
                             Command="{Binding AddLineCommand}" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <DataGrid Grid.Row="2"
+        <DataGrid Grid.Row="2" Style="{StaticResource PageGrid}" IsReadOnly="False"
                   ItemsSource="{Binding Lines}"
                   SelectedItem="{Binding SelectedLine}"
-                  AutoGenerateColumns="False"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False" IsEnabled="{Binding IsEditingEnabled}">
+                  IsEnabled="{Binding IsEditingEnabled}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
-                <DataGridComboBoxColumn Header="Godown" Width="130"
-                                        ItemsSource="{Binding DataContext.GodownChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                <DataGridComboBoxColumn Header="Godown" Width="140"
+                                        ItemsSource="{Binding DataContext.GodownChoices,
+                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         SelectedValueBinding="{Binding GodownId}"
-                                        SelectedValuePath="Id"
-                                        DisplayMemberPath="Name" />
-                <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="80" />
-                <DataGridTemplateColumn Header="Rate" Width="100">
+                                        SelectedValuePath="Id" DisplayMemberPath="Name" />
+                <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="90"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+
+                <DataGridTemplateColumn Header="Rate" Width="110"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Rate}" VerticalAlignment="Center" Margin="4,0" />
+                            <TextBlock Text="{Binding Rate}" VerticalAlignment="Center"
+                                       HorizontalAlignment="Right" Margin="4,0" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
                             <!-- Locked when the override gate is off and a price was auto-applied. -->
                             <TextBox Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged}"
-                                     IsEnabled="{Binding IsRateLocked, Converter={StaticResource InverseBooleanConverter}}" />
+                                     IsEnabled="{Binding IsRateLocked,
+                                         Converter={StaticResource InverseBooleanConverter}}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Disc %" Binding="{Binding DiscountPercent}" Width="70" />
-                <DataGridTextColumn Header="Priced from" Binding="{Binding PriceSourceLabel}" IsReadOnly="True" Width="90">
+
+                <DataGridTextColumn Header="Disc %" Binding="{Binding DiscountPercent}" Width="76"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+
+                <!-- An overridden price is called out in the warning colour: C4.2 wants the override
+                     visible on the line, not only in the audit trail. -->
+                <DataGridTextColumn Header="Priced from" Binding="{Binding PriceSourceLabel}"
+                                    IsReadOnly="True" Width="100">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Style.Triggers>
@@ -111,73 +136,86 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="Batch" Binding="{Binding BatchNumber}" Width="100" />
+
+                <DataGridTextColumn Header="Batch" Binding="{Binding BatchNumber}" Width="110" />
                 <DataGridTextColumn Header="Serials (; separated)" Binding="{Binding SerialNumbers}" Width="2*" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Grid.Row="3">
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                <Button Content="Save draft" Padding="14,5" Command="{Binding SaveDraftCommand}" />
-                <Button Content="Remove line" Margin="8,0,0,0" Padding="14,5"
+        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Save draft" Style="{StaticResource BandButton}"
+                        Command="{Binding SaveDraftCommand}" />
+                <Button Content="Remove line" Style="{StaticResource BandButton}"
                         Command="{Binding RemoveLineCommand}" />
-                <Button Content="Load selected ↓" Margin="16,0,0,0" Padding="14,5"
+                <Button Content="Load selected" Style="{StaticResource BandButton}"
                         Command="{Binding LoadSelectedCommand}" />
-                <Button Content="Delete draft" Margin="8,0,0,0" Padding="14,5"
+                <Button Content="Delete draft" Style="{StaticResource BandButton}"
                         Command="{Binding DeleteDocumentCommand}" />
-                <TextBlock Text="Convert into:" VerticalAlignment="Center" Margin="20,0,4,0"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
-                <ComboBox Width="130"
+
+                <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+
+                <TextBlock Text="Convert into" Style="{StaticResource FieldLabel}" />
+                <ComboBox Width="140" Style="{StaticResource FieldCombo}"
                           ItemsSource="{Binding ConvertTargets}"
                           SelectedItem="{Binding SelectedTargetKind}" />
-                <TextBlock Text="godown:" VerticalAlignment="Center" Margin="6,0,4,0"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
-                <ComboBox Width="120"
+                <TextBlock Text="Godown" Style="{StaticResource FieldLabel}" />
+                <ComboBox Width="130" Style="{StaticResource FieldCombo}"
                           ItemsSource="{Binding GodownChoices}"
-                          SelectedItem="{Binding ConvertGodown}"
-                          DisplayMemberPath="Name" />
-                <DatePicker Width="110" Margin="6,0,6,0" SelectedDate="{Binding ConvertDate}" />
-                <Button Content="Convert" Padding="14,5" Command="{Binding ConvertCommand}" />
+                          SelectedItem="{Binding ConvertGodown}" DisplayMemberPath="Name" />
+                <DatePicker Width="120" Margin="0,0,12,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding ConvertDate}" />
+                <Button Content="Convert" Style="{StaticResource BandButton}" Command="{Binding ConvertCommand}" />
             </StackPanel>
+        </Border>
 
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <Button Content="Validate invoice" Padding="14,5" Command="{Binding ValidateInvoiceCommand}" />
-                <Button Content="Post invoice (atomic)" Margin="8,0,0,0" Padding="14,5"
+        <Border Grid.Row="4" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Validate invoice" Style="{StaticResource BandButton}"
+                        Command="{Binding ValidateInvoiceCommand}" />
+                <Button Content="Post invoice" Style="{StaticResource BandButton}"
+                        ToolTip="Journal voucher, stock voucher, ledger rows and serial lifecycle in one transaction."
                         Command="{Binding PostInvoiceCommand}" />
-                <TextBox Width="220" Margin="20,0,6,0"
-                         ToolTip="Reason kept in the edit log"
+
+                <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+
+                <TextBlock Text="Reason" Style="{StaticResource FieldLabel}" />
+                <TextBox Width="230" Style="{StaticResource FieldBox}"
+                         ToolTip="Kept in the edit log against the reversal."
                          Text="{Binding CancellationReason, UpdateSourceTrigger=PropertyChanged}" />
-                <Button Content="Reverse issued invoice" Padding="14,5"
+                <Button Content="Reverse issued invoice" Style="{StaticResource BandButton}"
                         Command="{Binding CancelPostedInvoiceCommand}" />
-                <Button Content="Print / preview" Margin="20,0,0,0" Padding="14,5"
+
+                <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+
+                <Button Content="Print / preview" Style="{StaticResource BandButton}"
                         Command="{Binding PrintCommand}" />
-                <Button Content="Refresh" Margin="8,0,0,0" Padding="14,5"
+                <Button Content="Refresh" Style="{StaticResource BandButton}"
                         Command="{Binding RefreshCommand}" />
             </StackPanel>
+        </Border>
 
-            <TextBlock Margin="4,8,0,0" Text="{Binding EditingStatus}" Foreground="{StaticResource SecondaryTextBrush}"
-                       TextWrapping="Wrap" />
-            <TextBlock Margin="4,4,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}"
-                       TextWrapping="Wrap" />
+        <DataGrid Grid.Row="5" Style="{StaticResource PageGrid}"
+                  ItemsSource="{Binding Documents}"
+                  SelectedItem="{Binding SelectedDocument}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Number" Binding="{Binding DisplayNumber}" Width="130" />
+                <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="130" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="95" />
+                <DataGridTextColumn Header="Date" Binding="{Binding DocumentDate}" Width="100" />
+                <DataGridTextColumn Header="Party" Binding="{Binding PartyLedgerName}" Width="*" />
+                <DataGridTextColumn Header="Converted from" Binding="{Binding ConvertedFromNumber}" Width="130" />
+                <DataGridTextColumn Header="Total" Binding="{Binding TotalNetValue, StringFormat=N2}" Width="120"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+            </DataGrid.Columns>
+        </DataGrid>
 
-            <TextBlock Margin="4,12,0,2" Text="All documents (latest 100)" FontWeight="SemiBold"
-                       Foreground="{StaticResource PrimaryTextBrush}" />
-            <DataGrid Height="190"
-                      ItemsSource="{Binding Documents}"
-                      SelectedItem="{Binding SelectedDocument}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Number" Binding="{Binding DisplayNumber}" Width="120" />
-                    <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="120" />
-                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90" />
-                    <DataGridTextColumn Header="Date" Binding="{Binding DocumentDate}" Width="95" />
-                    <DataGridTextColumn Header="Party" Binding="{Binding PartyLedgerName}" Width="*" />
-                    <DataGridTextColumn Header="Converted from" Binding="{Binding ConvertedFromNumber}" Width="120" />
-                    <DataGridTextColumn Header="Total" Binding="{Binding TotalNetValue}" Width="110" />
-                </DataGrid.Columns>
-            </DataGrid>
-        </StackPanel>
+        <Border Grid.Row="6" Style="{StaticResource PageStatusStyle}">
+            <StackPanel>
+                <TextBlock Text="{Binding EditingStatus}" Style="{StaticResource PageStatusText}" />
+                <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

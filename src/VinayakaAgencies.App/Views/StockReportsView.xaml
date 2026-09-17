@@ -6,7 +6,9 @@
              mc:Ignorable="d"
              d:DesignHeight="620" d:DesignWidth="1000">
 
-    <Grid Margin="24,20">
+    <!-- Report page (ADR-0006). Columns are generated because the shape changes with the report
+         chosen; the density still comes from the shared DataGrid style. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -15,34 +17,43 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Stock reports — on hand, valuation, reorder alerts and aging"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Stock reports" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="on hand, valuation, reorder alerts and aging"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,10,0,4">
-            <TextBlock Text="Report:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <ComboBox Width="260" Margin="6,0,16,0"
-                      ItemsSource="{Binding ReportChoices}"
-                      SelectedItem="{Binding SelectedReport}" />
-            <TextBlock Text="As of:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <DatePicker Width="130" Margin="6,0,0,0" SelectedDate="{Binding AsOfDate}" />
-        </DockPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Report" Style="{StaticResource FieldLabel}" />
+                <ComboBox Width="280" Style="{StaticResource FieldCombo}"
+                          ItemsSource="{Binding ReportChoices}"
+                          SelectedItem="{Binding SelectedReport}" />
 
-        <TextBlock Grid.Row="2" Margin="4,2,0,8" Text="{Binding Summary}"
-                   Foreground="{StaticResource PrimaryTextBrush}" FontWeight="SemiBold"
-                   Visibility="{Binding ReconciliationBannerVisibility}" />
+                <TextBlock Text="As of" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="140" Margin="0,0,16,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding AsOfDate}" />
 
-        <DataGrid Grid.Row="3"
-                  ItemsSource="{Binding Rows}"
-                  AutoGenerateColumns="True" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False" />
+                <Button Content="Run report" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
 
-        <DockPanel Grid.Row="4" LastChildFill="False">
-            <Button DockPanel.Dock="Left" Content="Run report" Padding="14,5" Margin="0,8,0,0"
-                    Command="{Binding RefreshCommand}" />
-            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
-        </DockPanel>
+        <!-- The C2.1 reconciliation banner: only shown for the report that computes it. -->
+        <Border Grid.Row="2" Style="{StaticResource TotalsBandStyle}"
+                Visibility="{Binding ReconciliationBannerVisibility}">
+            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold"
+                       Foreground="{StaticResource PrimaryTextBrush}" TextWrapping="Wrap" />
+        </Border>
+
+        <DataGrid Grid.Row="3" Style="{StaticResource PageGrid}"
+                  AutoGenerateColumns="True"
+                  ItemsSource="{Binding Rows}" />
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

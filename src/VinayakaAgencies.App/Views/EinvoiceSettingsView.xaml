@@ -6,93 +6,110 @@
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="820">
 
-    <Grid Margin="24,20">
+    <!-- Settings page (ADR-0006). -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="E-invoice settings — applicability, environment and NIC credentials"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="E-invoice settings" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="applicability, environment and NIC credentials"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <ScrollViewer Grid.Row="1" Margin="0,14,0,0" VerticalScrollBarVisibility="Auto">
-            <StackPanel MaxWidth="620" HorizontalAlignment="Left">
-
-                <Border Style="{StaticResource SectionBorderStyle}">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Border Style="{StaticResource SettingsSectionStyle}">
                     <StackPanel>
-                        <TextBlock Text="Applicability" Style="{StaticResource SectionHeaderText}" />
+                        <TextBlock Text="APPLICABILITY" Style="{StaticResource EntryHeadingText}" />
 
                         <CheckBox Content="E-invoicing applies to this business"
-                                  Margin="0,10,0,0"
                                   IsChecked="{Binding IsEinvoicingApplicable}" />
-                        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
+                        <TextBlock Style="{StaticResource SettingsCaptionText}"
                                    Text="Turn this on only if the business is above the e-invoicing turnover threshold. Turnover is a fact about the business, so it is declared here rather than guessed from the books." />
 
-                        <TextBlock Text="E-way bill threshold (₹)" Style="{StaticResource FieldLabelText}"
-                                   Margin="0,14,0,2" />
-                        <TextBox Text="{Binding EwayBillThreshold}" Width="160" HorizontalAlignment="Left" />
-                        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   Text="A consignment must exceed this value before a bill is required. Stored as data, not built into the code, because the statutory figure has moved before." />
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <TextBlock Text="E-way bill threshold ₹" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="160" Style="{StaticResource FieldBox}"
+                                     Text="{Binding EwayBillThreshold}" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource SettingsCaptionText}"
+                                   Text="A consignment must exceed this value before a bill is required. Stored as data rather than built into the software, because the statutory figure has moved before." />
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource SectionBorderStyle}" Margin="0,14,0,0">
+                <Border Style="{StaticResource SettingsSectionStyle}">
                     <StackPanel>
-                        <TextBlock Text="Portal environment" Style="{StaticResource SectionHeaderText}" />
+                        <TextBlock Text="PORTAL ENVIRONMENT" Style="{StaticResource EntryHeadingText}" />
 
-                        <CheckBox Content="Use the production portal"
-                                  Margin="0,10,0,0"
-                                  IsChecked="{Binding UseProduction}" />
-                        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                        <CheckBox Content="Use the production portal" IsChecked="{Binding UseProduction}" />
+                        <TextBlock Style="{StaticResource SettingsCaptionText}"
                                    Foreground="{StaticResource WarningBrush}"
                                    Text="Leave this off until sandbox testing is signed off. Production files real invoices with the government portal, and an IRN cannot be withdrawn after 24 hours." />
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource SectionBorderStyle}" Margin="0,14,0,0">
+                <Border Style="{StaticResource SettingsSectionStyle}">
                     <StackPanel>
-                        <TextBlock Text="NIC credentials" Style="{StaticResource SectionHeaderText}" />
+                        <TextBlock Text="NIC CREDENTIALS" Style="{StaticResource EntryHeadingText}" />
 
-                        <TextBlock Text="{Binding CredentialState}" Margin="0,8,0,0" TextWrapping="Wrap" />
-
-                        <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
+                        <TextBlock Text="{Binding CredentialState}" Foreground="{StaticResource PrimaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Style="{StaticResource SettingsCaptionText}"
                                    Text="Stored values are never shown back, not even masked. To change them, enter all four again. They are encrypted for the Windows user that entered them, so they must be re-entered if the app runs as a different user." />
 
-                        <TextBlock Text="Client id" Style="{StaticResource FieldLabelText}" Margin="0,14,0,2" />
-                        <TextBox Text="{Binding ClientId}" />
+                        <Grid Margin="0,14,0,0" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="300" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                        <TextBlock Text="Client secret" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
-                        <TextBox Text="{Binding ClientSecret}" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Client id" Style="{StaticResource FieldLabel}" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Text="{Binding ClientId}" />
 
-                        <TextBlock Text="Username" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
-                        <TextBox Text="{Binding Username}" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Client secret" Style="{StaticResource FieldLabel}" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Text="{Binding ClientSecret}" />
 
-                        <TextBlock Text="Password" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
-                        <TextBox Text="{Binding Password}" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Username" Style="{StaticResource FieldLabel}" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,6" Text="{Binding Username}" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Password" Style="{StaticResource FieldLabel}" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Password}" />
+                        </Grid>
 
                         <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                            <Button Content="Store credentials" Padding="14,5"
+                            <Button Content="Store credentials" Style="{StaticResource BandButton}"
                                     Command="{Binding SaveCredentialsCommand}" />
-                            <Button Content="Clear credentials" Margin="10,0,0,0" Padding="14,5"
+                            <Button Content="Clear credentials" Style="{StaticResource BandButton}"
                                     IsEnabled="{Binding HasCredentials}"
                                     Command="{Binding ClearCredentialsCommand}" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
-
-                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                    <Button Content="Save settings" Padding="16,6" Command="{Binding SaveCommand}" />
-                    <Button Content="Reload" Margin="10,0,0,0" Padding="16,6" Command="{Binding RefreshCommand}" />
-                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
-        <TextBlock Grid.Row="2" Text="{Binding Status}" Style="{StaticResource StatusText}"
-                   Margin="0,12,0,0" TextWrapping="Wrap" />
+        <Border Grid.Row="2" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Save settings" Style="{StaticResource BandButton}" Command="{Binding SaveCommand}" />
+                <Button Content="Reload" Style="{StaticResource BandButton}" Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

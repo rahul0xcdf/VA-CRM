@@ -6,83 +6,107 @@
              mc:Ignorable="d"
              d:DesignHeight="780" d:DesignWidth="1150">
 
-    <Grid Margin="24,20">
+    <!--
+        Report page with a second table (ADR-0006).
+
+        The previous version put the "Statement" caption and the statement grid both in Grid.Row 2,
+        so the caption was painted underneath the grid and never seen. Each band now owns a row.
+    -->
+    <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="200" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Customer statement — the account of one customer, straight from the books"
-                   Style="{StaticResource ScreenTitleText}" />
-
-        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,10,0,8" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Customer:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="260" Margin="6,0,16,0"
-                              ItemsSource="{Binding CustomerChoices}"
-                              SelectedItem="{Binding SelectedCustomer}"
-                              DisplayMemberPath="Name" />
-                    <TextBlock Text="From:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <DatePicker Width="120" Margin="6,0,12,0" SelectedDate="{Binding FromDate}" />
-                    <TextBlock Text="To:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <DatePicker Width="120" Margin="6,0,16,0" SelectedDate="{Binding ToDate}" />
-                    <Button Content="Load statement" Padding="14,5" Command="{Binding LoadCommand}" />
-                    <Button Content="Refresh customers" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding RefreshCommand}" />
-                </StackPanel>
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Customer statement" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="the account of one customer, straight from the books"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="2" Text="Statement" Style="{StaticResource SectionHeaderText}" />
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Customer" Style="{StaticResource FieldLabel}" />
+                <ComboBox Width="270" Style="{StaticResource FieldCombo}"
+                          ItemsSource="{Binding CustomerChoices}"
+                          SelectedItem="{Binding SelectedCustomer}" DisplayMemberPath="Name" />
 
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding Statement.Rows}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False" Margin="0,4,0,0">
+                <TextBlock Text="From" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="130" Margin="0,0,12,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding FromDate}" />
+
+                <TextBlock Text="To" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="130" Margin="0,0,16,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding ToDate}" />
+
+                <Button Content="Load statement" Style="{StaticResource BandButton}"
+                        Command="{Binding LoadCommand}" />
+                <Button Content="Refresh customers" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource TotalsBandStyle}">
+            <TextBlock Text="STATEMENT" Style="{StaticResource EntryHeadingText}" Margin="0" />
+        </Border>
+
+        <DataGrid Grid.Row="3" Style="{StaticResource PageGrid}" ItemsSource="{Binding Statement.Rows}">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="95" />
-                <DataGridTextColumn Header="Voucher" Binding="{Binding VoucherNumber}" Width="130" />
-                <DataGridTextColumn Header="Type" Binding="{Binding VoucherTypeName}" Width="150" />
-                <DataGridTextColumn Header="Debit (billed)" Binding="{Binding Debit}" Width="110" />
-                <DataGridTextColumn Header="Credit (received)" Binding="{Binding Credit}" Width="120" />
-                <DataGridTextColumn Header="Running balance" Binding="{Binding RunningBalance}" Width="130" />
+                <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="100" />
+                <DataGridTextColumn Header="Voucher" Binding="{Binding VoucherNumber}" Width="140" />
+                <DataGridTextColumn Header="Type" Binding="{Binding VoucherTypeName}" Width="160" />
+                <DataGridTextColumn Header="Billed" Binding="{Binding Debit}" Width="120"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+                <DataGridTextColumn Header="Received" Binding="{Binding Credit}" Width="120"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+                <DataGridTextColumn Header="Running balance" Binding="{Binding RunningBalance}" Width="*"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Grid.Row="3">
-            <TextBlock Text="Open bills — receipts pay the oldest bill first"
-                       Style="{StaticResource SectionHeaderText}" Margin="0,10,0,4" />
-            <DataGrid Height="170"
-                      ItemsSource="{Binding OpenBills}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Invoice" Binding="{Binding InvoiceNumber}" Width="140" />
-                    <DataGridTextColumn Header="Date" Binding="{Binding InvoiceDate}" Width="100" />
-                    <DataGridTextColumn Header="Billed" Binding="{Binding BilledAmount}" Width="110" />
-                    <DataGridTextColumn Header="Paid so far" Binding="{Binding PaidAmount}" Width="110" />
-                    <DataGridTextColumn Header="Outstanding" Binding="{Binding OutstandingAmount}" Width="110" />
-                </DataGrid.Columns>
-            </DataGrid>
+        <Border Grid.Row="4" Style="{StaticResource TotalsBandStyle}">
+            <TextBlock Text="OPEN BILLS — RECEIPTS PAY THE OLDEST BILL FIRST"
+                       Style="{StaticResource EntryHeadingText}" Margin="0" />
+        </Border>
 
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                <Button Content="Print / preview" Padding="14,5" Command="{Binding PrintCommand}" />
-                <Button Content="Export CSV" Margin="8,0,0,0" Padding="14,5"
+        <DataGrid Grid.Row="5" Style="{StaticResource PageGrid}" ItemsSource="{Binding OpenBills}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Invoice" Binding="{Binding InvoiceNumber}" Width="150" />
+                <DataGridTextColumn Header="Date" Binding="{Binding InvoiceDate}" Width="110" />
+                <DataGridTextColumn Header="Billed" Binding="{Binding BilledAmount}" Width="120"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+                <DataGridTextColumn Header="Paid so far" Binding="{Binding PaidAmount}" Width="120"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+                <DataGridTextColumn Header="Outstanding" Binding="{Binding OutstandingAmount}" Width="*"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="6" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Print / preview" Style="{StaticResource BandButton}"
+                        Command="{Binding PrintCommand}" />
+                <Button Content="Export CSV" Style="{StaticResource BandButton}"
                         Command="{Binding ExportCsvCommand}" />
             </StackPanel>
-        </StackPanel>
+        </Border>
 
-        <DockPanel Grid.Row="4" LastChildFill="False">
-            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
-        </DockPanel>
+        <Border Grid.Row="7" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

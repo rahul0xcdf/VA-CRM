@@ -6,7 +6,8 @@
              mc:Ignorable="d"
              d:DesignHeight="640" d:DesignWidth="900">
 
-    <Grid Margin="24,20">
+    <!-- Two-column report page (ADR-0006). -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -15,55 +16,64 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Balance sheet — the derived Profit &amp; Loss A/c carries the accumulated result"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Balance sheet" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="the derived Profit &amp; Loss A/c carries the accumulated result"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <TextBlock Text="As on:" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
-            <DatePicker Width="130" Margin="6,0,16,0" SelectedDate="{Binding AsOnDate}" />
-            <Button Content="Load" Padding="16,5" Command="{Binding LoadCommand}" />
-        </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="As on" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="140" Margin="0,0,16,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding AsOnDate}" />
+                <Button Content="Load" Style="{StaticResource BandButton}" Command="{Binding LoadCommand}" />
+            </StackPanel>
+        </Border>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <DataGrid Grid.Column="0" ItemsSource="{Binding Assets}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
+            <DataGrid Grid.Column="0" Style="{StaticResource PageGrid}" ItemsSource="{Binding Assets}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Assets" Binding="{Binding LedgerName}" Width="2.2*" />
                     <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="1.4*" />
-                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="SizeToCells" />
+                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="130"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
                 </DataGrid.Columns>
             </DataGrid>
 
-            <DataGrid Grid.Column="2" ItemsSource="{Binding Liabilities}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      CanUserAddRows="False">
+            <Border Grid.Column="1" Width="1" Background="{StaticResource ControlBorderBrush}" />
+
+            <DataGrid Grid.Column="2" Style="{StaticResource PageGrid}" ItemsSource="{Binding Liabilities}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Liabilities &amp; equity" Binding="{Binding LedgerName}" Width="2.2*" />
                     <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="1.4*" />
-                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="SizeToCells" />
+                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="130"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
 
-        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,12,0,0" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Total assets:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding TotalAssets, StringFormat=N2}" Margin="6,0,20,0" FontWeight="SemiBold" />
-                <TextBlock Text="Total liabilities:" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding TotalLiabilities, StringFormat=N2}" Margin="6,0,0,0" FontWeight="SemiBold" />
+        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="Total assets" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalAssets, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <TextBlock Text="Total liabilities" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding TotalLiabilities, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="4" Margin="4,8,0,0" Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

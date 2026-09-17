@@ -6,46 +6,61 @@
              mc:Ignorable="d"
              d:DesignHeight="420" d:DesignWidth="900">
 
-    <Grid Margin="24,20">
+    <!-- Settings page (ADR-0006): one band per setting, each with the consequence spelled out
+         underneath it rather than in one paragraph covering everything. -->
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Sales settings — pricing overrides and credit policy"
-                   Style="{StaticResource ScreenTitleText}" />
-
-        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" Padding="12" Margin="0,10,0,0" CornerRadius="6"
-                BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <CheckBox Content="Allow price overrides on sale documents"
-                              VerticalAlignment="Center"
-                              IsChecked="{Binding AllowPriceOverride}" />
-                    <TextBlock Text="Credit limit policy:" VerticalAlignment="Center" Margin="24,0,6,0"
-                               Foreground="{StaticResource SecondaryTextBrush}" />
-                    <ComboBox Width="120"
-                              ItemsSource="{Binding PolicyChoices}"
-                              SelectedItem="{Binding CreditLimitPolicy}" />
-                </StackPanel>
-
-                <TextBlock Margin="0,8,0,0" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap"
-                           Text="When overrides are off, sale lines keep the price the engine applied — the rate cell locks and every other path refuses too. Every override exercised is written to the edit log with its original value. 'Warn' lets a sale cross the customer's credit limit after confirmation; 'Block' refuses it outright." />
-
-                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                    <Button Content="Save settings" Padding="14,5" Command="{Binding SaveCommand}" />
-                    <Button Content="Reload" Margin="8,0,0,0" Padding="14,5"
-                            Command="{Binding RefreshCommand}" />
-                </StackPanel>
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Sales settings" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="pricing overrides and credit policy"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
             </StackPanel>
         </Border>
 
-        <DockPanel Grid.Row="3" LastChildFill="False">
-            <TextBlock DockPanel.Dock="Right" Margin="0,12,0,0"
-                       Text="{Binding Status}" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" />
-        </DockPanel>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Border Style="{StaticResource SettingsSectionStyle}">
+                    <StackPanel>
+                        <TextBlock Text="PRICE OVERRIDES" Style="{StaticResource EntryHeadingText}" />
+                        <CheckBox Content="Allow price overrides on sale documents"
+                                  IsChecked="{Binding AllowPriceOverride}" />
+                        <TextBlock Style="{StaticResource SettingsCaptionText}"
+                                   Text="With this off, a sale line keeps the price the engine applied: the rate cell locks, and every other path refuses the change too. Every override that is exercised is written to the edit log alongside the price it replaced." />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SettingsSectionStyle}">
+                    <StackPanel>
+                        <TextBlock Text="CREDIT LIMIT" Style="{StaticResource EntryHeadingText}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Policy" Style="{StaticResource FieldLabel}" />
+                            <ComboBox Width="140" Style="{StaticResource FieldCombo}"
+                                      ItemsSource="{Binding PolicyChoices}"
+                                      SelectedItem="{Binding CreditLimitPolicy}" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource SettingsCaptionText}"
+                                   Text="Warn lets a sale cross the customer's credit limit once it has been confirmed. Block refuses it outright." />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Save settings" Style="{StaticResource BandButton}" Command="{Binding SaveCommand}" />
+                <Button Content="Reload" Style="{StaticResource BandButton}" Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
     </Grid>
 </UserControl>

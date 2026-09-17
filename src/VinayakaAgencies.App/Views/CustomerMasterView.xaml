@@ -70,59 +70,84 @@
                 <StackPanel>
                     <TextBlock Text="CREATE / ALTER" Style="{StaticResource EntryHeadingText}" />
 
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
-                        <TextBox Width="190" Style="{StaticResource FieldBox}"
-                                 Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
+                    <!-- WrapPanel rather than a row, for the reason given in Pages.xaml: a customer
+                         carries more fields than fit at a narrow window width, and a StackPanel drops
+                         the overflow off the edge without saying so. -->
+                    <WrapPanel>
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="190" Style="{StaticResource FieldBox}"
+                                     Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
 
-                        <TextBlock Text="Category" Style="{StaticResource FieldLabel}" />
-                        <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
-                                  ItemsSource="{Binding CategoryChoices}"
-                                  SelectedValue="{Binding EditCategoryId}"
-                                  SelectedValuePath="Id" DisplayMemberPath="Name" />
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Category" Style="{StaticResource FieldLabel}" />
+                            <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
+                                      ItemsSource="{Binding CategoryChoices}"
+                                      SelectedValue="{Binding EditCategoryId}"
+                                      SelectedValuePath="Id" DisplayMemberPath="Name" />
+                        </StackPanel>
 
-                        <TextBlock Text="Contact" Style="{StaticResource FieldLabel}" />
-                        <TextBox Width="130" MinWidth="0" Style="{StaticResource FieldBox}"
-                                 Text="{Binding EditContactPerson}" />
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Contact" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="130" MinWidth="0" Style="{StaticResource FieldBox}"
+                                     Text="{Binding EditContactPerson}" />
+                        </StackPanel>
 
-                        <TextBlock Text="Phone" Style="{StaticResource FieldLabel}" />
-                        <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}"
-                                 Text="{Binding EditPhoneNumber}" />
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Phone" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}"
+                                     Text="{Binding EditPhoneNumber}" />
+                        </StackPanel>
 
-                        <TextBlock Text="Email" Style="{StaticResource FieldLabel}" />
-                        <TextBox Width="170" MinWidth="0" Style="{StaticResource FieldBox}"
-                                 Text="{Binding EditEmail}" />
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Email" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="170" MinWidth="0" Style="{StaticResource FieldBox}"
+                                     Text="{Binding EditEmail}" />
+                        </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <TextBlock Text="GSTIN" Style="{StaticResource FieldLabel}" />
-                        <TextBox Width="160" MinWidth="0" Style="{StaticResource FieldBox}"
-                                 Text="{Binding EditGstin}" />
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="GSTIN" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="160" MinWidth="0" Style="{StaticResource FieldBox}"
+                                     Text="{Binding EditGstin}" />
+                        </StackPanel>
 
-                        <TextBlock Text="Place of supply" Style="{StaticResource FieldLabel}" />
-                        <TextBox Width="48" MinWidth="0" Style="{StaticResource FieldBox}"
-                                 ToolTip="Two-digit GST state code."
-                                 Text="{Binding EditPlaceOfSupply}" />
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Place of supply" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="48" MinWidth="0" Style="{StaticResource FieldBox}"
+                                     ToolTip="Two-digit GST state code."
+                                     Text="{Binding EditPlaceOfSupply}" />
+                        </StackPanel>
 
-                        <TextBlock Text="Credit limit ₹" Style="{StaticResource FieldLabel}" />
-                        <TextBox Width="100" MinWidth="0" Style="{StaticResource FieldBox}"
-                                 ToolTip="Zero means no limit."
-                                 Text="{Binding EditCreditLimit}" />
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Credit limit ₹" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="100" MinWidth="0" Style="{StaticResource FieldBox}"
+                                     ToolTip="Zero means no limit."
+                                     Text="{Binding EditCreditLimit}" />
+                        </StackPanel>
 
-                        <TextBlock Text="Credit days" Style="{StaticResource FieldLabel}" />
-                        <TextBox Width="60" MinWidth="0" Style="{StaticResource FieldBox}"
-                                 Text="{Binding EditCreditPeriodDays}" />
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Credit days" Style="{StaticResource FieldLabel}" />
+                            <TextBox Width="60" MinWidth="0" Style="{StaticResource FieldBox}"
+                                     Text="{Binding EditCreditPeriodDays}" />
+                        </StackPanel>
+                    </WrapPanel>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <TextBlock Text="Billing address" Style="{StaticResource FieldLabel}" VerticalAlignment="Top" />
-                        <TextBox Width="320" Height="46" Margin="0,0,16,0" TextWrapping="Wrap"
-                                 AcceptsReturn="True" Text="{Binding EditBillingAddress}" />
+                    <WrapPanel Margin="0,4,0,0">
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Billing address" Style="{StaticResource FieldLabel}"
+                                       VerticalAlignment="Top" />
+                            <TextBox Width="320" Height="46" Margin="0,0,16,0" TextWrapping="Wrap"
+                                     AcceptsReturn="True" Text="{Binding EditBillingAddress}" />
+                        </StackPanel>
 
-                        <TextBlock Text="Shipping address" Style="{StaticResource FieldLabel}" VerticalAlignment="Top" />
-                        <TextBox Width="320" Height="46" TextWrapping="Wrap"
-                                 AcceptsReturn="True" Text="{Binding EditShippingAddress}" />
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldPair}">
+                            <TextBlock Text="Shipping address" Style="{StaticResource FieldLabel}"
+                                       VerticalAlignment="Top" />
+                            <TextBox Width="320" Height="46" TextWrapping="Wrap"
+                                     AcceptsReturn="True" Text="{Binding EditShippingAddress}" />
+                        </StackPanel>
+                    </WrapPanel>
 
                     <!-- Per-customer special prices: these win over the category list (spec §4a). -->
                     <TextBlock Text="SPECIAL PRICES FOR THIS CUSTOMER" Margin="0,14,0,7"

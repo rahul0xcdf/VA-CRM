@@ -5,63 +5,62 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:VinayakaAgencies.App.ViewModels"
              mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=vm:DiagnosticsViewModel}">
+             d:DataContext="{d:DesignInstance Type=vm:DiagnosticsViewModel}"
+             d:DesignHeight="420" d:DesignWidth="820">
 
-    <StackPanel Margin="32,28" VerticalAlignment="Top">
-        <TextBlock Text="Diagnostics"
-                   FontSize="16"
-                   FontWeight="SemiBold"
-                   Foreground="{StaticResource PrimaryTextBrush}" />
+    <!-- Settings page (ADR-0006). -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-        <TextBlock Margin="0,6,0,20"
-                   FontSize="12"
-                   TextWrapping="Wrap"
-                   Foreground="{StaticResource SecondaryTextBrush}"
-                   Text="The composition-root proof, kept as a live diagnostic: configuration, logging, the schema migration, and both database paths. The company count is read twice — once through EF Core and once through Dapper — and both must agree." />
-
-        <Border Background="White"
-                CornerRadius="10"
-                Padding="20"
-                BorderBrush="{StaticResource ControlBorderBrush}"
-                BorderThickness="1">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" Grid.Column="0"
-                           Text="Companies (repository / EF Core)"
-                           FontSize="11"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
-                <TextBlock Grid.Row="1" Grid.Column="0"
-                           Text="{Binding CompanyCountViaRepository}"
-                           FontSize="32"
-                           FontWeight="Light"
-                           Foreground="{StaticResource PrimaryTextBrush}" />
-
-                <TextBlock Grid.Row="0" Grid.Column="1"
-                           Text="Companies (reporting / Dapper)"
-                           FontSize="11"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
-                <TextBlock Grid.Row="1" Grid.Column="1"
-                           Text="{Binding CompanyCountViaDapper}"
-                           FontSize="32"
-                           FontWeight="Light"
-                           Foreground="{StaticResource PrimaryTextBrush}" />
-            </Grid>
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Diagnostics" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="the composition root, kept as a live check"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
         </Border>
 
-        <!-- AsyncRelayCommand reports CanExecute = false while it is running, so the button
-             disables itself during a refresh without a converter. -->
-        <Button Content="Refresh"
-                Margin="0,20,0,0"
-                Padding="18,8"
-                HorizontalAlignment="Left"
-                Command="{Binding RefreshCommand}" />
-    </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource SettingsSectionStyle}" VerticalAlignment="Top">
+            <StackPanel>
+                <TextBlock Style="{StaticResource SettingsCaptionText}" Margin="0,0,0,14"
+                           Text="Configuration, logging, the schema migration and both database paths. The company count is read twice — once through EF Core and once through Dapper — and the two must agree. They are read through different stacks, so a disagreement means the reporting seam and the write path are looking at different data." />
+
+                <Grid HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="260" />
+                        <ColumnDefinition Width="260" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Companies — repository / EF Core"
+                               Style="{StaticResource FieldLabel}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CompanyCountViaRepository}"
+                               FontSize="30" FontWeight="Light" FontFamily="Consolas"
+                               Foreground="{StaticResource PrimaryTextBrush}" />
+
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Companies — reporting / Dapper"
+                               Style="{StaticResource FieldLabel}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CompanyCountViaDapper}"
+                               FontSize="30" FontWeight="Light" FontFamily="Consolas"
+                               Foreground="{StaticResource PrimaryTextBrush}" />
+                </Grid>
+
+                <!-- AsyncRelayCommand reports CanExecute = false while it runs, so the button
+                     disables itself during a refresh without a converter. -->
+                <Button Content="Refresh" Margin="0,18,0,0" HorizontalAlignment="Left"
+                        Style="{StaticResource BandButton}" Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
+    </Grid>
 </UserControl>

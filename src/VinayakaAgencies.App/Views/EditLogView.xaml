@@ -6,7 +6,8 @@
              mc:Ignorable="d"
              d:DesignHeight="640" d:DesignWidth="980">
 
-    <Grid Margin="24,20">
+    <!-- Report page (ADR-0006). View only, by design: the edit log cannot be altered from anywhere. -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -14,39 +15,60 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Edit log — view only; every change of every master and voucher, retained forever (MCA Rule 3(1))"
-                   Style="{StaticResource ScreenTitleText}" />
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Edit log" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="view only; every change of every master and voucher, retained forever (MCA Rule 3(1))"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,8">
-            <Button Content="Load newest 200" Padding="12,5" Command="{Binding LoadCommand}" />
-            <TextBlock Text="Entity type:" VerticalAlignment="Center" Margin="16,0,6,0" Foreground="{StaticResource SecondaryTextBrush}" />
-            <TextBox Width="130" Text="{Binding EntityTypeFilter, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Text="Entity id:" VerticalAlignment="Center" Margin="12,0,6,0" Foreground="{StaticResource SecondaryTextBrush}" />
-            <TextBox Width="260" Text="{Binding EntityIdFilter, UpdateSourceTrigger=PropertyChanged}" />
-            <Button Content="Filter" Margin="10,0,0,0" Padding="12,5" Command="{Binding LoadCommand}" />
-            <Button Content="Verify hash chain" Margin="20,0,0,0" Padding="14,5" Command="{Binding VerifyChainCommand}" />
-        </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Load newest 200" Style="{StaticResource BandButton}"
+                        Command="{Binding LoadCommand}" />
 
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding Rows}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="#" Binding="{Binding Sequence}" Width="SizeToCells" />
-                <DataGridTextColumn Header="When (UTC)" Binding="{Binding OccurredAtUtc}" Width="SizeToCells" />
-                <DataGridTextColumn Header="User" Binding="{Binding UserName}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="SizeToHeader" />
-                <DataGridTextColumn Header="Entity" Binding="{Binding EntityType}" Width="SizeToCells" />
-                <DataGridTextColumn Header="Changed" Binding="{Binding ChangedProperties}" Width="2*" />
-                <DataGridTextColumn Header="Before" Binding="{Binding BeforeJson}" Width="1.4*" MaxWidth="260" />
-                <DataGridTextColumn Header="After" Binding="{Binding AfterJson}" Width="1.4*" MaxWidth="260" />
-            </DataGrid.Columns>
-        </DataGrid>
+                <TextBlock Text="Entity type" Style="{StaticResource FieldLabel}" />
+                <TextBox Width="150" Style="{StaticResource FieldBox}"
+                         Text="{Binding EntityTypeFilter, UpdateSourceTrigger=PropertyChanged}" />
 
-        <TextBlock Grid.Row="3" Margin="4,8,0,0" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap">
-            <Run Text="{Binding Status, Mode=OneWay}" /><LineBreak />
-            <Run Text="{Binding VerificationStatus, Mode=OneWay}" FontWeight="SemiBold" />
-        </TextBlock>
+                <TextBlock Text="Entity id" Style="{StaticResource FieldLabel}" />
+                <TextBox Width="280" Style="{StaticResource FieldBox}"
+                         Text="{Binding EntityIdFilter, UpdateSourceTrigger=PropertyChanged}" />
+
+                <Button Content="Filter" Style="{StaticResource BandButton}" Command="{Binding LoadCommand}" />
+                <Button Content="Verify hash chain" Style="{StaticResource BandButton}"
+                        Command="{Binding VerifyChainCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding Rows}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding Sequence}" Width="60"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="When (UTC)" Binding="{Binding OccurredAtUtc}" Width="160" />
+                    <DataGridTextColumn Header="User" Binding="{Binding UserName}" Width="130" />
+                    <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="80" />
+                    <DataGridTextColumn Header="Entity" Binding="{Binding EntityType}" Width="140" />
+                    <DataGridTextColumn Header="Changed" Binding="{Binding ChangedProperties}" Width="2*" />
+                    <DataGridTextColumn Header="Before" Binding="{Binding BeforeJson}" Width="1.4*" MaxWidth="260" />
+                    <DataGridTextColumn Header="After" Binding="{Binding AfterJson}" Width="1.4*" MaxWidth="260" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="Nothing logged for this filter. Press Load newest 200 to see recent activity."
+                       Visibility="{Binding Rows.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource PageStatusStyle}">
+            <StackPanel>
+                <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+                <TextBlock Text="{Binding VerificationStatus}" FontWeight="SemiBold"
+                           Style="{StaticResource PageStatusText}" />
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

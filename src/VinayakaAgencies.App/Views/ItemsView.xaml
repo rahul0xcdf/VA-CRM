@@ -68,70 +68,91 @@
             <StackPanel>
                 <TextBlock Text="CREATE / ALTER" Style="{StaticResource EntryHeadingText}" />
 
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
-                    <TextBox Width="190" Style="{StaticResource FieldBox}"
-                             Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
+                <!-- A WrapPanel, not a row: an item has more fields than fit on a laptop, and a
+                     StackPanel clips the overflow silently — "Kit item" simply vanished off the
+                     right edge. Wrapping keeps every field reachable at any window width. -->
+                <WrapPanel>
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="190" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
 
-                    <TextBlock Text="Code" Style="{StaticResource FieldLabel}" />
-                    <TextBox Width="100" MinWidth="0" Style="{StaticResource FieldBox}" Text="{Binding EditCode}" />
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="Code" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="100" MinWidth="0" Style="{StaticResource FieldBox}" Text="{Binding EditCode}" />
+                    </StackPanel>
 
-                    <TextBlock Text="Barcode" Style="{StaticResource FieldLabel}" />
-                    <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}" Text="{Binding EditBarcode}" />
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="Barcode" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}" Text="{Binding EditBarcode}" />
+                    </StackPanel>
 
-                    <TextBlock Text="Group" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding GroupChoices}"
-                              SelectedValue="{Binding EditStockGroupId}"
-                              SelectedValuePath="Id" DisplayMemberPath="Name" />
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="Group" Style="{StaticResource FieldLabel}" />
+                        <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
+                                  ItemsSource="{Binding GroupChoices}"
+                                  SelectedValue="{Binding EditStockGroupId}"
+                                  SelectedValuePath="Id" DisplayMemberPath="Name" />
+                    </StackPanel>
 
-                    <TextBlock Text="Unit" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="80" MinWidth="0" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding UnitChoices}"
-                              SelectedValue="{Binding EditBaseUnitId}"
-                              SelectedValuePath="Id" DisplayMemberPath="Code" />
-                </StackPanel>
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="Unit" Style="{StaticResource FieldLabel}" />
+                        <ComboBox Width="80" MinWidth="0" Style="{StaticResource FieldCombo}"
+                                  ItemsSource="{Binding UnitChoices}"
+                                  SelectedValue="{Binding EditBaseUnitId}"
+                                  SelectedValuePath="Id" DisplayMemberPath="Code" />
+                    </StackPanel>
 
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Alt. unit" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="80" MinWidth="0" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding UnitChoices}"
-                              SelectedValue="{Binding EditAlternateUnitId}"
-                              SelectedValuePath="Id" DisplayMemberPath="Code" />
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="Alt. unit" Style="{StaticResource FieldLabel}" />
+                        <ComboBox Width="80" MinWidth="0" Style="{StaticResource FieldCombo}"
+                                  ItemsSource="{Binding UnitChoices}"
+                                  SelectedValue="{Binding EditAlternateUnitId}"
+                                  SelectedValuePath="Id" DisplayMemberPath="Code" />
+                    </StackPanel>
 
-                    <TextBlock Text="× factor" Style="{StaticResource FieldLabel}" />
-                    <TextBox Width="70" MinWidth="0" Style="{StaticResource FieldBox}"
-                             Text="{Binding EditConversionFactor}" />
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="× factor" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="70" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditConversionFactor}" />
+                    </StackPanel>
 
                     <CheckBox Content="Serial-tracked" Style="{StaticResource FieldCheck}"
                               IsChecked="{Binding EditIsSerialTracked}" />
                     <CheckBox Content="Batch-tracked" Style="{StaticResource FieldCheck}"
                               IsChecked="{Binding EditIsBatchTracked}" />
 
-                    <TextBlock Text="Valuation" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding ValuationChoices}"
-                              SelectedItem="{Binding EditValuationOverride}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding ., TargetNullValue=Company default}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="Valuation" Style="{StaticResource FieldLabel}" />
+                        <ComboBox Width="150" MinWidth="0" Style="{StaticResource FieldCombo}"
+                                  ItemsSource="{Binding ValuationChoices}"
+                                  SelectedItem="{Binding EditValuationOverride}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding ., TargetNullValue=Company default}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
 
-                    <TextBlock Text="Reorder at" Style="{StaticResource FieldLabel}" />
-                    <TextBox Width="70" MinWidth="0" Style="{StaticResource FieldBox}"
-                             Text="{Binding EditReorderLevel}" />
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="Reorder at" Style="{StaticResource FieldLabel}" />
+                        <TextBox Width="70" MinWidth="0" Style="{StaticResource FieldBox}"
+                                 Text="{Binding EditReorderLevel}" />
+                    </StackPanel>
 
-                    <TextBlock Text="HSN/SAC" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="130" MinWidth="0" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding HsnSacChoices}"
-                              SelectedValue="{Binding EditHsnSacId}"
-                              SelectedValuePath="Id" DisplayMemberPath="Code" />
+                    <StackPanel Style="{StaticResource FieldPair}">
+                        <TextBlock Text="HSN/SAC" Style="{StaticResource FieldLabel}" />
+                        <ComboBox Width="130" MinWidth="0" Style="{StaticResource FieldCombo}"
+                                  ItemsSource="{Binding HsnSacChoices}"
+                                  SelectedValue="{Binding EditHsnSacId}"
+                                  SelectedValuePath="Id" DisplayMemberPath="Code" />
+                    </StackPanel>
 
                     <CheckBox Content="Kit item" Style="{StaticResource FieldCheck}"
                               IsChecked="{Binding EditIsKit}" />
-                </StackPanel>
+                </WrapPanel>
 
                 <!-- Kit components: only meaningful for kit items, so only shown for them. -->
                 <StackPanel Margin="0,8,0,0"
