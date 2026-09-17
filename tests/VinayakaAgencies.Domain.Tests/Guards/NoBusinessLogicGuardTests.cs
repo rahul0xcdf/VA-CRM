@@ -75,6 +75,10 @@ public class NoBusinessLogicGuardTests
         "Customer",
         "CustomerCategory",
         "CustomerSpecialPrice",
+        "EinvoiceApiCall",
+        "EinvoiceRegistration",
+        "EinvoiceSettings",
+        "EwayBill",
         "FinancialYear",
         "GstRateSchedule",
         "GstSettings",
@@ -158,14 +162,14 @@ public class NoBusinessLogicGuardTests
     }
 
     [Fact]
-    public void EntityTypesInDomain_MatchExactlyThePhase0Through5ApprovedSet()
+    public void EntityTypesInDomain_MatchExactlyThePhase0Through6ApprovedSet()
     {
         // Belt-and-braces version of the two checks above: verifies the guard would also catch a
         // business entity dropped in the wrong folder (e.g. Domain/Common), and — unlike the Phase 0
         // version of this test, which asserted a single fixed name — verifies the *set* is exactly
-        // what the approved phase specs added, so a Phase 5+ entity (e.g. a hypothetical
-        // `GstRate : Entity`) still fails even though it does not collide with any name in
-        // ForbiddenTypeNames.
+        // what the approved phase specs added, so an entity from a not-yet-approved phase (e.g. a
+        // hypothetical `TdsSection : Entity` from Phase 7) still fails even though it does not
+        // collide with any name in ForbiddenTypeNames.
         var domainDirectory = Path.Combine(SrcDirectory, "VinayakaAgencies.Domain");
         var entityDeclaringFiles = new List<string>();
 

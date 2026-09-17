@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using VinayakaAgencies.Application.DependencyInjection;
+using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.DependencyInjection;
 
@@ -28,7 +29,11 @@ public sealed class SqliteTestHost : IAsyncDisposable
     private readonly ServiceProvider _provider;
     private readonly string _databasePath;
 
-    public SqliteTestHost(FixedClock? clock = null, StubCurrentUser? currentUser = null)
+    public SqliteTestHost(
+        FixedClock? clock = null,
+        StubCurrentUser? currentUser = null,
+        IIrpClient? irpClient = null,
+        ICredentialProtector? credentialProtector = null)
     {
         _databasePath = Path.Combine(
             Path.GetTempPath(),
@@ -59,6 +64,21 @@ public sealed class SqliteTestHost : IAsyncDisposable
 
         services.AddApplication();
         services.AddInfrastructure(configuration);
+
+        // Registered *after* AddInfrastructure, unlike the clock and user above, because these two are
+        // not TryAdd registrations there: the IRP client is wired through AddHttpClient and the DPAPI
+        // protector through TryAddSingleton, so overriding them means being the later registration
+        // rather than the earlier one. Phase 6 needs both replaceable — there are no NIC sandbox
+        // credentials (open-questions.md #10), and DPAPI would tie the tests to one Windows user.
+        if (irpClient is not null)
+        {
+            services.AddScoped(_ => irpClient);
+        }
+
+        if (credentialProtector is not null)
+        {
+            services.AddSingleton(_ => credentialProtector);
+        }
 
         _provider = services.BuildServiceProvider();
     }

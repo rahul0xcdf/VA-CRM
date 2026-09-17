@@ -34,6 +34,13 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(c => c.Gstin).HasMaxLength(15);
 
         builder.Property(c => c.StateCode).IsRequired().HasMaxLength(2);
+
+        // Structured address for the IRP seller block (phase-6-einvoice-eway.md §4b). Nullable:
+        // Phases 1-5 posted invoices without it, so requiring it would invalidate existing books.
+        builder.Property(c => c.AddressLine1).HasMaxLength(ColumnLengths.Address);
+        builder.Property(c => c.AddressLine2).HasMaxLength(ColumnLengths.Address);
+        builder.Property(c => c.City).HasMaxLength(ColumnLengths.Name);
+        builder.Property(c => c.Pincode);
         builder.Property(c => c.BaseCurrencyCode).IsRequired().HasMaxLength(3);
         builder.Property(c => c.FinancialYearStartMonth).IsRequired();
         builder.Property(c => c.IsActive).IsRequired();

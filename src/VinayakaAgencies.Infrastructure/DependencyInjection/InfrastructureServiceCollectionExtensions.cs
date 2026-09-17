@@ -4,7 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.Configuration;
+using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Infrastructure.Data;
+using VinayakaAgencies.Infrastructure.Einvoicing;
 using VinayakaAgencies.Infrastructure.Persistence;
 
 namespace VinayakaAgencies.Infrastructure.DependencyInjection;
@@ -59,6 +61,36 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ISqlQueryExecutor, DapperSqlQueryExecutor>();
 
         services.AddScoped<IDatabaseInitialiser, DatabaseInitialiser>();
+
+        // Phase 6 e-invoicing: the two Application ports Infrastructure satisfies.
+        //
+        // The IRP client is registered through AddHttpClient so it gets a pooled, correctly
+        // recycled handler and a real timeout — a HttpClient held in a field is the classic way to
+        // end up with stale DNS, and a call that never times out defeats the retry path C6.5
+        // depends on. It is typed rather than named so the port stays the only thing callers see.
+        services.AddOptions<NicIrpOptions>()
+            .Bind(configuration.GetSection(NicIrpOptions.SectionName));
+
+        services.TryAddSingleton<ICredentialProtector, DpapiCredentialProtector>();
+
+        // Singleton, because the typed client below is transient and would otherwise re-authenticate
+        // on every call against a portal that rate-limits authentication.
+        services.TryAddSingleton<IrpSessionCache>();
+
+        services.AddHttpClient<IIrpClient, NicIrpClient>((provider, client) =>
+        {
+            var options = provider.GetRequiredService<
+                Microsoft.Extensions.Options.IOptions<NicIrpOptions>>().Value;
+
+            // Sandbox unless production has been configured and selected — §2 keeps production
+            // behind the owner's sign-off, and an unset production address makes that explicit.
+            var baseAddress = options.ProductionBaseAddress is { Length: > 0 } production
+                ? production
+                : options.SandboxBaseAddress;
+
+            client.BaseAddress = new Uri(baseAddress, UriKind.Absolute);
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
 
         return services;
     }

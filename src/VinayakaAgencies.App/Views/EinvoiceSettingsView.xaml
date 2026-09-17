@@ -1,0 +1,98 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.EinvoiceSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="820">
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="E-invoice settings — applicability, environment and NIC credentials"
+                   Style="{StaticResource ScreenTitleText}" />
+
+        <ScrollViewer Grid.Row="1" Margin="0,14,0,0" VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="620" HorizontalAlignment="Left">
+
+                <Border Style="{StaticResource SectionBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Applicability" Style="{StaticResource SectionHeaderText}" />
+
+                        <CheckBox Content="E-invoicing applies to this business"
+                                  Margin="0,10,0,0"
+                                  IsChecked="{Binding IsEinvoicingApplicable}" />
+                        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Text="Turn this on only if the business is above the e-invoicing turnover threshold. Turnover is a fact about the business, so it is declared here rather than guessed from the books." />
+
+                        <TextBlock Text="E-way bill threshold (₹)" Style="{StaticResource FieldLabelText}"
+                                   Margin="0,14,0,2" />
+                        <TextBox Text="{Binding EwayBillThreshold}" Width="160" HorizontalAlignment="Left" />
+                        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Text="A consignment must exceed this value before a bill is required. Stored as data, not built into the code, because the statutory figure has moved before." />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SectionBorderStyle}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Portal environment" Style="{StaticResource SectionHeaderText}" />
+
+                        <CheckBox Content="Use the production portal"
+                                  Margin="0,10,0,0"
+                                  IsChecked="{Binding UseProduction}" />
+                        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Foreground="{StaticResource WarningBrush}"
+                                   Text="Leave this off until sandbox testing is signed off. Production files real invoices with the government portal, and an IRN cannot be withdrawn after 24 hours." />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SectionBorderStyle}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="NIC credentials" Style="{StaticResource SectionHeaderText}" />
+
+                        <TextBlock Text="{Binding CredentialState}" Margin="0,8,0,0" TextWrapping="Wrap" />
+
+                        <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Text="Stored values are never shown back, not even masked. To change them, enter all four again. They are encrypted for the Windows user that entered them, so they must be re-entered if the app runs as a different user." />
+
+                        <TextBlock Text="Client id" Style="{StaticResource FieldLabelText}" Margin="0,14,0,2" />
+                        <TextBox Text="{Binding ClientId}" />
+
+                        <TextBlock Text="Client secret" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
+                        <TextBox Text="{Binding ClientSecret}" />
+
+                        <TextBlock Text="Username" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
+                        <TextBox Text="{Binding Username}" />
+
+                        <TextBlock Text="Password" Style="{StaticResource FieldLabelText}" Margin="0,10,0,2" />
+                        <TextBox Text="{Binding Password}" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="Store credentials" Padding="14,5"
+                                    Command="{Binding SaveCredentialsCommand}" />
+                            <Button Content="Clear credentials" Margin="10,0,0,0" Padding="14,5"
+                                    IsEnabled="{Binding HasCredentials}"
+                                    Command="{Binding ClearCredentialsCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                    <Button Content="Save settings" Padding="16,6" Command="{Binding SaveCommand}" />
+                    <Button Content="Reload" Margin="10,0,0,0" Padding="16,6" Command="{Binding RefreshCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="2" Text="{Binding Status}" Style="{StaticResource StatusText}"
+                   Margin="0,12,0,0" TextWrapping="Wrap" />
+    </Grid>
+</UserControl>

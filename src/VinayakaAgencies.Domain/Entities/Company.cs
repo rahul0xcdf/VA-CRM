@@ -61,6 +61,23 @@ public sealed class Company : Entity, IAuditStamped
     /// <summary>GST state code — drives the CGST/SGST vs IGST split in Phase 5.</summary>
     public string StateCode { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// First line of the registered place of business. Nullable, like the rest of the address:
+    /// Phases 1-5 posted invoices without it, so requiring it now would invalidate existing books
+    /// (phase-6-einvoice-eway.md §4b). The IRP needs it structured, which a print-template header
+    /// line cannot provide.
+    /// </summary>
+    public string? AddressLine1 { get; private set; }
+
+    /// <summary>Second address line, where there is one.</summary>
+    public string? AddressLine2 { get; private set; }
+
+    /// <summary>City or town — the IRP's <c>Loc</c> field.</summary>
+    public string? City { get; private set; }
+
+    /// <summary>Six-digit pincode — the IRP's <c>Pin</c> field.</summary>
+    public int? Pincode { get; private set; }
+
     /// <summary>Month the financial year begins. 4 (April) in India.</summary>
     public int FinancialYearStartMonth { get; private set; } = 4;
 
@@ -88,7 +105,33 @@ public sealed class Company : Entity, IAuditStamped
     public void SetGstin(string? gstin) =>
         Gstin = string.IsNullOrWhiteSpace(gstin) ? null : gstin.Trim().ToUpperInvariant();
 
+    /// <summary>
+    /// Sets the registered postal address. Validated only for shape, not for presence: an
+    /// incomplete address is allowed to sit here, and it is e-invoice submission that refuses it
+    /// (phase-6-einvoice-eway.md §4b).
+    /// </summary>
+    public void SetAddress(
+        string? addressLine1,
+        string? addressLine2 = null,
+        string? city = null,
+        int? pincode = null)
+    {
+        if (pincode is { } value and (< 100_000 or > 999_999))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pincode), value, "An Indian pincode has six digits.");
+        }
+
+        AddressLine1 = Normalise(addressLine1);
+        AddressLine2 = Normalise(addressLine2);
+        City = Normalise(city);
+        Pincode = pincode;
+    }
+
     public void Deactivate() => IsActive = false;
 
     public void Activate() => IsActive = true;
+
+    private static string? Normalise(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

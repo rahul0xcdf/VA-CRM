@@ -69,14 +69,35 @@ with India GST/TDS compliance as a core requirement.
   `gst-computation-and-rates.md`, `gst-returns-and-json-export.md`, `tally-style-ui-foundation.md`.
   Remaining before Phase 5 sign-off: owner walkthrough of the four GST screens + reworked shell,
   screenshots for `specs/evidence/phase-5-evidence.md`.
+- **Phase 6 (e-invoicing & e-way bill) — implemented and verified by tests; three checkpoints blocked
+  on credentials.** Spec approved 17 Sep 2026; decisions in §4a (direct to NIC, no GSP; turnover
+  applicability as a data flag, never inferred; standard NIC Part-B field set; **sandbox credentials
+  still not supplied** — the owner directed implementation to proceed regardless). Approval also
+  corrected the draft's IRN field order: the hash is SHA-256 over `SupplierGSTIN + FY + DocType +
+  DocNumber`, no separators, per NIC's published worked example — the draft's order produced a
+  different hash, silently. IRN + signed-QR ten fields, registration lifecycle with a retryable
+  `Pending` state, e-way bills by IRN with Part-B enforced per transport mode, validity slabs
+  (1 day/200 km, and 1 day/20 km for over-dimensional cargo), a ₹50,000 threshold as a config row,
+  DPAPI-encrypted credentials with two-pass redaction. **C6.4/C6.5/C6.6 met** — IRN against NIC's own
+  example vector, retry-after-timeout producing no duplicate IRN (backed by a unique index on
+  `(CompanyId, Irn)`), and a credential scan over persisted call rows and the whole SQLite file.
+  **C6.1/C6.2 not met and C6.3 partial** — all three need the NIC sandbox (`open-questions.md` #10);
+  the auth handshake, endpoint paths and payload field names are likewise unverified on the wire.
+  Everything above the `IIrpClient` port is driven by `RecordedIrpServer` instead. §4b records the one
+  schema addition beyond spec: structured address columns on `Company` and `Customer`, nullable,
+  because the IRP needs an address a Phase 3 print-template header cannot yield. Feature docs:
+  `einvoice-irn-and-qr.md`, `eway-bill.md`. Evidence filed at
+  `specs/evidence/phase-6-evidence.md`. Remaining before sign-off: credentials, owner walkthrough of
+  the three new screens, screenshots.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
   `print-templates.md`. Phase 4 additions: `customer-categories.md`, `customer-master.md`,
   `customer-pricing-engine.md`, `customer-statement-outstanding.md`.
+  Phase 6 additions: `einvoice-irn-and-qr.md`, `eway-bill.md`.
   **End-user guides** (how to run the features from the screen) live in
   `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`; Phase 4:
-  `phase-4-customers-and-pricing.md`.
+  `phase-4-customers-and-pricing.md`; Phase 6: `phase-6-einvoice-and-eway-bill.md`.
 
 ## Development workflow (replaces the removed Claude hooks)
 

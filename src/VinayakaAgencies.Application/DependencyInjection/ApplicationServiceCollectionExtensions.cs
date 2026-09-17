@@ -5,6 +5,7 @@ using VinayakaAgencies.Application.Auditing;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.Customers;
+using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Application.Printing;
@@ -75,6 +76,14 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IGstRateService, GstRateService>();
         services.AddScoped<IGstComputationService, GstComputationService>();
         services.AddScoped<IGstReturnService, GstReturnService>();
+
+        // Phase 6 e-invoicing & e-way bill: settings and credentials, the idempotent IRN path and
+        // the e-way bill workflow. IIrpClient and ICredentialProtector are ports — Infrastructure
+        // supplies them, and tests supply a recorded double while open-questions.md #10 is open
+        // (phase-6-einvoice-eway.md §4a).
+        services.AddScoped<IEinvoiceSettingsService, EinvoiceSettingsService>();
+        services.AddScoped<IEinvoiceService, EinvoiceService>();
+        services.AddScoped<IEwayBillService, EwayBillService>();
 
         return services;
     }

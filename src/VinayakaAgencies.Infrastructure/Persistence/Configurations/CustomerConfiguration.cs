@@ -42,6 +42,11 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(customer => customer.PlaceOfSupplyStateCode).HasMaxLength(2);
 
         builder.Property(customer => customer.BillingAddressLines).HasMaxLength(ColumnLengths.Address);
+
+        // Structured city and pincode for the IRP buyer block (phase-6-einvoice-eway.md §4b).
+        // The free-text address above cannot yield either, and the portal needs both separately.
+        builder.Property(customer => customer.City).HasMaxLength(ColumnLengths.Name);
+        builder.Property(customer => customer.Pincode);
         builder.Property(customer => customer.ShippingAddressLines).HasMaxLength(ColumnLengths.Address);
 
         builder.Property(customer => customer.CreditLimitMinor).IsRequired();

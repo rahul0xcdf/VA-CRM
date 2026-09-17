@@ -108,6 +108,16 @@ public sealed class Customer : Entity, IAuditStamped
     /// <summary>The shipped-to address; null means "same as billing".</summary>
     public string? ShippingAddressLines { get; private set; }
 
+    /// <summary>
+    /// City or town — the IRP's <c>Loc</c> field for the buyer block
+    /// (phase-6-einvoice-eway.md §4b). Separate from <see cref="BillingAddressLines"/> because a
+    /// pincode and a city cannot be recovered from free text, and the portal needs both on their own.
+    /// </summary>
+    public string? City { get; private set; }
+
+    /// <summary>Six-digit pincode — the IRP's <c>Pin</c> field for the buyer block.</summary>
+    public int? Pincode { get; private set; }
+
     /// <summary>Credit limit — computed from minor units, never a column.</summary>
     public decimal CreditLimit => MoneyScale.FromMinor(CreditLimitMinor);
 
@@ -188,6 +198,23 @@ public sealed class Customer : Entity, IAuditStamped
             string.IsNullOrWhiteSpace(billingAddressLines) ? null : billingAddressLines.Trim();
         ShippingAddressLines =
             string.IsNullOrWhiteSpace(shippingAddressLines) ? null : shippingAddressLines.Trim();
+    }
+
+    /// <summary>
+    /// Sets the structured city and pincode the IRP needs. Kept apart from
+    /// <see cref="SetAddresses"/> so that editing a printed address block cannot silently blank
+    /// the fields an e-invoice depends on.
+    /// </summary>
+    public void SetCityAndPincode(string? city, int? pincode)
+    {
+        if (pincode is { } value and (< 100_000 or > 999_999))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pincode), value, "An Indian pincode has six digits.");
+        }
+
+        City = string.IsNullOrWhiteSpace(city) ? null : city.Trim();
+        Pincode = pincode;
     }
 
     /// <summary>

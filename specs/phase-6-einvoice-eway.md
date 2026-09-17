@@ -3,15 +3,19 @@
 ```yaml
 Phase: 6
 Title: E-Invoicing & E-Way Bill
-Status: Draft
+Status: Approved
 Source: project.md §4.5, §10 (Phase 6)
 Depends on: Phase 5
 Agent: compliance-agent (frontier tier — do not downgrade)
 ```
 
-> **Draft.** Do not implement until `Status: Approved`.
-> **Blocked on credentials:** NIC sandbox client id / secret / GSTIN / username / password
-> (`open-questions.md` #10). Without them this phase cannot reach its checkpoint.
+> **Approved 17 Sep 2026** by the project owner, with the §4 questions closed into §4a below.
+> Implementation proceeds within this scope.
+>
+> **Partially blocked on credentials:** NIC sandbox client id / secret / GSTIN / username / password
+> (`open-questions.md` #10) are still outstanding. Checkpoints C6.4–C6.6 are met without them, against
+> the recorded fake IRP described in §4a; **C6.1, C6.2 and C6.3 cannot be met until they arrive** and
+> stay open in `specs/evidence/phase-6-evidence.md`.
 
 ## 1. Deliverables (project.md §10)
 
@@ -22,8 +26,8 @@ NIC sandbox API client (auth, IRN generation/cancellation, signed QR), e-way bil
 
 - **E-invoicing (NIC IRP):**
   - Auth: RSA encryption of the app key, AES-256 session key (SEK), token lifetime handling and refresh.
-  - **IRN** = SHA-256 hash of Seller GSTIN + Document Number + Document Type + Financial Year.
-  - Signed **QR code with its 10 mandatory fields**, printed on the invoice.
+  - **IRN** = SHA-256 over `SupplierGSTIN + FY + DocType + DocNumber` concatenated **in that order with no separators**, rendered as 64 lowercase hex characters. FY is `YYYY-YY`; DocType is `INV` / `CRN` / `DBN`. NIC's own worked example is the fixture: `01AAAAA9999A19N` + `2019-20` + `INV` + `ABC01234` → `01AAAAA9999A19N2019-20INVABC01234` (<https://einv-apisandbox.nic.in/irn.html>). This supersedes the field order this line carried while the spec was a draft, which read "Seller GSTIN + Document Number + Document Type + Financial Year" — same four inputs, wrong order, and the order changes the hash.
+  - Signed **QR code with its 10 mandatory fields**, printed on the invoice. The ten are the JWS payload NIC returns: `SellerGstin`, `BuyerGstin`, `DocNo`, `DocTyp`, `DocDt`, `TotInvVal`, `ItemCnt`, `MainHsnCode`, `Irn`, `IrnDt`. `MainHsnCode` is the HSN of the line carrying the highest taxable value; `DocDt` is `dd/MM/yyyy`. We assemble these ourselves to compare against what the portal signs — the printed QR is always NIC's signed blob, never ours.
   - Cancel within the 24-hour window; after that, a credit note is the only route.
   - **Sandbox first** (`einv-apisandbox.nic.in`). Production endpoints are switched on only after
     sandbox sign-off by the project owner.
@@ -58,3 +62,43 @@ Additional:
 - Is the business above the e-invoicing turnover threshold? (Determines whether this is mandatory or optional.)
 - Direct-to-NIC, or via a GSP? A GSP changes the auth model and is a different client.
 - Typical transporter details — needed to design a usable Part-B entry screen.
+
+## 4a. Decisions recorded at approval (17 Sep 2026)
+
+Closed from §4 by the project owner:
+
+| Question | Decision |
+|---|---|
+| Sandbox credentials (`open-questions.md` #10) | **Still not supplied; the owner directed implementation to proceed anyway.** Every IRP call therefore goes through the `IIrpClient` port, and the phase is verified against `RecordedIrpServer` — a test double that speaks the documented NIC contract, including its error codes and a mid-call timeout. This is what makes C6.4–C6.6 meetable now. It is *not* a substitute for sandbox sign-off: C6.1–C6.3 are sandbox-only by construction and remain open. The client ships pointed at `einv-apisandbox.nic.in`; production endpoints stay switched off behind a setting until the owner signs off on sandbox. |
+| Turnover threshold / mandatory vs optional | **Data, not a constant** (non-negotiable #6). `EinvoiceSettings.IsEinvoicingApplicable` decides whether a posted tax invoice demands an IRN, and the threshold itself is never encoded — turnover is a fact about the business, not something this app should infer. Default on, so the flow is exercised. |
+| Direct-to-NIC or via a GSP | **Direct to NIC**, as §2 already assumed: RSA-encrypted app key, AES-256 session key, `einv-apisandbox.nic.in`. A GSP has a different auth model and would be a different `IIrpClient` implementation — the port makes that a later swap rather than a rewrite, but no GSP client is in Phase 6 scope. |
+| Transporter details for Part-B | **The standard NIC Part-B field set, nothing business-specific invented:** transporter GSTIN, transporter name, transport document number and date, vehicle number, transport mode (road / rail / air / ship), vehicle type (regular / over-dimensional cargo), and approximate distance in km. Which of these are required depends on the mode, so the rule is enforced per mode rather than by making every field mandatory. |
+
+Also corrected at approval, because the draft had it wrong and the error would have failed C6.4
+silently: the **IRN concatenation order** in §2 is `SupplierGSTIN + FY + DocType + DocNumber` with no
+separators, per NIC's published worked example. The draft listed the same four inputs in a different
+order, which produces a different hash.
+
+## 4b. Schema additions made during implementation
+
+Recorded per the working agreement ("schema changes: keep them minimal and additive within the
+phase's spec, and record the reason").
+
+The IRP requires a **structured** postal address for both parties — `Addr1`, `Loc`, `Pin`, `Stcd` —
+and Rule 46 requires the supplier's address on the invoice face. Phase 3 satisfied Rule 46 by putting
+the address in a print template's free-text `HeaderLines`, which prints correctly but cannot be
+submitted: there is no way to recover a pincode from a block of text. `Company` had only `Gstin` and
+`StateCode`, and `Customer` had a free-text `BillingAddressLines` with a state code and no pincode.
+
+Added, all nullable so no existing row becomes invalid:
+
+| Entity | Columns | Why |
+|---|---|---|
+| `Company` | `AddressLine1`, `AddressLine2`, `City`, `Pincode` | Seller block of the IRP payload; also lets Rule 46 stop depending on a hand-typed template header. |
+| `Customer` | `City`, `Pincode` | Buyer block of the IRP payload. `BillingAddressLines` and `PlaceOfSupplyStateCode` already existed and are reused. |
+
+They are nullable rather than required because Phases 1–5 posted invoices without them, and a
+migration that made them mandatory would fail on any existing book. Instead, `EinvoiceService`
+refuses to submit a document whose seller or buyer address is incomplete, and says which field is
+missing — the gate sits at the point of submission, where it can be acted on, rather than at the
+point of data entry for every customer who will never need an e-invoice.

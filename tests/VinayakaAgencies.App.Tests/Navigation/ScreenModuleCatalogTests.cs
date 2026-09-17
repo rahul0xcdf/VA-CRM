@@ -75,6 +75,26 @@ public sealed class ScreenModuleCatalogTests
             ["HSN/SAC codes", "GST rate schedules", "GST returns", "GSTR-2B reconciliation"]);
     }
 
+    [Fact]
+    public void Discover_FindsTheEinvoicingModule_WithItsThreePhase6Screens()
+    {
+        var modules = ScreenModuleCatalog.Discover();
+
+        var einvoicing = modules.SingleOrDefault(module => module.Name == "E-invoicing");
+        einvoicing.ShouldNotBeNull();
+
+        einvoicing.Screens.Select(screen => screen.Header).ShouldBe(
+            ["E-invoice (IRN)", "E-way bills", "E-invoice settings"]);
+    }
+
+    [Fact]
+    public void Discover_OrdersEinvoicingAfterGst_BecauseThatIsTheSequenceTheWorkHappensIn()
+    {
+        var names = ScreenModuleCatalog.Discover().Select(module => module.Name).ToList();
+
+        names.IndexOf("E-invoicing").ShouldBeGreaterThan(names.IndexOf("GST"));
+    }
+
     private sealed class FakeModule(string name, int order) : IScreenModule
     {
         public string Name => name;
