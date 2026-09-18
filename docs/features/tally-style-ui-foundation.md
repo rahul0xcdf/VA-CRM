@@ -54,3 +54,19 @@ The old shell had `Ctrl+Q` cancelling.
 See `specs/adr/ADR-0006-tally-shell-gateway-and-keyboard-map.md` and the rewritten
 `docs/user-guide/keyboard-shortcuts.md`. Per-screen internals — dense entry grids, F4–F9 voucher
 switching, `Alt+C` create-on-the-fly, pop-up selectors — are the next batch, not this one.
+
+---
+
+## Completed by ADR-0007 (18 Sep 2026)
+
+The per-screen rework this document listed as "the next batch" is done. Voucher types switch on
+`F4`–`F9`, lookup fields filter as you type and create the missing master on `Alt+C`, voucher lines
+are typed straight through on `Enter`, and reports drill on `Ctrl+Enter`.
+
+One binding also changed meaning again, on voucher entry only: **`Alt+X` now clears the form and
+`Alt+D` cancels a posted voucher.** It previously had `Alt+X` cancelling the posted voucher, which put
+a figures-out-of-every-statement act behind the reflex key.
+
+See `specs/adr/ADR-0007-tally-entry-patterns-inside-screens.md` and
+`docs/features/tally-entry-patterns.md`. That ADR is binding on every screen built from Phase 7
+onward.

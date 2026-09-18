@@ -98,15 +98,34 @@ with India GST/TDS compliance as a core requirement.
   `Ctrl+Q` cancelling). Screens contribute to the two bars through `IScreenShortcuts`; bars are
   generated from the commands they invoke, and reserved-but-unwired keys (F2/F3/F11/F12) are
   deliberately not shown. Also fixed 25 files of pre-existing double-encoded text that rendered as
-  `Ledgers â€" grouped by...` on most screens. **Per-screen internals are NOT reworked yet** — dense
-  entry grids, F4-F9 voucher switching, Alt+C create-on-the-fly and pop-up selectors are the next
-  batch. See ADR-0006 and `docs/user-guide/keyboard-shortcuts.md`.
+  `Ledgers â€" grouped by...` on most screens. See ADR-0006 and
+  `docs/user-guide/keyboard-shortcuts.md`.
+- **Per-screen internals reworked to ADR-0007 (18 Sep 2026, owner-directed).** ADR-0006 deferred the
+  inside of every screen; this closes it, and the ADR is **binding on every screen built from Phase 7
+  onward**. `LookupBox` replaces every master-picking `ComboBox` (filters on each keystroke, matches
+  anywhere in the name, prefix matches ranked first, `Alt+C` creates the missing master into a band at
+  the foot of the page and drops it straight onto the line being filled). Voucher lines are an
+  `ItemsControl` of permanently live fields driven by the `EntryGrid` behaviour — `Enter` walks across
+  the line and appends one at the end — not an editable `DataGrid`. `F4`-`F9` / `Alt+F5`-`F9` /
+  `Ctrl+F8`-`F9` switch voucher type, document kind and stock purpose through `VoucherTypeKeyMap`,
+  keeping typed lines. Reports drill on `Ctrl+Enter` (trial balance, P&L, balance sheet, day book,
+  edit log) into a pane that stays collapsed until asked for; the trial balance's old
+  drill-on-selection ran a statement query per arrow key and is gone. Master screens share one key
+  set: `Alt+C` new, `Ctrl+A` save, `Alt+D` delete-or-deactivate, `Alt+X` reload the selected record.
+  **Two keys changed meaning on voucher entry: `Alt+X` now clears the form and `Alt+D` cancels the
+  posted voucher** (`Alt+X` used to cancel the posted voucher). Three pre-existing defects fixed on
+  the way: `ShellViewModel` never subscribed to the active screen, so the bars — which are the shell's
+  key routing table — were frozen at construction; stock groups and godowns never loaded the selected
+  row into their editor, so Save renamed whatever the editor still held. Feature doc:
+  `tally-entry-patterns.md`. Remaining before sign-off: owner walkthrough and screenshots.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
   `print-templates.md`. Phase 4 additions: `customer-categories.md`, `customer-master.md`,
   `customer-pricing-engine.md`, `customer-statement-outstanding.md`.
   Phase 6 additions: `einvoice-irn-and-qr.md`, `eway-bill.md`.
+  UI: `tally-style-ui-foundation.md` (shell, ADR-0005/0006) and `tally-entry-patterns.md`
+  (inside the screens, ADR-0007 — read this before building any new screen).
   **End-user guides** (how to run the features from the screen) live in
   `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`; Phase 4:
   `phase-4-customers-and-pricing.md`; Phase 6: `phase-6-einvoice-and-eway-bill.md`.
@@ -213,6 +232,13 @@ dotnet ef database update  -p src\VinayakaAgencies.Infrastructure -s src\Vinayak
 
 - Read `/specs/CURRENT_PHASE`, then that phase's spec, before touching anything.
 - Prefer editing an existing file over creating a new one; prefer extending a spec over inventing behaviour.
+- **Every new screen follows ADR-0007.** It is not a suggestion from a past batch — the owner made it
+  the standard for the phases that follow. In short: a field that picks a master is a `LookupBox`,
+  never a `ComboBox`; a grid of enterable lines is an `ItemsControl` with `EntryGrid.Enable`, never an
+  editable `DataGrid`; gestures come from `AppShortcuts` and are bound only through the screen's own
+  bars; a key is declared only where it works; and any behaviour with a rule puts that rule somewhere
+  a unit test can reach without a window. The per-shape key tables are in the ADR and in
+  `docs/features/tally-entry-patterns.md`.
 - Schema or public-contract changes: keep them minimal and additive within the phase's spec, and
   record the reason in the spec file or an ADR (the `architect-agent` subagents are no longer part
   of the workflow; their review duty falls to the development agent and the owner).
