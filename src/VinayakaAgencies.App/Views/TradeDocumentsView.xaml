@@ -3,24 +3,33 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:local="clr-namespace:VinayakaAgencies.App.Views"
+             xmlns:controls="clr-namespace:VinayakaAgencies.App.Presentation.Controls"
+             xmlns:presentation="clr-namespace:VinayakaAgencies.App.Presentation"
              mc:Ignorable="d"
              d:DesignHeight="860" d:DesignWidth="1280">
 
     <UserControl.Resources>
-        <local:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+        <presentation:BoolToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
 
-    <!-- Voucher page (ADR-0006): document header, line grid, two action bands, then the document
-         list the operator loads from. -->
+    <!--
+        Voucher page (ADR-0006 shape, ADR-0007 internals): document header, the line grid as
+        permanently live fields, two action bands, then the document list the operator loads from.
+
+        The document kind is on F8 / F9 / Ctrl+F8 / Ctrl+F9 / Alt+F8 / Alt+F9 / F10 and marked on the
+        button bar, so the combo box that carried it is gone — the caption in the header says which
+        kind is being staged.
+    -->
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="190" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="170" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -38,111 +47,175 @@
         <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Document" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="150" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding KindChoices}" SelectedItem="{Binding NewDocumentKind}" />
-                    <Button Content="New" Style="{StaticResource BandButton}"
-                            Command="{Binding StartNewDocumentCommand}" />
-
                     <TextBlock Text="Date" Style="{StaticResource FieldLabel}" />
                     <DatePicker Width="130" Margin="0,0,16,0" VerticalAlignment="Center"
                                 SelectedDate="{Binding DocumentDate}" />
 
                     <TextBlock Text="Party" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="230" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding LedgerChoices}"
-                              SelectedItem="{Binding PartyLedger}" DisplayMemberPath="Name" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="240"
+                                        Watermark="Party ledger"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding LedgerChoices}"
+                                        SelectedItem="{Binding PartyLedger, Mode=TwoWay}" />
 
                     <TextBlock Text="Your ref" Style="{StaticResource FieldLabel}" />
                     <TextBox Width="120" MinWidth="0" Style="{StaticResource FieldBox}"
                              Text="{Binding PartyReferenceNumber, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Narration" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="260" Style="{StaticResource FieldBox}"
+                             Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Narration" Style="{StaticResource FieldLabel}" />
-                    <TextBox Width="300" Style="{StaticResource FieldBox}"
-                             Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
+                    <!-- One field where there used to be a search box, a Search button and a list. -->
+                    <TextBlock Text="Item" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="330"
+                                        Watermark="Type any part of the name or code"
+                                        DisplayMemberPath="Name"
+                                        CreateLabel="Create item"
+                                        ItemsSource="{Binding ItemChoices}"
+                                        Text="{Binding ItemSearchText, Mode=TwoWay}"
+                                        CreateCommand="{Binding BeginCreateItemCommand}"
+                                        SelectedItem="{Binding SelectedNewItem, Mode=TwoWay}" />
 
-                    <TextBlock Text="Find item" Style="{StaticResource FieldLabel}" />
-                    <TextBox Width="170" MinWidth="0" Style="{StaticResource FieldBox}"
-                             Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Content="Search" Style="{StaticResource BandButton}"
-                            Command="{Binding SearchItemsCommand}" />
-
-                    <ComboBox Width="230" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding ItemChoices}"
-                              SelectedItem="{Binding SelectedNewItem}" DisplayMemberPath="Name" />
-
-                    <TextBlock Text="Godown" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="140" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding GodownChoices}"
-                              SelectedItem="{Binding DefaultGodown}" DisplayMemberPath="Name" />
+                    <TextBlock Text="Into godown" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="150"
+                                        Watermark="Godown"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding GodownChoices}"
+                                        SelectedItem="{Binding DefaultGodown, Mode=TwoWay}" />
 
                     <Button Content="Add line" Style="{StaticResource BandButton}"
                             Command="{Binding AddLineCommand}" />
+                    <Button Content="New document" Style="{StaticResource BandButton}"
+                            Command="{Binding StartNewDocumentCommand}" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <DataGrid Grid.Row="2" Style="{StaticResource PageGrid}" IsReadOnly="False"
-                  ItemsSource="{Binding Lines}"
-                  SelectedItem="{Binding SelectedLine}"
-                  IsEnabled="{Binding IsEditingEnabled}">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
-                <DataGridComboBoxColumn Header="Godown" Width="140"
-                                        ItemsSource="{Binding DataContext.GodownChoices,
-                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        SelectedValueBinding="{Binding GodownId}"
-                                        SelectedValuePath="Id" DisplayMemberPath="Name" />
-                <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="90"
-                                    ElementStyle="{StaticResource NumericCell}"
-                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+        <Border Grid.Row="2" Style="{StaticResource EntryHeaderBand}">
+            <Grid Margin="0,0,17,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="140" />
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="76" />
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="1.6*" />
+                    <ColumnDefinition Width="30" />
+                </Grid.ColumnDefinitions>
 
-                <DataGridTemplateColumn Header="Rate" Width="110"
-                                        HeaderStyle="{StaticResource NumericColumnHeader}">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Rate}" VerticalAlignment="Center"
-                                       HorizontalAlignment="Right" Margin="4,0" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <!-- Locked when the override gate is off and a price was auto-applied. -->
-                            <TextBox Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged}"
-                                     IsEnabled="{Binding IsRateLocked,
-                                         Converter={StaticResource InverseBooleanConverter}}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
+                <TextBlock Grid.Column="0" Text="Item" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="1" Text="Godown" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="2" Text="Qty" Style="{StaticResource EntryNumberColumnHeaderText}" />
+                <TextBlock Grid.Column="3" Text="Rate" Style="{StaticResource EntryNumberColumnHeaderText}" />
+                <TextBlock Grid.Column="4" Text="Disc %" Style="{StaticResource EntryNumberColumnHeaderText}" />
+                <TextBlock Grid.Column="5" Text="Priced from" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="6" Text="Batch" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="7" Text="Serials (; separated)"
+                           Style="{StaticResource EntryColumnHeaderText}" />
+            </Grid>
+        </Border>
 
-                <DataGridTextColumn Header="Disc %" Binding="{Binding DiscountPercent}" Width="76"
-                                    ElementStyle="{StaticResource NumericCell}"
-                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+        <!--
+            No AppendRowCommand: a document line needs an item chosen up in the picker before it can
+            exist, so Enter on the last field stops rather than conjuring a line with no item.
+        -->
+        <ItemsControl Grid.Row="3"
+                      ItemsSource="{Binding Lines}"
+                      Focusable="False"
+                      IsEnabled="{Binding IsEditingEnabled}"
+                      controls:EntryGrid.Enable="True"
+                      controls:EntryGrid.CurrentItem="{Binding SelectedLine, Mode=TwoWay}">
+            <ItemsControl.Template>
+                <ControlTemplate TargetType="ItemsControl">
+                    <ScrollViewer Focusable="False"
+                                  VerticalScrollBarVisibility="Visible"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsPresenter />
+                    </ScrollViewer>
+                </ControlTemplate>
+            </ItemsControl.Template>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource EntryLineBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="76" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="1.6*" />
+                                <ColumnDefinition Width="30" />
+                            </Grid.ColumnDefinitions>
 
-                <!-- An overridden price is called out in the warning colour: C4.2 wants the override
-                     visible on the line, not only in the audit trail. -->
-                <DataGridTextColumn Header="Priced from" Binding="{Binding PriceSourceLabel}"
-                                    IsReadOnly="True" Width="100">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsPriceOverridden}" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
+                            <TextBlock Grid.Column="0" Text="{Binding ItemName}" Margin="6,0"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       Foreground="{StaticResource PrimaryTextBrush}" />
 
-                <DataGridTextColumn Header="Batch" Binding="{Binding BatchNumber}" Width="110" />
-                <DataGridTextColumn Header="Serials (; separated)" Binding="{Binding SerialNumbers}" Width="2*" />
-            </DataGrid.Columns>
-        </DataGrid>
+                            <controls:LookupBox Grid.Column="1"
+                                                Watermark="Godown"
+                                                DisplayMemberPath="Name"
+                                                ItemsSource="{Binding DataContext.GodownChoices,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                SelectedItem="{Binding Godown, Mode=TwoWay}" />
 
-        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
+                            <TextBox Grid.Column="2" Style="{StaticResource EntryNumberField}"
+                                     Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <!-- Locked, not hidden, when the override gate is off and a price was
+                                 auto-applied (C4.5): the operator must see the rate they cannot
+                                 change, or they will not know why the total is what it is. -->
+                            <TextBox Grid.Column="3" Style="{StaticResource EntryNumberField}"
+                                     Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged}"
+                                     IsReadOnly="{Binding IsRateLocked}"
+                                     ToolTip="{Binding PriceSourceLabel, StringFormat=Priced from {0}}" />
+
+                            <TextBox Grid.Column="4" Style="{StaticResource EntryNumberField}"
+                                     Text="{Binding DiscountPercent, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <!-- An overridden price is called out in the warning colour: C4.2 wants
+                                 the override visible on the line, not only in the audit trail. -->
+                            <TextBlock Grid.Column="5" Text="{Binding PriceSourceLabel}" Margin="6,0"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       Foreground="{StaticResource SecondaryTextBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPriceOverridden}" Value="True">
+                                                <Setter Property="Foreground"
+                                                        Value="{StaticResource WarningBrush}" />
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <TextBox Grid.Column="6" Style="{StaticResource EntryField}"
+                                     Text="{Binding BatchNumber, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBox Grid.Column="7" Style="{StaticResource EntryField}"
+                                     Text="{Binding SerialNumbers, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <Button Grid.Column="8" Content="−" Style="{StaticResource EntryLineButton}"
+                                    ToolTip="Remove this line (Ctrl+D)"
+                                    Command="{Binding DataContext.RemoveLineCommand,
+                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Grid.Row="4" Style="{StaticResource TotalsBandStyle}">
             <StackPanel Orientation="Horizontal">
                 <Button Content="Save draft" Style="{StaticResource BandButton}"
                         Command="{Binding SaveDraftCommand}" />
@@ -169,7 +242,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="4" Style="{StaticResource EntryPanelStyle}">
+        <Border Grid.Row="5" Style="{StaticResource EntryPanelStyle}">
             <StackPanel Orientation="Horizontal">
                 <Button Content="Validate invoice" Style="{StaticResource BandButton}"
                         Command="{Binding ValidateInvoiceCommand}" />
@@ -195,7 +268,41 @@
             </StackPanel>
         </Border>
 
-        <DataGrid Grid.Row="5" Style="{StaticResource PageGrid}"
+        <!-- Alt+C lands here. -->
+        <Border Grid.Row="6" Style="{StaticResource EntryPanelStyle}"
+                Visibility="{Binding IsCreatingItem, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="NEW ITEM — CTRL+A SAVES IT AND SELECTS IT"
+                           Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="260" Style="{StaticResource FieldBox}"
+                             Text="{Binding NewItemName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Base unit" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="120"
+                                        Watermark="Unit"
+                                        DisplayMemberPath="Code"
+                                        ItemsSource="{Binding UnitChoices}"
+                                        SelectedItem="{Binding NewItemUnit, Mode=TwoWay}" />
+
+                    <TextBlock Text="Stock group" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="200"
+                                        Watermark="Optional"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding StockGroupChoices}"
+                                        SelectedItem="{Binding NewItemGroup, Mode=TwoWay}" />
+
+                    <Button Content="Save item" Style="{StaticResource BandButton}"
+                            Command="{Binding ConfirmCreateItemCommand}" />
+                    <Button Content="Abandon" Style="{StaticResource BandButton}"
+                            Command="{Binding CancelCreateItemCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <DataGrid Grid.Row="7" Style="{StaticResource PageGrid}"
                   ItemsSource="{Binding Documents}"
                   SelectedItem="{Binding SelectedDocument}">
             <DataGrid.Columns>
@@ -211,7 +318,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Row="6" Style="{StaticResource PageStatusStyle}">
+        <Border Grid.Row="8" Style="{StaticResource PageStatusStyle}">
             <StackPanel>
                 <TextBlock Text="{Binding EditingStatus}" Style="{StaticResource PageStatusText}" />
                 <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />

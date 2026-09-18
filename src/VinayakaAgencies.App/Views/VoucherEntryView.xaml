@@ -3,21 +3,34 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:VinayakaAgencies.App.Presentation.Controls"
+             xmlns:presentation="clr-namespace:VinayakaAgencies.App.Presentation"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="980">
 
     <!--
-        Voucher page (ADR-0006): header fields, the line grid, a totals band carrying the running
-        difference, then the alter block.
+        Voucher page (ADR-0006 shape, ADR-0007 internals): header fields, the line grid, a totals band
+        carrying the running difference, the create-a-ledger band, then the alter block.
 
         The difference is in the totals band rather than buried among the buttons because it is the
         one number an operator watches while typing — a voucher does not post until it reads zero.
+
+        The lines are an ItemsControl of permanently live fields rather than a DataGrid of cells that
+        enter edit mode when clicked. Enter walks across a line and wraps onto the next, adding one
+        when it runs out; see Presentation/Controls/EntryGrid.cs.
     -->
+    <UserControl.Resources>
+        <presentation:BlankZeroDecimalConverter x:Key="BlankZero" />
+        <presentation:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -26,24 +39,22 @@
         <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Voucher entry" Style="{StaticResource PageTitleText}" />
-                <TextBlock Text="debit and credit must agree before it will post"
+                <TextBlock Text="{Binding SelectedVoucherType.Name, StringFormat=· {0}}"
+                           Margin="10,0,0,0" Style="{StaticResource PageTitleText}"
+                           Foreground="{StaticResource AccentBrush}" />
+                <TextBlock Text="F4-F9 switches type · debit and credit must agree before it will post"
                            Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
             </StackPanel>
         </Border>
 
         <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Type" Style="{StaticResource FieldLabel}" />
-                <ComboBox Width="150" Style="{StaticResource FieldCombo}"
-                          ItemsSource="{Binding VoucherTypes}"
-                          SelectedItem="{Binding SelectedVoucherType}" DisplayMemberPath="Name" />
-
                 <TextBlock Text="Date" Style="{StaticResource FieldLabel}" />
                 <DatePicker Width="130" Margin="0,0,16,0" VerticalAlignment="Center"
                             SelectedDate="{Binding EntryDate}" />
 
                 <TextBlock Text="Narration" Style="{StaticResource FieldLabel}" />
-                <TextBox Width="260" Style="{StaticResource FieldBox}"
+                <TextBox Width="280" Style="{StaticResource FieldBox}"
                          Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
 
                 <TextBlock Text="Ref" Style="{StaticResource FieldLabel}" />
@@ -57,66 +68,110 @@
             </StackPanel>
         </Border>
 
-        <DataGrid Grid.Row="2" Style="{StaticResource PageGrid}" IsReadOnly="False"
-                  CanUserDeleteRows="False"
-                  ItemsSource="{Binding Lines}">
-            <DataGrid.Columns>
-                <DataGridTemplateColumn Header="Ledger" Width="2.4*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding LedgerId}" Margin="4,1" VerticalAlignment="Center" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox ItemsSource="{Binding DataContext.Ledgers,
-                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                      SelectedValue="{Binding LedgerId}"
-                                      SelectedValuePath="Id" DisplayMemberPath="Name" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
+        <!-- Column header. The widths are repeated on every line below; the numeric columns are
+             fixed so they stay aligned whatever the window does. -->
+        <Border Grid.Row="2" Style="{StaticResource EntryHeaderBand}">
+            <Grid Margin="0,0,17,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.4*" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="30" />
+                </Grid.ColumnDefinitions>
 
-                <DataGridTextColumn Header="Debit" Width="130"
-                                    Binding="{Binding Debit, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}"
-                                    ElementStyle="{StaticResource NumericCell}"
-                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
-                <DataGridTextColumn Header="Credit" Width="130"
-                                    Binding="{Binding Credit, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}"
-                                    ElementStyle="{StaticResource NumericCell}"
-                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
-                <DataGridTextColumn Header="Line narration" Binding="{Binding Narration}" Width="*" />
+                <TextBlock Grid.Column="0" Text="Ledger" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="1" Text="Debit" Style="{StaticResource EntryNumberColumnHeaderText}" />
+                <TextBlock Grid.Column="2" Text="Credit" Style="{StaticResource EntryNumberColumnHeaderText}" />
+                <TextBlock Grid.Column="3" Text="Line narration" Style="{StaticResource EntryColumnHeaderText}" />
+            </Grid>
+        </Border>
 
-                <DataGridTemplateColumn Header="" Width="36">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="−" Padding="6,0" MinWidth="0" ToolTip="Remove this line"
+        <!-- The scrollbar is always shown so the fixed columns never shift under the header when a
+             voucher grows past the visible rows. -->
+        <ItemsControl Grid.Row="3"
+                      ItemsSource="{Binding Lines}"
+                      Focusable="False"
+                      controls:EntryGrid.Enable="True"
+                      controls:EntryGrid.AppendRowCommand="{Binding AddLineCommand}"
+                      controls:EntryGrid.CurrentItem="{Binding CurrentLine, Mode=TwoWay}"
+                      ScrollViewer.VerticalScrollBarVisibility="Visible"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl.Template>
+                <ControlTemplate TargetType="ItemsControl">
+                    <ScrollViewer Focusable="False"
+                                  VerticalScrollBarVisibility="Visible"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsPresenter />
+                    </ScrollViewer>
+                </ControlTemplate>
+            </ItemsControl.Template>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource EntryLineBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2.4*" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="30" />
+                            </Grid.ColumnDefinitions>
+
+                            <controls:LookupBox Grid.Column="0"
+                                                Watermark="Ledger name"
+                                                DisplayMemberPath="Name"
+                                                CreateLabel="Create ledger"
+                                                ItemsSource="{Binding DataContext.Ledgers,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CreateCommand="{Binding DataContext.BeginCreateLedgerCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                SelectedItem="{Binding Ledger, Mode=TwoWay}" />
+
+                            <TextBox Grid.Column="1" Style="{StaticResource EntryNumberField}"
+                                     Text="{Binding Debit, Converter={StaticResource BlankZero},
+                                            UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBox Grid.Column="2" Style="{StaticResource EntryNumberField}"
+                                     Text="{Binding Credit, Converter={StaticResource BlankZero},
+                                            UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBox Grid.Column="3" Style="{StaticResource EntryField}"
+                                     Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <Button Grid.Column="4" Content="−" Style="{StaticResource EntryLineButton}"
+                                    ToolTip="Remove this line (Ctrl+D)"
                                     Command="{Binding DataContext.RemoveLineCommand,
                                         RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
-            <Grid>
+        <Border Grid.Row="4" Style="{StaticResource TotalsBandStyle}">
+            <Grid Margin="0,0,17,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="2.4*" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="130" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="30" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Content="+ Line" Style="{StaticResource BandButton}" Command="{Binding AddLineCommand}" />
-                    <Button Content="Post voucher" Style="{StaticResource BandButton}" Command="{Binding PostCommand}" />
-                </StackPanel>
+                <!-- Totals sit under the columns they total, which is the only way a reader can
+                     check them against the lines above without counting across. -->
+                <TextBlock Grid.Column="0" Text="Total" Style="{StaticResource TotalsLabelText}"
+                           Margin="6,0,0,0" />
+                <TextBlock Grid.Column="1" Text="{Binding TotalDebit, StringFormat=N2}"
+                           Style="{StaticResource TotalsValueText}" TextAlignment="Right"
+                           Margin="0,0,8,0" />
+                <TextBlock Grid.Column="2" Text="{Binding TotalCredit, StringFormat=N2}"
+                           Style="{StaticResource TotalsValueText}" TextAlignment="Right"
+                           Margin="0,0,8,0" />
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="Dr" Style="{StaticResource TotalsLabelText}" />
-                    <TextBlock Text="{Binding TotalDebit, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
-                    <TextBlock Text="Cr" Style="{StaticResource TotalsLabelText}" />
-                    <TextBlock Text="{Binding TotalCredit, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="6,0,0,0">
                     <TextBlock Text="Difference" Style="{StaticResource TotalsLabelText}" />
                     <TextBlock Text="{Binding Difference, StringFormat=N2}" FontSize="14"
                                Style="{StaticResource TotalsValueText}" />
@@ -124,7 +179,37 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="4" Style="{StaticResource EntryPanelStyle}">
+        <!--
+            Alt+C lands here: a band, not a dialog. The half-typed voucher stays visible above it, so
+            the operator can see that creating a ledger cost them nothing.
+        -->
+        <Border Grid.Row="5" Style="{StaticResource EntryPanelStyle}"
+                Visibility="{Binding IsCreatingLedger, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="NEW LEDGER — Ctrl+A SAVES IT AND PUTS IT ON THE LINE"
+                           Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="260" Style="{StaticResource FieldBox}"
+                             Text="{Binding NewLedgerName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Under group" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="260"
+                                        Watermark="Group name"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding AccountGroups}"
+                                        SelectedItem="{Binding NewLedgerGroup, Mode=TwoWay}" />
+
+                    <Button Content="Save ledger" Style="{StaticResource BandButton}"
+                            Command="{Binding ConfirmCreateLedgerCommand}" />
+                    <Button Content="Abandon" Style="{StaticResource BandButton}"
+                            Command="{Binding CancelCreateLedgerCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="6" Style="{StaticResource EntryPanelStyle}">
             <StackPanel>
                 <TextBlock Text="ALTER AN EXISTING VOUCHER" Style="{StaticResource EntryHeadingText}" />
 
@@ -150,7 +235,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="5" Style="{StaticResource PageStatusStyle}">
+        <Border Grid.Row="7" Style="{StaticResource PageStatusStyle}">
             <!-- Read-only TextBox rather than a TextBlock: posting errors list every offending line,
                  and the operator needs to scroll and copy them. -->
             <TextBox Text="{Binding Status, Mode=OneWay}" IsReadOnly="True"

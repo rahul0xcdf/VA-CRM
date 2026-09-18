@@ -5,6 +5,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VinayakaAgencies.App.Presentation;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Accounting;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
@@ -43,8 +44,15 @@ public sealed partial class TradeDocumentLineEditor : ObservableObject
     [ObservableProperty]
     private string _itemName;
 
+    /// <summary>
+    /// The godown itself, not its id (ADR-0007).
+    /// </summary>
+    /// <remarks>
+    /// A lookup field selects an object. Holding the id here would mean resolving the name back on
+    /// every render to show what the row already knows.
+    /// </remarks>
     [ObservableProperty]
-    private Guid? _godownId;
+    private GodownSummary? _godown;
 
     [ObservableProperty]
     private string _quantity = "1";
@@ -151,11 +159,49 @@ public sealed partial class TradeDocumentLineEditor : ObservableObject
 /// </remarks>
 public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenShortcuts
 {
-    ICommand? IScreenShortcuts.AcceptCommand => SaveDraftCommand;
+    /// <summary>Ctrl+A. The create-an-item band owns Accept while it is open (ADR-0007).</summary>
+    ICommand? IScreenShortcuts.AcceptCommand => IsCreatingItem ? ConfirmCreateItemCommand : SaveDraftCommand;
 
-    ICommand? IScreenShortcuts.CancelCommand => StartNewDocumentCommand;
+    /// <summary>Alt+X — abandon the draft being staged. Nothing saved is touched.</summary>
+    ICommand? IScreenShortcuts.CancelCommand =>
+        IsCreatingItem ? CancelCreateItemCommand : StartNewDocumentCommand;
 
-    string? IScreenShortcuts.StatusBarHints => "Ctrl+A Save draft · Ctrl+Q New document · Esc Back";
+    /// <summary>
+    /// One key per document kind, on TallyPrime's published assignments (ADR-0007).
+    /// </summary>
+    /// <remarks>
+    /// A quotation has no published Tally key, so it takes F10 — "the other voucher types" — rather
+    /// than a key invented here that would not transfer and would spend a gesture a later phase may
+    /// need. <see cref="VoucherTypeKeyMap.UnkeyedDocumentKinds"/> is the list F10 covers.
+    /// </remarks>
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ButtonBar =>
+    [
+        .. VoucherTypeKeyMap.KeyedDocumentKinds.Select(kind => new ShortcutButton(
+            VoucherTypeKeyMap.For(kind)!,
+            VoucherTypeKeyMap.LabelFor(kind),
+            SelectDocumentKindCommand,
+            kind,
+            IsCurrent: NewDocumentKind == kind)),
+
+        new ShortcutButton(
+            AppShortcuts.OtherVouchers,
+            VoucherTypeKeyMap.LabelFor(VoucherTypeKeyMap.UnkeyedDocumentKinds[0]),
+            SelectDocumentKindCommand,
+            VoucherTypeKeyMap.UnkeyedDocumentKinds[0],
+            IsCurrent: VoucherTypeKeyMap.UnkeyedDocumentKinds.Contains(NewDocumentKind)),
+    ];
+
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "Create item", BeginCreateItemCommand),
+        new ShortcutButton(AppShortcuts.RemoveLine, "Remove line", RemoveLineCommand, SelectedLine),
+        new ShortcutButton(AppShortcuts.Print, "Print", PrintCommand),
+        new ShortcutButton(AppShortcuts.Delete, "Delete draft", DeleteDocumentCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints => IsCreatingItem
+        ? "Ctrl+A Save item · Alt+X Abandon it"
+        : "F8 Sales · F9 Purchase · Ctrl+F8/F9 Orders · Alt+C Create item · Ctrl+A Save draft";
 
     private readonly ITradeDocumentService _pipeline;
     private readonly IChartOfAccountsService _chartOfAccounts;
@@ -256,6 +302,26 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
     [ObservableProperty]
     private bool _isBusy;
 
+    // --- Create-an-item-without-leaving-the-document (Alt+C) ---
+
+    [ObservableProperty]
+    private bool _isCreatingItem;
+
+    [ObservableProperty]
+    private string _newItemName = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<UnitOfMeasureSummary> _unitChoices = [];
+
+    [ObservableProperty]
+    private UnitOfMeasureSummary? _newItemUnit;
+
+    [ObservableProperty]
+    private ObservableCollection<StockGroupSummary> _stockGroupChoices = [];
+
+    [ObservableProperty]
+    private StockGroupSummary? _newItemGroup;
+
     public TradeDocumentsViewModel(
         ITradeDocumentService documents,
         IChartOfAccountsService chartOfAccounts,
@@ -282,23 +348,57 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
         _creditLimits = creditLimits ?? throw new ArgumentNullException(nameof(creditLimits));
     }
 
-    public IReadOnlyList<TradeDocumentKind> KindChoices { get; } =
-    [
-        TradeDocumentKind.Quotation,
-        TradeDocumentKind.SalesOrder,
-        TradeDocumentKind.DeliveryChallan,
-        TradeDocumentKind.TaxInvoice,
-        TradeDocumentKind.PurchaseOrder,
-        TradeDocumentKind.GoodsReceipt,
-        TradeDocumentKind.PurchaseInvoice,
-    ];
+    // The kind list that used to feed a combo box is gone: the seven kinds are on F8 / F9 / Ctrl+F8 /
+    // Ctrl+F9 / Alt+F8 / Alt+F9 / F10, and VoucherTypeKeyMap's Keyed- and UnkeyedDocumentKinds are the
+    // one enumeration of them.
 
     /// <summary>The kind the next new document will carry.</summary>
     [ObservableProperty]
     private TradeDocumentKind _newDocumentKind = TradeDocumentKind.Quotation;
 
-    partial void OnNewDocumentKindChanged(TradeDocumentKind value) =>
+    /// <summary>True once the new item has a name and a unit, so the create band can be accepted.</summary>
+    public bool CanConfirmCreateItem =>
+        IsCreatingItem
+        && !string.IsNullOrWhiteSpace(NewItemName)
+        && NewItemUnit is not null;
+
+    partial void OnNewDocumentKindChanged(TradeDocumentKind value)
+    {
         EditingCaption = $"New {value}";
+        NotifyBarsChanged();
+    }
+
+    /// <summary>
+    /// Typing in the item lookup re-runs the server-side search.
+    /// </summary>
+    /// <remarks>
+    /// The search stays on the server because the Phase 2 checkpoint requires this to work at five
+    /// thousand SKUs; the lookup only ranks the hundred rows that come back.
+    /// </remarks>
+    partial void OnItemSearchTextChanged(string value) => SearchItemsCommand.Execute(null);
+
+    partial void OnSelectedLineChanged(TradeDocumentLineEditor? value) => NotifyBarsChanged();
+
+    partial void OnEditingDocumentIdChanged(Guid? value) => NotifyBarsChanged();
+
+    partial void OnIsCreatingItemChanged(bool value)
+    {
+        ConfirmCreateItemCommand.NotifyCanExecuteChanged();
+        NotifyBarsChanged();
+    }
+
+    partial void OnNewItemNameChanged(string value) => ConfirmCreateItemCommand.NotifyCanExecuteChanged();
+
+    partial void OnNewItemUnitChanged(UnitOfMeasureSummary? value) =>
+        ConfirmCreateItemCommand.NotifyCanExecuteChanged();
+
+    /// <summary>Tells the shell to re-read both bars; see VoucherEntryViewModel for why it matters.</summary>
+    private void NotifyBarsChanged()
+    {
+        OnPropertyChanged(nameof(IScreenShortcuts.ButtonBar));
+        OnPropertyChanged(nameof(IScreenShortcuts.ActionBar));
+        OnPropertyChanged(nameof(IScreenShortcuts.StatusBarHints));
+    }
 
     partial void OnPartyLedgerChanged(LedgerSummary? value)
     {
@@ -408,6 +508,15 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
                 await _masters.ListGodownsAsync(cancellationToken: cancellationToken)
                     .ConfigureAwait(true));
 
+            // Loaded here rather than on the first Alt+C, so the create band opens ready to type.
+            UnitChoices = new ObservableCollection<UnitOfMeasureSummary>(
+                await _masters.ListUnitsAsync(cancellationToken: cancellationToken)
+                    .ConfigureAwait(true));
+
+            StockGroupChoices = new ObservableCollection<StockGroupSummary>(
+                await _masters.ListStockGroupsAsync(cancellationToken: cancellationToken)
+                    .ConfigureAwait(true));
+
             var customers = await _customers.ListAsync(cancellationToken: cancellationToken)
                 .ConfigureAwait(true);
             _customersByLedgerId = customers.ToDictionary(customer => customer.LedgerId);
@@ -473,7 +582,7 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
 
         var line = new TradeDocumentLineEditor(SelectedNewItem)
         {
-            GodownId = needsGodown ? DefaultGodown?.Id : null,
+            Godown = needsGodown ? DefaultGodown : null,
         };
 
         // C4.1: a new line prices itself from the selected customer's tiers as soon as it lands.
@@ -501,14 +610,124 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
         Status = $"{Lines.Count} line(s) staged.";
     }
 
+    /// <summary>
+    /// Ctrl+D. Falls back to the selected line when the shell invokes it from the action bar, so the
+    /// key works from anywhere on the screen and not only from inside the grid.
+    /// </summary>
     [RelayCommand]
-    private void RemoveLine()
+    private void RemoveLine(TradeDocumentLineEditor? line)
     {
-        if (SelectedLine is not null)
+        var target = line ?? SelectedLine;
+
+        if (target is null)
         {
-            Lines.Remove(SelectedLine);
-            Status = $"{Lines.Count} line(s) staged.";
+            Status = "Select the line to remove first.";
+            return;
         }
+
+        Lines.Remove(target);
+
+        if (ReferenceEquals(SelectedLine, target))
+        {
+            SelectedLine = null;
+        }
+
+        Status = $"{Lines.Count} line(s) staged.";
+    }
+
+    /// <summary>
+    /// F8 / F9 / Ctrl+F8 / Ctrl+F9 / Alt+F8 / Alt+F9 / F10: choose what is being raised.
+    /// </summary>
+    /// <remarks>
+    /// Refuses while a saved document is loaded rather than silently re-labelling it. Changing the
+    /// kind of a document that already has a number would either orphan that number or re-issue it
+    /// from another series, and neither is something a function key should be able to do by accident.
+    /// </remarks>
+    [RelayCommand]
+    private void SelectDocumentKind(TradeDocumentKind kind)
+    {
+        if (EditingDocumentId.HasValue)
+        {
+            Status = "A saved document is loaded. Press Alt+X to start a new one, then choose its kind.";
+            return;
+        }
+
+        if (NewDocumentKind == kind)
+        {
+            return;
+        }
+
+        NewDocumentKind = kind;
+        Status = $"Staging a {VoucherTypeKeyMap.LabelFor(kind)}. {Lines.Count} line(s) kept.";
+    }
+
+    // --- Alt+C: create the item from inside the document ---
+
+    [RelayCommand]
+    private void BeginCreateItem(object? typedName)
+    {
+        NewItemName = typedName as string ?? ItemSearchText;
+        NewItemUnit = UnitChoices.FirstOrDefault();
+        NewItemGroup = null;
+        IsCreatingItem = true;
+
+        Status = UnitChoices.Count == 0
+            ? "Press Refresh first — the unit list has not been loaded."
+            : "New item: name it, choose its unit, then Ctrl+A.";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanConfirmCreateItem))]
+    private async Task ConfirmCreateItemAsync(CancellationToken cancellationToken)
+    {
+        IsBusy = true;
+
+        try
+        {
+            var created = await _masters.SaveItemAsync(
+                new SaveItemRequest(
+                    Id: null,
+                    Name: NewItemName.Trim(),
+                    BaseUnitId: NewItemUnit!.Id,
+                    StockGroupId: NewItemGroup?.Id),
+                cancellationToken)
+                .ConfigureAwait(true);
+
+            CloseCreateItem();
+
+            // Re-read through the same search the lookup uses, so the row that lands on the line is
+            // the row the query returns rather than one hand-assembled here.
+            ItemSearchText = created.Name;
+
+            await SearchItemsAsync(cancellationToken).ConfigureAwait(true);
+
+            SelectedNewItem = ItemChoices.FirstOrDefault(item => item.Id == created.Id);
+
+            Status = SelectedNewItem is null
+                ? $"Created '{created.Name}', but it did not come back from the item search."
+                : $"Created '{created.Name}'. Press Add line to put it on the document.";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            Status = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelCreateItem()
+    {
+        CloseCreateItem();
+        Status = "Item abandoned. The document is untouched.";
+    }
+
+    private void CloseCreateItem()
+    {
+        IsCreatingItem = false;
+        NewItemName = string.Empty;
+        NewItemGroup = null;
     }
 
     [RelayCommand]
@@ -637,7 +856,7 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
 
                     var editor = new TradeDocumentLineEditor(row)
                     {
-                        GodownId = line.GodownId,
+                        Godown = GodownChoices.FirstOrDefault(godown => godown.Id == line.GodownId),
                         Quantity = line.Quantity.ToString("0.####", CultureInfo.InvariantCulture),
                         Rate = line.Rate.ToString("0.####", CultureInfo.InvariantCulture),
                         DiscountPercent = line.DiscountPercent.ToString("0.##", CultureInfo.InvariantCulture),
@@ -1099,7 +1318,7 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
 
             lines.Add(new TradeDocumentLineInput(
                 editor.ItemId,
-                editor.GodownId,
+                editor.Godown?.Id,
                 quantity,
                 rate,
                 discountPercent,

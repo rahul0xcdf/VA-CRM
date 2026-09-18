@@ -3,25 +3,43 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:VinayakaAgencies.App.Presentation.Controls"
+             xmlns:presentation="clr-namespace:VinayakaAgencies.App.Presentation"
              mc:Ignorable="d"
              d:DesignHeight="760" d:DesignWidth="1200">
 
-    <!-- Voucher page (ADR-0006): header, item picker, line grid, actions, recent movements. -->
+    <!--
+        Voucher page (ADR-0006 shape, ADR-0007 internals): header, item lookup, the line grid as
+        permanently live fields, actions, recent movements.
+
+        The purpose is on Alt+F9 / Alt+F8 / Alt+F7 / F10 and marked on the button bar, so the combo
+        box that used to carry it is gone: it is shown in the title instead, where it cannot be
+        mistaken for something to click.
+    -->
+    <UserControl.Resources>
+        <presentation:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="170" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="150" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Stock vouchers" Style="{StaticResource PageTitleText}" />
-                <TextBlock Text="opening balances, receipts, issues and transfers"
+                <TextBlock Text="Stock voucher" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="{Binding Purpose, StringFormat=· {0}}"
+                           Margin="10,0,0,0" Style="{StaticResource PageTitleText}"
+                           Foreground="{StaticResource AccentBrush}" />
+                <TextBlock Text="Alt+F9 receipt · Alt+F8 issue · Alt+F7 transfer · F10 opening"
                            Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
             </StackPanel>
         </Border>
@@ -29,39 +47,44 @@
         <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Purpose" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="150" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding PurposeChoices}" SelectedItem="{Binding Purpose}" />
-
                     <TextBlock Text="Date" Style="{StaticResource FieldLabel}" />
                     <DatePicker Width="130" Margin="0,0,16,0" VerticalAlignment="Center"
                                 SelectedDate="{Binding VoucherDate}" />
 
                     <TextBlock Text="Counter ledger" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="230" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding LedgerChoices}"
-                              SelectedItem="{Binding CounterLedger}" DisplayMemberPath="Name" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="230"
+                                        Watermark="Ledger name"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding LedgerChoices}"
+                                        SelectedItem="{Binding CounterLedger, Mode=TwoWay}" />
 
                     <TextBlock Text="Narration" Style="{StaticResource FieldLabel}" />
                     <TextBox Width="260" Style="{StaticResource FieldBox}"
                              Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Button Content="Refresh" Style="{StaticResource BandButton}"
+                            Command="{Binding RefreshCommand}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Find item" Style="{StaticResource FieldLabel}" />
-                    <TextBox Width="210" Style="{StaticResource FieldBox}"
-                             Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Content="Search" Style="{StaticResource BandButton}"
-                            Command="{Binding SearchItemsCommand}" />
+                    <!-- One field where there used to be a search box, a Search button and a list.
+                         Typing runs the server-side search; the lookup ranks what comes back. -->
+                    <TextBlock Text="Item" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="320"
+                                        Watermark="Type any part of the name or code"
+                                        DisplayMemberPath="Name"
+                                        CreateLabel="Create item"
+                                        ItemsSource="{Binding ItemChoices}"
+                                        Text="{Binding ItemSearchText, Mode=TwoWay}"
+                                        CreateCommand="{Binding BeginCreateItemCommand}"
+                                        SelectedItem="{Binding SelectedNewItem, Mode=TwoWay}" />
 
-                    <ComboBox Width="250" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding ItemChoices}"
-                              SelectedItem="{Binding SelectedNewItem}" DisplayMemberPath="Name" />
-
-                    <TextBlock Text="Godown" Style="{StaticResource FieldLabel}" />
-                    <ComboBox Width="160" Style="{StaticResource FieldCombo}"
-                              ItemsSource="{Binding GodownChoices}"
-                              SelectedItem="{Binding DefaultGodown}" DisplayMemberPath="Name" />
+                    <TextBlock Text="Into godown" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="170"
+                                        Watermark="Godown"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding GodownChoices}"
+                                        SelectedItem="{Binding DefaultGodown, Mode=TwoWay}" />
 
                     <Button Content="Add line" Style="{StaticResource BandButton}"
                             Command="{Binding AddLineCommand}" />
@@ -69,47 +92,155 @@
             </StackPanel>
         </Border>
 
-        <DataGrid Grid.Row="2" Style="{StaticResource PageGrid}" IsReadOnly="False"
-                  ItemsSource="{Binding Lines}"
-                  SelectedItem="{Binding SelectedLine}">
-            <DataGrid.Columns>
-                <DataGridComboBoxColumn Header="Direction" Width="95"
-                                        ItemsSource="{Binding DataContext.DirectionChoices,
-                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        SelectedItemBinding="{Binding Direction}" />
-                <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" IsReadOnly="True" Width="*" />
-                <DataGridComboBoxColumn Header="Godown" Width="140"
-                                        ItemsSource="{Binding DataContext.GodownChoices,
-                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        SelectedValueBinding="{Binding GodownId}"
-                                        SelectedValuePath="Id" DisplayMemberPath="Name" />
-                <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="90"
-                                    ElementStyle="{StaticResource NumericCell}"
-                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
-                <DataGridTextColumn Header="Unit cost" Binding="{Binding UnitCost}" Width="120"
-                                    ElementStyle="{StaticResource NumericCell}"
-                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
-                <DataGridTextColumn Header="Batch" Binding="{Binding BatchNumber}" Width="110" />
-                <DataGridTextColumn Header="Serials (; separated)" Binding="{Binding SerialNumbers}" Width="2*" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <Border Grid.Row="2" Style="{StaticResource EntryHeaderBand}">
+            <Grid Margin="0,0,17,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="95" />
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="30" />
+                </Grid.ColumnDefinitions>
 
-        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
+                <TextBlock Grid.Column="0" Text="Direction" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="1" Text="Item" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="2" Text="Godown" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="3" Text="Qty" Style="{StaticResource EntryNumberColumnHeaderText}" />
+                <TextBlock Grid.Column="4" Text="Unit cost" Style="{StaticResource EntryNumberColumnHeaderText}" />
+                <TextBlock Grid.Column="5" Text="Batch" Style="{StaticResource EntryColumnHeaderText}" />
+                <TextBlock Grid.Column="6" Text="Serials (; separated)"
+                           Style="{StaticResource EntryColumnHeaderText}" />
+            </Grid>
+        </Border>
+
+        <!--
+            No AppendRowCommand: a stock line needs an item chosen up in the picker before it can
+            exist, so Enter on the last field stops rather than conjuring a line with no item. The
+            behaviour handles that by doing nothing when no append command is set.
+        -->
+        <ItemsControl Grid.Row="3"
+                      ItemsSource="{Binding Lines}"
+                      Focusable="False"
+                      controls:EntryGrid.Enable="True"
+                      controls:EntryGrid.CurrentItem="{Binding SelectedLine, Mode=TwoWay}">
+            <ItemsControl.Template>
+                <ControlTemplate TargetType="ItemsControl">
+                    <ScrollViewer Focusable="False"
+                                  VerticalScrollBarVisibility="Visible"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsPresenter />
+                    </ScrollViewer>
+                </ControlTemplate>
+            </ItemsControl.Template>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource EntryLineBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="95" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="30" />
+                            </Grid.ColumnDefinitions>
+
+                            <ComboBox Grid.Column="0" BorderThickness="0" Background="Transparent"
+                                      VerticalAlignment="Center"
+                                      ItemsSource="{Binding DataContext.DirectionChoices,
+                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      SelectedItem="{Binding Direction}" />
+
+                            <TextBlock Grid.Column="1" Text="{Binding ItemName}" Margin="6,0"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       Foreground="{StaticResource PrimaryTextBrush}" />
+
+                            <controls:LookupBox Grid.Column="2"
+                                                Watermark="Godown"
+                                                DisplayMemberPath="Name"
+                                                ItemsSource="{Binding DataContext.GodownChoices,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                SelectedItem="{Binding Godown, Mode=TwoWay}" />
+
+                            <TextBox Grid.Column="3" Style="{StaticResource EntryNumberField}"
+                                     Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBox Grid.Column="4" Style="{StaticResource EntryNumberField}"
+                                     Text="{Binding UnitCost, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBox Grid.Column="5" Style="{StaticResource EntryField}"
+                                     Text="{Binding BatchNumber, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBox Grid.Column="6" Style="{StaticResource EntryField}"
+                                     Text="{Binding SerialNumbers, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <Button Grid.Column="7" Content="−" Style="{StaticResource EntryLineButton}"
+                                    ToolTip="Remove this line (Ctrl+D)"
+                                    Command="{Binding DataContext.RemoveLineCommand,
+                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Grid.Row="4" Style="{StaticResource TotalsBandStyle}">
             <StackPanel Orientation="Horizontal">
                 <Button Content="Validate" Style="{StaticResource BandButton}" Command="{Binding ValidateCommand}" />
                 <Button Content="Post voucher" Style="{StaticResource BandButton}" Command="{Binding PostCommand}" />
                 <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
                 <Button Content="Remove line" Style="{StaticResource BandButton}"
                         Command="{Binding RemoveLineCommand}" />
-                <Button Content="Refresh" Style="{StaticResource BandButton}" Command="{Binding RefreshCommand}" />
+                <Button Content="Clear entry" Style="{StaticResource BandButton}"
+                        Command="{Binding ClearEntryCommand}" />
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="4" Style="{StaticResource TotalsBandStyle}">
+        <!-- Alt+C lands here. -->
+        <Border Grid.Row="5" Style="{StaticResource EntryPanelStyle}"
+                Visibility="{Binding IsCreatingItem, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="NEW ITEM — CTRL+A SAVES IT AND SELECTS IT"
+                           Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="260" Style="{StaticResource FieldBox}"
+                             Text="{Binding NewItemName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Base unit" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="120"
+                                        Watermark="Unit"
+                                        DisplayMemberPath="Code"
+                                        ItemsSource="{Binding UnitChoices}"
+                                        SelectedItem="{Binding NewItemUnit, Mode=TwoWay}" />
+
+                    <TextBlock Text="Stock group" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="200"
+                                        Watermark="Optional"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding StockGroupChoices}"
+                                        SelectedItem="{Binding NewItemGroup, Mode=TwoWay}" />
+
+                    <Button Content="Save item" Style="{StaticResource BandButton}"
+                            Command="{Binding ConfirmCreateItemCommand}" />
+                    <Button Content="Abandon" Style="{StaticResource BandButton}"
+                            Command="{Binding CancelCreateItemCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="6" Style="{StaticResource TotalsBandStyle}">
             <TextBlock Text="RECENT MOVEMENTS" Style="{StaticResource EntryHeadingText}" Margin="0" />
         </Border>
 
-        <DataGrid Grid.Row="5" Style="{StaticResource PageGrid}" ItemsSource="{Binding RecentVouchers}">
+        <DataGrid Grid.Row="7" Style="{StaticResource PageGrid}" ItemsSource="{Binding RecentVouchers}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Number" Binding="{Binding Number}" Width="120" />
                 <DataGridTextColumn Header="Date" Binding="{Binding VoucherDate}" Width="100" />
@@ -121,7 +252,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Row="6" Style="{StaticResource PageStatusStyle}">
+        <Border Grid.Row="8" Style="{StaticResource PageStatusStyle}">
             <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
         </Border>
     </Grid>
