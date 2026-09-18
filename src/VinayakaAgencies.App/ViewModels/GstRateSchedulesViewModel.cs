@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Domain.Common;
 
@@ -15,7 +16,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// </summary>
 public sealed partial class GstRateSchedulesViewModel : ObservableObject, IScreenShortcuts
 {
-    public const string ShortcutHints = "Ctrl+A Save · Alt+X Cancel";
+    public const string ShortcutHints = "Alt+C New row · Ctrl+A Add · Ctrl+Enter History · Alt+X Abandon";
 
     private readonly IHsnSacService _hsnSac;
     private readonly IGstRateService _rates;
@@ -55,6 +56,17 @@ public sealed partial class GstRateSchedulesViewModel : ObservableObject, IScree
     public ICommand? AcceptCommand => AddScheduleCommand;
 
     public ICommand? CancelCommand => ClearEditorCommand;
+
+    /// <summary>
+    /// Alt+C and Ctrl+Enter (ADR-0007). No Alt+D: a rate row is never deleted or edited — a new row
+    /// supersedes the open-ended one, and the history below is the audit evidence for every return
+    /// already built from it.
+    /// </summary>
+    public IReadOnlyList<ShortcutButton> ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New row", ClearEditorCommand),
+        new ShortcutButton(AppShortcuts.DrillDown, "History", LoadHistoryCommand),
+    ];
 
     partial void OnSelectedCodeChanged(HsnSacSummary? value)
     {

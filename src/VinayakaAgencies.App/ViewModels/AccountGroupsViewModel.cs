@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Accounting;
 using VinayakaAgencies.Domain.Accounting;
 
@@ -14,7 +16,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// never re-parented and never deleted — those rules live in the domain, so this screen only has to
 /// surface the refusal rather than pre-empt it.
 /// </remarks>
-public sealed partial class AccountGroupsViewModel : ObservableObject
+public sealed partial class AccountGroupsViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly IChartOfAccountsService _chartOfAccounts;
 
@@ -45,6 +47,32 @@ public sealed partial class AccountGroupsViewModel : ObservableObject
     public AccountGroupsViewModel(IChartOfAccountsService chartOfAccounts)
     {
         _chartOfAccounts = chartOfAccounts ?? throw new ArgumentNullException(nameof(chartOfAccounts));
+    }
+
+    /// <summary>Ctrl+A — add the group named in the editor under the chosen parent.</summary>
+    ICommand? IScreenShortcuts.AcceptCommand => AddGroupCommand;
+
+    /// <summary>Alt+X — abandon the editor.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => NewEntryCommand;
+
+    /// <summary>
+    /// No Alt+D. A group cannot be deleted from here — the domain refuses for system rows and for
+    /// any group with children or ledgers — and ADR-0006 forbids advertising a key that cannot run.
+    /// </summary>
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New group", NewEntryCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints => "Alt+C New · Ctrl+A Add · Alt+X Abandon";
+
+    /// <summary>Alt+C — empty the editor for a fresh group.</summary>
+    [RelayCommand]
+    private void NewEntry()
+    {
+        NewGroupName = string.Empty;
+        NewSortOrder = 0;
+        Status = "New group — name it, choose its parent, then Ctrl+A.";
     }
 
     partial void OnSelectedGroupChanged(AccountGroupSummary? value) =>

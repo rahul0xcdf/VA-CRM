@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Domain.Customers;
@@ -12,11 +14,23 @@ namespace VinayakaAgencies.App.ViewModels;
 /// line, either a fixed selling price or a margin/discount percent over cost or over MRP — the
 /// basis flag picks which, exactly as approved in §4a.
 /// </summary>
-public sealed partial class CategoryPriceListViewModel : ObservableObject
+public sealed partial class CategoryPriceListViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly ICustomerCategoryService _categories;
     private readonly IPriceListService _prices;
     private readonly IInventoryMasterService _masters;
+
+    /// <summary>Ctrl+A — write the whole price list back (ADR-0007).</summary>
+    ICommand? IScreenShortcuts.AcceptCommand => SavePricesCommand;
+
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "Add line", AddLineCommand),
+        new ShortcutButton(AppShortcuts.RemoveLine, "Remove line", RemoveSelectedCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Alt+C Add line · Ctrl+D Remove line · Ctrl+A Save the list";
 
     [ObservableProperty]
     private ObservableCollection<CustomerCategorySummary> _categoryChoices = [];

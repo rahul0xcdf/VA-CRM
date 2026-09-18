@@ -18,8 +18,21 @@ namespace VinayakaAgencies.App.ViewModels;
 /// checkpoints C4.3/C4.6): what one customer was billed, what they paid, and which bills remain
 /// open oldest-first. Printable and exportable.
 /// </summary>
-public sealed partial class CustomerStatementViewModel : ObservableObject
+public sealed partial class CustomerStatementViewModel : ObservableObject, IScreenShortcuts
 {
+    /// <summary>
+    /// Ctrl+P and Ctrl+E (ADR-0007). This is the only screen that has both, and they are on the bar
+    /// because they exist here — ADR-0006's rule is that a key is advertised where it works and
+    /// nowhere else, which is why no other report shows them.
+    /// </summary>
+    IReadOnlyList<Presentation.Keyboard.ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new(Presentation.Keyboard.AppShortcuts.Print, "Print", PrintCommand),
+        new(Presentation.Keyboard.AppShortcuts.Export, "Export CSV", ExportCsvCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints => "Ctrl+P Print · Ctrl+E Export CSV · Esc Back";
+
     private readonly ICustomerStatementService _statements;
     private readonly ICustomerService _customers;
     private readonly ICompanyService _companies;

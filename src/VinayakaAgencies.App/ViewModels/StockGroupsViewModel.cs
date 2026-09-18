@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Inventory;
 
 namespace VinayakaAgencies.App.ViewModels;
@@ -8,7 +10,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// <summary>
 /// The stock-group master: classification rows items hang off (phase-2-inventory.md §1).
 /// </summary>
-public sealed partial class StockGroupsViewModel : ObservableObject
+public sealed partial class StockGroupsViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly IInventoryMasterService _masters;
 
@@ -33,6 +35,57 @@ public sealed partial class StockGroupsViewModel : ObservableObject
     public StockGroupsViewModel(IInventoryMasterService masters)
     {
         _masters = masters ?? throw new ArgumentNullException(nameof(masters));
+    }
+
+    /// <summary>
+    /// Ctrl+A. Accept is a create when nothing is selected and an update when something is, so the
+    /// operator never has to pick between two commands that mean "commit what I typed" (ADR-0007).
+    /// </summary>
+    ICommand? IScreenShortcuts.AcceptCommand =>
+        SelectedGroup is null ? AddCommand : SaveSelectedCommand;
+
+    /// <summary>Alt+X — abandon the editor.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => NewEntryCommand;
+
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New group", NewEntryCommand),
+        new ShortcutButton(AppShortcuts.Delete, "Delete", DeleteSelectedCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Alt+C New · Ctrl+A Accept · Alt+D Delete · Alt+X Abandon";
+
+    /// <summary>Alt+C — empty the editor so the next Ctrl+A creates rather than updates.</summary>
+    [RelayCommand]
+    private void NewEntry()
+    {
+        SelectedGroup = null;
+        EditName = string.Empty;
+        EditDescription = string.Empty;
+        Status = "New stock group — name it, then Ctrl+A.";
+    }
+
+    /// <summary>
+    /// Selecting a row loads it into the editor.
+    /// </summary>
+    /// <remarks>
+    /// It did not before: the operator selected a group, typed a new name into an editor still
+    /// holding the last one, and pressed Save. Every other master screen loads on selection, and the
+    /// Alt+X meaning this batch settled on — "put the editor back to the selected record" — is only
+    /// coherent if selection puts something there in the first place.
+    /// </remarks>
+    partial void OnSelectedGroupChanged(StockGroupSummary? value)
+    {
+        OnPropertyChanged(nameof(IScreenShortcuts.ActionBar));
+
+        if (value is null)
+        {
+            return;
+        }
+
+        EditName = value.Name;
+        EditDescription = value.Description ?? string.Empty;
     }
 
     [RelayCommand]

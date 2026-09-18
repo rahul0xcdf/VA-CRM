@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Customers;
 
 namespace VinayakaAgencies.App.ViewModels;
@@ -9,7 +11,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// The customer category master: the rows whose price lists price their customers
 /// (phase-4-customer-pricing.md §2). Master data, not an enum (§4a).
 /// </summary>
-public sealed partial class CustomerCategoriesViewModel : ObservableObject
+public sealed partial class CustomerCategoriesViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly ICustomerCategoryService _categoryService;
 
@@ -78,6 +80,21 @@ public sealed partial class CustomerCategoriesViewModel : ObservableObject
         EditDescription = SelectedCategory.Description ?? string.Empty;
         return Task.CompletedTask;
     }
+
+    /// <summary>Ctrl+A — commit the editor (ADR-0007).</summary>
+    ICommand? IScreenShortcuts.AcceptCommand => SaveCommand;
+
+    /// <summary>Alt+X — abandon the editor and reload whichever category is selected.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => SelectionChangedCommand;
+
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New category", NewCommand),
+        new ShortcutButton(AppShortcuts.Delete, "Delete", DeleteSelectedCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Alt+C New · Ctrl+A Save · Alt+D Delete · Alt+X Reload the selected category";
 
     [RelayCommand]
     private Task SelectionChangedAsync(CancellationToken cancellationToken) =>

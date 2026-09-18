@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Domain.Customers;
@@ -13,7 +15,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// category that prices this customer, and any per-customer special prices that win over the
 /// category list (phase-4-customer-pricing.md §2, §4a).
 /// </summary>
-public sealed partial class CustomerMasterViewModel : ObservableObject
+public sealed partial class CustomerMasterViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly ICustomerService _customerService;
     private readonly ICustomerCategoryService _categories;
@@ -180,6 +182,29 @@ public sealed partial class CustomerMasterViewModel : ObservableObject
         NewSpecialItem = null;
         NewSpecialValue = string.Empty;
     }
+
+    /// <summary>Ctrl+A — commit the editor (ADR-0007).</summary>
+    ICommand? IScreenShortcuts.AcceptCommand => SaveCommand;
+
+    /// <summary>Alt+X — abandon the editor and reload whichever customer is selected.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => SelectionChangedCommand;
+
+    /// <summary>
+    /// Alt+D deactivates rather than deletes.
+    /// </summary>
+    /// <remarks>
+    /// A customer is 1:1 with a Sundry Debtors ledger that every Phase 1-3 posting path writes
+    /// through, so there is no delete to offer: deactivation is the destructive act this screen has,
+    /// and it is the one Alt+D must run.
+    /// </remarks>
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New customer", NewCommand),
+        new ShortcutButton(AppShortcuts.Delete, "Deactivate", DeactivateSelectedCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Alt+C New · Ctrl+A Save · Alt+D Deactivate · Alt+X Reload the selected customer";
 
     [RelayCommand]
     private Task SelectionChangedAsync(CancellationToken cancellationToken) =>

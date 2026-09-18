@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Domain.Common;
 
@@ -18,7 +19,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// </remarks>
 public sealed partial class HsnSacMasterViewModel : ObservableObject, IScreenShortcuts
 {
-    public const string ShortcutHints = "Ctrl+A Save · Alt+X Cancel";
+    public const string ShortcutHints = "Alt+C New · Ctrl+A Save · Alt+D Deactivate · Alt+X Abandon";
 
     private readonly IHsnSacService _hsnSac;
     private readonly IGstRateService _rates;
@@ -62,6 +63,17 @@ public sealed partial class HsnSacMasterViewModel : ObservableObject, IScreenSho
     public ICommand? AcceptCommand => SaveCommand;
 
     public ICommand? CancelCommand => ClearEditorCommand;
+
+    /// <summary>
+    /// Alt+C and Alt+D (ADR-0007). Deactivate, not delete: an HSN code that has priced an invoice
+    /// cannot be removed without orphaning the tax snapshot on it, so this master offers no delete
+    /// and Alt+D runs the destructive act it does have.
+    /// </summary>
+    public IReadOnlyList<ShortcutButton> ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New code", ClearEditorCommand),
+        new ShortcutButton(AppShortcuts.Delete, "Deactivate", DeactivateSelectedCommand),
+    ];
 
     partial void OnSelectedRowChanged(HsnSacCodeRow? value)
     {

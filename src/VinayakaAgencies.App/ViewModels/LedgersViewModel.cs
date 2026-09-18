@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Accounting;
 
 namespace VinayakaAgencies.App.ViewModels;
@@ -14,7 +16,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// row that cannot be deleted, a duplicate name, a ledger with postings — are surfaced as status
 /// text from the domain's own messages rather than second-guessed here.
 /// </remarks>
-public sealed partial class LedgersViewModel : ObservableObject
+public sealed partial class LedgersViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly IChartOfAccountsService _chartOfAccounts;
 
@@ -64,6 +66,10 @@ public sealed partial class LedgersViewModel : ObservableObject
 
     partial void OnSelectedLedgerChanged(LedgerSummary? value)
     {
+        // The action bar carries Accept, and Accept means create or update depending on this; the
+        // shell re-reads the bar when it changes, so the key follows the selection.
+        OnPropertyChanged(nameof(IScreenShortcuts.ActionBar));
+
         if (value is null)
         {
             return;
@@ -296,6 +302,29 @@ public sealed partial class LedgersViewModel : ObservableObject
             query.OrderBy(ledger => ledger.AccountGroupName, StringComparer.Ordinal)
                 .ThenBy(ledger => ledger.Name, StringComparer.OrdinalIgnoreCase));
     }
+
+    /// <summary>
+    /// Ctrl+A. Accept means "commit what I typed", which is a create when no ledger is selected and
+    /// an update when one is — the operator should not have to know which command they are in.
+    /// </summary>
+    ICommand? IScreenShortcuts.AcceptCommand =>
+        SelectedLedger is null ? NewLedgerCommand : SaveLedgerCommand;
+
+    /// <summary>Alt+X — abandon the editor.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => NewEntryCommand;
+
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New ledger", NewEntryCommand),
+        new ShortcutButton(AppShortcuts.Delete, "Delete", DeleteSelectedCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Alt+C New · Ctrl+A Accept · Alt+D Delete · Alt+X Abandon";
+
+    /// <summary>Alt+C — empty the editor so the next Ctrl+A creates rather than updates.</summary>
+    [RelayCommand]
+    private void NewEntry() => ClearEditor();
 
     private void ClearEditor()
     {

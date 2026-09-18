@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Domain.Trade;
 
@@ -11,10 +13,29 @@ namespace VinayakaAgencies.App.ViewModels;
 /// copy labels, and saves a new version — no rebuild, no developer (checkpoint C3.2). Two seeded
 /// tax-invoice templates demonstrate the priority rule that picks the default (C3.6).
 /// </summary>
-public sealed partial class PrintTemplatesViewModel : ObservableObject
+public sealed partial class PrintTemplatesViewModel : ObservableObject, IScreenShortcuts
 {
     /// <summary>The column palette the renderer can print; templates pick from it.</summary>
     public IReadOnlyList<string> ColumnPalette { get; } = ["Sr", "Item", "Qty", "Rate", "Discount", "Amount"];
+
+    /// <summary>Ctrl+A — save the layout as a new version (ADR-0007).</summary>
+    ICommand? IScreenShortcuts.AcceptCommand => SaveLayoutCommand;
+
+    /// <summary>Alt+X — abandon the edits and reload the selected template.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => LoadSelectedCommand;
+
+    /// <summary>
+    /// Ctrl+Enter loads the highlighted template into the designer, which is this screen's drill:
+    /// the list says which templates exist, the designer says what one of them is.
+    /// </summary>
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.DrillDown, "Open template", LoadSelectedCommand),
+        new ShortcutButton(AppShortcuts.Delete, "Activate/deactivate", ToggleSelectedActiveCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Ctrl+Enter Open · Ctrl+A Save as a new version · Alt+D Activate or deactivate";
 
     [ObservableProperty]
     private TradeDocumentKind? _kindFilter;

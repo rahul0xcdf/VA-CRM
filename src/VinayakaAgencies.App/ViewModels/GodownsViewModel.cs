@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Inventory;
 
 namespace VinayakaAgencies.App.ViewModels;
@@ -8,7 +10,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// <summary>
 /// The godown master: the warehouses stock is held in (phase-2-inventory.md §2).
 /// </summary>
-public sealed partial class GodownsViewModel : ObservableObject
+public sealed partial class GodownsViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly IInventoryMasterService _masters;
 
@@ -121,6 +123,51 @@ public sealed partial class GodownsViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// Ctrl+A. A create when nothing is selected, an update when something is (ADR-0007).
+    /// </summary>
+    ICommand? IScreenShortcuts.AcceptCommand =>
+        SelectedGodown is null ? AddCommand : SaveSelectedCommand;
+
+    /// <summary>Alt+X — abandon the editor.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => NewEntryCommand;
+
+    /// <summary>
+    /// No Alt+D: the service offers no godown delete, and a key that cannot run is exactly what
+    /// ADR-0006 forbids a bar from showing.
+    /// </summary>
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New godown", NewEntryCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints => "Alt+C New · Ctrl+A Accept · Alt+X Abandon";
+
+    /// <summary>Alt+C — empty the editor so the next Ctrl+A creates rather than updates.</summary>
+    [RelayCommand]
+    private void NewEntry()
+    {
+        SelectedGodown = null;
+        EditName = string.Empty;
+        EditAddress = string.Empty;
+        Status = "New godown — name it, then Ctrl+A.";
+    }
+
+    /// <summary>
+    /// Selecting a row loads it into the editor.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="LoadSelectedIntoEditor"/> already existed but nothing ever called it, so selecting a
+    /// godown left the editor holding the previous one and Save renamed the wrong row. Hooking it to
+    /// the property change fixes that and makes Alt+X — "put the editor back to the selected record" —
+    /// mean the same thing here as on every other master screen.
+    /// </remarks>
+    partial void OnSelectedGodownChanged(GodownSummary? value)
+    {
+        OnPropertyChanged(nameof(IScreenShortcuts.ActionBar));
+        LoadSelectedIntoEditor();
     }
 
     /// <summary>Fills the editor from the selected row.</summary>

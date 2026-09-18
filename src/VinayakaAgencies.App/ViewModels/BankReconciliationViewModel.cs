@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Accounting;
 
 namespace VinayakaAgencies.App.ViewModels;
@@ -9,8 +11,22 @@ namespace VinayakaAgencies.App.ViewModels;
 /// Manual bank reconciliation: the statement of one bank ledger's lines, with marks added and
 /// withdrawn by hand (spec §12). Statement import is a later phase.
 /// </summary>
-public sealed partial class BankReconciliationViewModel : ObservableObject
+/// <remarks>
+/// Marking is the whole job here, and it is done a hundred lines at a time against a paper statement,
+/// so it goes on the Accept key rather than a button: <c>Ctrl+A</c> marks the highlighted line
+/// cleared and <c>Alt+X</c> takes the mark off again (ADR-0007).
+/// </remarks>
+public sealed partial class BankReconciliationViewModel : ObservableObject, IScreenShortcuts
 {
+    /// <summary>Ctrl+A — mark the highlighted line as cleared on the bank statement.</summary>
+    ICommand? IScreenShortcuts.AcceptCommand => MarkClearedCommand;
+
+    /// <summary>Alt+X — take the mark off again.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => UnmarkClearedCommand;
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Ctrl+A Mark cleared · Alt+X Unmark · Esc Back";
+
     private readonly IBankReconciliationService _reconciliation;
     private readonly IChartOfAccountsService _chartOfAccounts;
 

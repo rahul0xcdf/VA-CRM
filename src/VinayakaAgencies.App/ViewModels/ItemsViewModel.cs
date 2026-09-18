@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Domain.Inventory;
@@ -12,7 +14,7 @@ namespace VinayakaAgencies.App.ViewModels;
 /// The item master: name-and-code based as approved (open-questions.md #5), with units, tracking
 /// flags, valuation override, reorder level and kit components (phase-2-inventory.md §2).
 /// </summary>
-public sealed partial class ItemsViewModel : ObservableObject
+public sealed partial class ItemsViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly IInventoryMasterService _masters;
     private readonly IHsnSacService _hsnSac;
@@ -183,6 +185,21 @@ public sealed partial class ItemsViewModel : ObservableObject
                     .ConfigureAwait(true))
             : [];
     }
+
+    /// <summary>Ctrl+A — commit the editor, whether it holds a new item or a loaded one.</summary>
+    ICommand? IScreenShortcuts.AcceptCommand => SaveCommand;
+
+    /// <summary>Alt+X — abandon the editor and reload whichever item is selected.</summary>
+    ICommand? IScreenShortcuts.CancelCommand => SelectionChangedCommand;
+
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.CreateOnTheFly, "New item", NewCommand),
+        new ShortcutButton(AppShortcuts.Delete, "Delete", DeleteSelectedCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Alt+C New · Ctrl+A Save · Alt+D Delete · Alt+X Reload the selected item";
 
     [RelayCommand]
     private Task SelectionChangedAsync(CancellationToken cancellationToken) =>

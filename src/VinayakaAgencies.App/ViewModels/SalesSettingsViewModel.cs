@@ -11,8 +11,16 @@ namespace VinayakaAgencies.App.ViewModels;
 /// (phase-4-customer-pricing.md §2, §4a). Until Phase 9 brings user roles, this row IS the
 /// permission store for the pricing override.
 /// </summary>
-public sealed partial class SalesSettingsViewModel : ObservableObject
+public sealed partial class SalesSettingsViewModel : ObservableObject, IScreenShortcuts
 {
+    /// <summary>Ctrl+A — save the settings (ADR-0007).</summary>
+    System.Windows.Input.ICommand? IScreenShortcuts.AcceptCommand => SaveCommand;
+
+    /// <summary>Alt+X — discard the edits by re-reading what is stored.</summary>
+    System.Windows.Input.ICommand? IScreenShortcuts.CancelCommand => RefreshCommand;
+
+    string? IScreenShortcuts.StatusBarHints => "Ctrl+A Save · Alt+X Discard and re-read";
+
     private readonly ISalesSettingsService _settings;
 
     [ObservableProperty]
