@@ -13,6 +13,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
@@ -43,7 +44,8 @@
         </Border>
 
         <Grid Grid.Row="2">
-            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding Rows}">
+            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding Rows}"
+                      SelectedItem="{Binding SelectedRow}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="#" Binding="{Binding Sequence}" Width="60"
                                         ElementStyle="{StaticResource NumericCell}"
@@ -63,7 +65,28 @@
                        Visibility="{Binding Rows.Count, Converter={StaticResource ZeroToVisibility}}" />
         </Grid>
 
-        <Border Grid.Row="3" Style="{StaticResource PageStatusStyle}">
+        <!-- Ctrl+Enter fills this; the grid must truncate the images to stay readable, and a
+             truncated before-image is the one thing this screen exists to show. -->
+        <Border Grid.Row="3" Style="{StaticResource DrillDownBandStyle}"
+                Visibility="{Binding DetailCaption, Converter={StaticResource NotNullToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="{Binding DetailCaption}" Style="{StaticResource DrillDownHeadingText}" />
+                <Grid Margin="16,0,16,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Text="{Binding DetailBefore, Mode=OneWay}" IsReadOnly="True"
+                             Margin="0,0,8,0" MaxHeight="150" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" FontFamily="Consolas" />
+                    <TextBox Grid.Column="1" Text="{Binding DetailAfter, Mode=OneWay}" IsReadOnly="True"
+                             MaxHeight="150" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" FontFamily="Consolas" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
             <StackPanel>
                 <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
                 <TextBlock Text="{Binding VerificationStatus}" FontWeight="SemiBold"

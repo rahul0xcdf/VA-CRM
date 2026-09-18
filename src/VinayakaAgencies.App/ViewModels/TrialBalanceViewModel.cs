@@ -1,15 +1,22 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Reporting;
 
 namespace VinayakaAgencies.App.ViewModels;
 
 /// <summary>
-/// The trial balance as on a date, with drill-down: selecting a ledger loads its statement for the
-/// financial year up to that date (spec §2, §8.4).
+/// The trial balance as on a date, with drill-down: <c>Ctrl+Enter</c> on a ledger loads its statement
+/// for the financial year up to that date (spec §2, §8.4).
 /// </summary>
-public sealed partial class TrialBalanceViewModel : ObservableObject
+/// <remarks>
+/// The drill used to fire on selection change. ADR-0007 moved it onto <c>Ctrl+Enter</c>, which is
+/// both Tally's key and a fix: walking a long trial balance with the arrow keys ran a statement query
+/// per row, so the report got slower the further down it the operator looked.
+/// </remarks>
+public sealed partial class TrialBalanceViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly IAccountingReportService _reports;
 
@@ -42,13 +49,13 @@ public sealed partial class TrialBalanceViewModel : ObservableObject
         _reports = reports ?? throw new ArgumentNullException(nameof(reports));
     }
 
-    partial void OnSelectedRowChanged(TrialBalanceRow? value)
-    {
-        if (value is not null)
-        {
-            LoadDrillDownCommand.Execute(null);
-        }
-    }
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.DrillDown, "Ledger statement", LoadDrillDownCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Ctrl+Enter Ledger statement for the highlighted row · Esc Back";
 
     [RelayCommand]
     private async Task LoadAsync(CancellationToken cancellationToken)
@@ -85,6 +92,7 @@ public sealed partial class TrialBalanceViewModel : ObservableObject
     {
         if (SelectedRow is null)
         {
+            Status = "Highlight a ledger first, then press Ctrl+Enter.";
             return;
         }
 

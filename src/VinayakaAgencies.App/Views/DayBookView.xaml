@@ -14,6 +14,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
@@ -37,7 +38,8 @@
         </Border>
 
         <Grid Grid.Row="2">
-            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding Rows}">
+            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding Rows}"
+                      SelectedItem="{Binding SelectedRow}">
                 <DataGrid.RowStyle>
                     <!-- Cancelled vouchers stay in the book and are marked, not removed. -->
                     <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
@@ -70,7 +72,29 @@
                        Visibility="{Binding Rows.Count, Converter={StaticResource ZeroToVisibility}}" />
         </Grid>
 
-        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}">
+        <!-- Ctrl+Enter fills this; it stays collapsed until then. -->
+        <Border Grid.Row="3" Style="{StaticResource DrillDownBandStyle}"
+                Visibility="{Binding VoucherRows.Count, Converter={StaticResource NonZeroToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="THE WHOLE VOUCHER" Style="{StaticResource DrillDownHeadingText}" />
+                <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding VoucherRows}"
+                          MaxHeight="180" Background="Transparent">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Number" Binding="{Binding VoucherNumber}" Width="130" />
+                        <DataGridTextColumn Header="Ledger" Binding="{Binding LedgerName}" Width="2*" />
+                        <DataGridTextColumn Header="Debit" Binding="{Binding Debit, StringFormat=N2}" Width="120"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Credit" Binding="{Binding Credit, StringFormat=N2}" Width="120"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource TotalsBandStyle}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <TextBlock Text="Dr" Style="{StaticResource TotalsLabelText}" />
                 <TextBlock Text="{Binding TotalDebit, StringFormat=N2}" Style="{StaticResource TotalsValueText}" />
@@ -79,7 +103,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+        <Border Grid.Row="5" Style="{StaticResource PageStatusStyle}">
             <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
         </Border>
     </Grid>

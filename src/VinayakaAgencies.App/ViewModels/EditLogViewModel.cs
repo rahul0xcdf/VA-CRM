@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Auditing;
 
 namespace VinayakaAgencies.App.ViewModels;
@@ -10,7 +12,12 @@ namespace VinayakaAgencies.App.ViewModels;
 /// (spec §2, §11). There is no delete, no purge, and no filter that can hide rows permanently —
 /// the interface offers none because the product must not.
 /// </summary>
-public sealed partial class EditLogViewModel : ObservableObject
+/// <remarks>
+/// <c>Ctrl+Enter</c> opens the highlighted row's before and after images in full (ADR-0007). The grid
+/// has to truncate them to stay readable, and a truncated before-image is exactly the thing this
+/// screen exists to show — non-negotiable #3 is only met if the values can actually be read.
+/// </remarks>
+public sealed partial class EditLogViewModel : ObservableObject, IScreenShortcuts
 {
     private readonly IAuditLogReader _auditLogReader;
 
@@ -19,6 +26,18 @@ public sealed partial class EditLogViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<AuditLogRow> _rows = [];
+
+    [ObservableProperty]
+    private AuditLogRow? _selectedRow;
+
+    [ObservableProperty]
+    private string? _detailCaption;
+
+    [ObservableProperty]
+    private string _detailBefore = string.Empty;
+
+    [ObservableProperty]
+    private string _detailAfter = string.Empty;
 
     [ObservableProperty]
     private string _entityTypeFilter = string.Empty;
@@ -38,6 +57,31 @@ public sealed partial class EditLogViewModel : ObservableObject
     public EditLogViewModel(IAuditLogReader auditLogReader)
     {
         _auditLogReader = auditLogReader ?? throw new ArgumentNullException(nameof(auditLogReader));
+    }
+
+    IReadOnlyList<ShortcutButton> IScreenShortcuts.ActionBar =>
+    [
+        new ShortcutButton(AppShortcuts.DrillDown, "Full before/after", ShowDetailCommand),
+    ];
+
+    string? IScreenShortcuts.StatusBarHints =>
+        "Ctrl+Enter Full before/after for the highlighted row · read-only, always";
+
+    /// <summary>Ctrl+Enter: the highlighted row's images, untruncated.</summary>
+    [RelayCommand]
+    private void ShowDetail()
+    {
+        if (SelectedRow is null)
+        {
+            Status = "Highlight a row first, then press Ctrl+Enter.";
+            return;
+        }
+
+        DetailCaption = $"{SelectedRow.EntityType} {SelectedRow.EntityId} — {SelectedRow.Action}";
+        DetailBefore = SelectedRow.BeforeJson ?? "(nothing — this row created the record)";
+        DetailAfter = SelectedRow.AfterJson ?? "(nothing — this row deleted the record)";
+
+        Status = "Showing the full images for the highlighted row.";
     }
 
     [RelayCommand]

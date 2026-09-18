@@ -15,6 +15,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
@@ -44,7 +45,8 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <DataGrid Grid.Column="0" Style="{StaticResource PageGrid}" ItemsSource="{Binding GrossRows}">
+            <DataGrid Grid.Column="0" Style="{StaticResource PageGrid}" ItemsSource="{Binding GrossRows}"
+                      SelectedItem="{Binding SelectedGrossRow}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Trading ledger" Binding="{Binding LedgerName}" Width="2*" />
                     <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="*" />
@@ -56,7 +58,8 @@
 
             <Border Grid.Column="1" Width="1" Background="{StaticResource ControlBorderBrush}" />
 
-            <DataGrid Grid.Column="2" Style="{StaticResource PageGrid}" ItemsSource="{Binding IndirectRows}">
+            <DataGrid Grid.Column="2" Style="{StaticResource PageGrid}" ItemsSource="{Binding IndirectRows}"
+                      SelectedItem="{Binding SelectedIndirectRow}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Indirect ledger" Binding="{Binding LedgerName}" Width="2*" />
                     <DataGridTextColumn Header="Group" Binding="{Binding AccountGroupName}" Width="*" />
@@ -81,7 +84,30 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+        <!-- Ctrl+Enter fills this; it stays collapsed until then. -->
+        <Border Grid.Row="4" Style="{StaticResource DrillDownBandStyle}"
+                Visibility="{Binding DrillDownRows.Count, Converter={StaticResource NonZeroToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="LEDGER STATEMENT FOR THIS PERIOD" Style="{StaticResource DrillDownHeadingText}" />
+                <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding DrillDownRows}"
+                          MaxHeight="180" Background="Transparent">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Date" Binding="{Binding VoucherDate, StringFormat=dd-MMM-yy}" Width="100" />
+                        <DataGridTextColumn Header="Number" Binding="{Binding VoucherNumber}" Width="130" />
+                        <DataGridTextColumn Header="Type" Binding="{Binding VoucherTypeName}" Width="130" />
+                        <DataGridTextColumn Header="Debit" Binding="{Binding Debit, StringFormat=N2}" Width="120"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Credit" Binding="{Binding Credit, StringFormat=N2}" Width="120"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="5" Style="{StaticResource PageStatusStyle}">
             <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
         </Border>
     </Grid>
