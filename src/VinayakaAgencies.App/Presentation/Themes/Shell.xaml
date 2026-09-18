@@ -182,6 +182,17 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <!--
+              The key for the state the screen is already in (ADR-0007). Voucher entry advertises one
+              key per voucher type, and an operator halfway through a batch needs to see which one
+              they are in without reading the form — Tally marks it, and so do we.
+            -->
+            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                <Setter Property="Background" Value="{StaticResource SelectionSoftBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="SideButtonGestureText" TargetType="TextBlock">

@@ -187,6 +187,77 @@ public sealed class ShellViewModelTests
     }
 
     [Fact]
+    public void Bars_AreReReadWhenTheScreenRaisesPropertyChangedForThem()
+    {
+        // ADR-0007. IScreenShortcuts always documented this and nothing implemented it, so bars were
+        // frozen at the instant the screen was constructed. It is not cosmetic: the shell *routes*
+        // keystrokes by walking the bars, so a stale bar fires the wrong command.
+        var module = new LiveShortcutModule();
+        var viewModel = Build(module);
+
+        viewModel.OpenScreen(viewModel.Screens[0]);
+
+        viewModel.ButtonBar.ShouldContain(button => button.Label == "Payment");
+        viewModel.ButtonBar.ShouldNotContain(button => button.Label == "Receipt");
+
+        module.Screen!.SwitchToReceipt();
+
+        viewModel.ButtonBar.ShouldContain(button => button.Label == "Receipt");
+        viewModel.ButtonBar.ShouldNotContain(button => button.Label == "Payment");
+    }
+
+    [Fact]
+    public void Bars_StopFollowingAScreenOnceItIsNavigatedAwayFrom()
+    {
+        // A screen left subscribed would keep rewriting the bars of whatever screen replaced it.
+        var module = new LiveShortcutModule();
+        var viewModel = Build(module, new FirstModule());
+
+        // Screens come back in module order, and FirstModule sorts ahead of the live one.
+        var live = viewModel.Screens.Single(screen => screen.Group == "Live");
+        var other = viewModel.Screens.Single(screen => screen.Group == "First");
+
+        viewModel.OpenScreen(live);
+
+        var abandoned = module.Screen!;
+
+        viewModel.OpenScreen(other);
+        abandoned.SwitchToReceipt();
+
+        viewModel.ButtonBar.ShouldNotContain(button => button.Label == "Receipt");
+    }
+
+    [Fact]
+    public void StatusBarHints_FollowTheScreenToo()
+    {
+        var module = new LiveShortcutModule();
+        var viewModel = Build(module);
+
+        viewModel.OpenScreen(viewModel.Screens[0]);
+        viewModel.ShortcutHints.ShouldBe("Payment");
+
+        module.Screen!.SwitchToReceipt();
+        viewModel.ShortcutHints.ShouldBe("Receipt");
+    }
+
+    [Fact]
+    public void ActiveAcceptCommand_FollowsAScreenThatSwapsItForASubScreen()
+    {
+        // Voucher entry hands Accept to the create-a-ledger band while it is open; the shell has to
+        // notice, or Ctrl+A would post a half-typed voucher instead of saving the ledger.
+        var module = new LiveShortcutModule();
+        var viewModel = Build(module);
+
+        viewModel.OpenScreen(viewModel.Screens[0]);
+
+        viewModel.ActiveAcceptCommand.ShouldBe(module.Screen!.PrimaryAccept);
+
+        module.Screen.OpenSubScreen();
+
+        viewModel.ActiveAcceptCommand.ShouldBe(module.Screen.SubScreenAccept);
+    }
+
+    [Fact]
     public void TopMenu_OffersGoToSwitchToAndGateway()
     {
         var viewModel = Build(new FirstModule());
@@ -261,6 +332,66 @@ public sealed class ShellViewModelTests
         [
             new ScreenDescriptor("Shortcut screen", _ => new ShortcutViewModel(), typeof(ShortcutViewModel)),
         ];
+    }
+
+    /// <summary>
+    /// A module whose screen changes its bars after construction, and hands out the instance it
+    /// built so a test can drive it (ADR-0007).
+    /// </summary>
+    private sealed class LiveShortcutModule : IScreenModule
+    {
+        public LiveShortcutModule()
+        {
+            Screens =
+            [
+                new ScreenDescriptor(
+                    "Live screen",
+                    _ => Screen = new LiveShortcutViewModel(),
+                    typeof(LiveShortcutViewModel)),
+            ];
+        }
+
+        public LiveShortcutViewModel? Screen { get; private set; }
+
+        public string Name => "Live";
+
+        public int Order => 4;
+
+        public IReadOnlyList<ScreenDescriptor> Screens { get; }
+    }
+
+    private sealed class LiveShortcutViewModel : ObservableObject, IScreenShortcuts
+    {
+        private bool _onReceipt;
+        private bool _subScreenOpen;
+
+        public System.Windows.Input.ICommand PrimaryAccept { get; } = new StubCommand();
+
+        public System.Windows.Input.ICommand SubScreenAccept { get; } = new StubCommand();
+
+        public System.Windows.Input.ICommand? AcceptCommand => _subScreenOpen ? SubScreenAccept : PrimaryAccept;
+
+        public IReadOnlyList<ShortcutButton> ButtonBar =>
+        [
+            _onReceipt
+                ? new ShortcutButton(AppShortcuts.Receipt, "Receipt", new StubCommand())
+                : new ShortcutButton(AppShortcuts.Payment, "Payment", new StubCommand()),
+        ];
+
+        public string? StatusBarHints => _onReceipt ? "Receipt" : "Payment";
+
+        public void SwitchToReceipt()
+        {
+            _onReceipt = true;
+            OnPropertyChanged(nameof(ButtonBar));
+            OnPropertyChanged(nameof(StatusBarHints));
+        }
+
+        public void OpenSubScreen()
+        {
+            _subScreenOpen = true;
+            OnPropertyChanged(nameof(IScreenShortcuts.ActionBar));
+        }
     }
 
     private sealed class StubViewModel : ObservableObject;

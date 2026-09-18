@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using VinayakaAgencies.App.Presentation.Controls;
 using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.App.ViewModels;
 
@@ -48,6 +49,16 @@ public partial class ShellWindow : Window
 
         var modifiers = e.KeyboardDevice.Modifiers;
         var key = e.Key is Key.System ? e.SystemKey : e.Key;
+
+        // A lookup field with its list open gets first refusal on every key, because the global
+        // meanings are wrong inside one: Escape there closes the list rather than leaving the screen,
+        // and Enter takes the highlighted master rather than doing nothing. It returns false for
+        // anything it has no use for, so the rest of this method still sees those keys.
+        if (LookupBox.Focused is { } lookup && lookup.TryHandleKey(key, modifiers))
+        {
+            e.Handled = true;
+            return;
+        }
 
         // Navigation and chrome.
         if (AppShortcuts.GoTo.Matches(key, modifiers) || AppShortcuts.SwitchTo.Matches(key, modifiers))
@@ -126,21 +137,21 @@ public partial class ShellWindow : Window
         {
             if (button.Shortcut.Matches(key, modifiers))
             {
-                return Invoke(button.Command);
+                return Invoke(button.Command, button.CommandParameter);
             }
         }
 
         return false;
     }
 
-    private static bool Invoke(ICommand? command)
+    private static bool Invoke(ICommand? command, object? parameter = null)
     {
-        if (command is null || !command.CanExecute(null))
+        if (command is null || !command.CanExecute(parameter))
         {
             return false;
         }
 
-        command.Execute(null);
+        command.Execute(parameter);
 
         return true;
     }

@@ -11,6 +11,7 @@
                 <ResourceDictionary Source="Presentation/Themes/Controls.xaml" />
                 <ResourceDictionary Source="Presentation/Themes/Shell.xaml" />
                 <ResourceDictionary Source="Presentation/Themes/Pages.xaml" />
+                <ResourceDictionary Source="Presentation/Themes/Entry.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

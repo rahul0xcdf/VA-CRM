@@ -24,6 +24,26 @@
     -->
 
     <presentation:ZeroToVisibilityConverter x:Key="ZeroToVisibility" />
+    <presentation:NonZeroToVisibilityConverter x:Key="NonZeroToVisibility" />
+
+    <!--
+      The drill-down pane a report opens under itself on Ctrl+Enter (ADR-0007). Collapsed until the
+      key is pressed: a report should have the whole page for the numbers until the operator asks a
+      question of one.
+    -->
+    <Style x:Key="DrillDownBandStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+
+    <Style x:Key="DrillDownHeadingText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="Margin" Value="16,6,16,4" />
+    </Style>
 
     <!-- ===== Page header band ===== -->
 

@@ -1,0 +1,256 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:VinayakaAgencies.App.Presentation.Controls"
+                    xmlns:presentation="clr-namespace:VinayakaAgencies.App.Presentation">
+
+    <!--
+      ADR-0007 entry patterns: the inside of a voucher screen.
+
+      Pages.xaml gave every screen the same outer shape. This gives the dense middle of a voucher the
+      same behaviour everywhere: a line is a row of permanently live fields, a lookup opens a list
+      under the caret, and Alt+C creates the master that turns out to be missing.
+
+      The rules these encode:
+
+        * A line is a row, not a set of cells you click into. Every field is live the moment the row
+          exists, because an operator entering forty invoices a day cannot spend a mouse gesture per
+          field.
+        * Fields inside a line carry no border of their own. The row separators and the column header
+          already draw the grid; a box around every field turns a dense ledger into a form.
+        * Numbers are tabular and right-aligned, in the same monospace figures the totals band uses,
+          so a column of amounts can be read down.
+        * A lookup always shows its list while it has focus. A list that only appears after typing
+          hides itself from the operator who does not yet know what is in it.
+    -->
+
+    <presentation:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibility" />
+    <presentation:NotNullToVisibilityConverter x:Key="NotNullToVisibility" />
+    <presentation:BoolToVisibilityConverter x:Key="EntryBoolToVisibility" />
+
+    <!-- ===== Entry line fields ===== -->
+
+    <!--
+      Borderless because the row draws the grid. Focus is shown by a filled background rather than an
+      outline: an outline inside a gridded row reads as a second set of lines, and at this density the
+      operator needs to find the caret in one glance.
+    -->
+    <Style x:Key="EntryField" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="6,3" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}" />
+        <Style.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="Background" Value="{StaticResource SelectionSoftBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Money and quantity: tabular figures, right-aligned, so a column reads down. -->
+    <Style x:Key="EntryNumberField" TargetType="TextBox" BasedOn="{StaticResource EntryField}">
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="TextAlignment" Value="Right" />
+        <Setter Property="Padding" Value="6,3,8,3" />
+    </Style>
+
+    <!-- ===== Entry line chrome ===== -->
+
+    <Style x:Key="EntryHeaderBand" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource HeaderRowBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="0,4" />
+    </Style>
+
+    <Style x:Key="EntryColumnHeaderText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="Margin" Value="6,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="EntryNumberColumnHeaderText" TargetType="TextBlock"
+           BasedOn="{StaticResource EntryColumnHeaderText}">
+        <Setter Property="TextAlignment" Value="Right" />
+        <Setter Property="Margin" Value="6,0,8,0" />
+    </Style>
+
+    <!-- One line of the voucher: a hairline under it, and a tint when the caret is inside. -->
+    <Style x:Key="EntryLineBorder" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Style.Triggers>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="Background" Value="{StaticResource HoverBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- The small square that drops a line; chrome, and deliberately not an entry stop. -->
+    <Style x:Key="EntryLineButton" TargetType="Button">
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+    </Style>
+
+    <!-- ===== LookupBox ===== -->
+
+    <Style x:Key="LookupRowText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+    </Style>
+
+    <Style x:Key="LookupItemContainer" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="8,3" />
+        <!--
+          Not focusable: the caret must stay in the text box while the list is walked, or every arrow
+          key would move focus out of the field the operator is still typing into.
+        -->
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Row" Background="{TemplateBinding Background}"
+                            Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Row" Property="Background"
+                                    Value="{StaticResource SelectionSoftBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{StaticResource HoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type controls:LookupBox}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:LookupBox}">
+                    <!-- The border is the templated parent's, so the same control reads as a
+                         borderless cell inside a line and as an ordinary boxed field on a page. -->
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            SnapsToDevicePixels="True">
+                    <Grid>
+                        <TextBox x:Name="PART_TextBox"
+                                 Style="{StaticResource EntryField}"
+                                 Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent},
+                                        Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <!-- Sits over the empty field; never over typed text, so it cannot be mistaken
+                             for a value. -->
+                        <TextBlock Text="{TemplateBinding Watermark}"
+                                   IsHitTestVisible="False"
+                                   Margin="7,0,0,0"
+                                   VerticalAlignment="Center"
+                                   FontSize="{StaticResource FontSize.Body}"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Visibility="{Binding Text, RelativeSource={RelativeSource TemplatedParent},
+                                                Converter={StaticResource EmptyStringToVisibility}}" />
+
+                        <Popup x:Name="PART_Popup"
+                               IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                               Placement="Bottom"
+                               StaysOpen="True"
+                               AllowsTransparency="True"
+                               Focusable="False">
+                            <Border Background="{StaticResource SurfaceBrush}"
+                                    BorderBrush="{StaticResource GridLineBrush}"
+                                    BorderThickness="1"
+                                    MinWidth="260"
+                                    MaxWidth="460"
+                                    SnapsToDevicePixels="True">
+                                <DockPanel>
+                                    <!--
+                                      The footer advertises Alt+C in the one place the operator is
+                                      looking when they discover the master is missing. Putting it only
+                                      on the screen's button bar would mean reading across the window
+                                      mid-word.
+                                    -->
+                                    <Border DockPanel.Dock="Bottom"
+                                            Background="{StaticResource SurfaceAltBrush}"
+                                            BorderBrush="{StaticResource ControlBorderBrush}"
+                                            BorderThickness="0,1,0,0"
+                                            Padding="8,4"
+                                            Visibility="{Binding CreateCommand,
+                                                RelativeSource={RelativeSource TemplatedParent},
+                                                Converter={StaticResource NotNullToVisibility}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Alt+C"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="{StaticResource FontSize.Caption}"
+                                                       Foreground="{StaticResource HotkeyBrush}" />
+                                            <TextBlock Text="{TemplateBinding CreateLabel}"
+                                                       Margin="6,0,0,0"
+                                                       FontSize="{StaticResource FontSize.Caption}"
+                                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <TextBlock DockPanel.Dock="Top"
+                                               Text="No match — Alt+C creates it"
+                                               Margin="8,6"
+                                               FontSize="{StaticResource FontSize.Caption}"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               Visibility="{Binding HasNoMatches,
+                                                   RelativeSource={RelativeSource TemplatedParent},
+                                                   Converter={StaticResource EntryBoolToVisibility}}" />
+
+                                    <ListBox x:Name="PART_List"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             Focusable="False"
+                                             MaxHeight="240"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                             ItemContainerStyle="{StaticResource LookupItemContainer}"
+                                             ItemsSource="{Binding FilteredItems,
+                                                 RelativeSource={RelativeSource TemplatedParent}}"
+                                             SelectedItem="{Binding HighlightedItem,
+                                                 RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                             DisplayMemberPath="{Binding DisplayMemberPath,
+                                                 RelativeSource={RelativeSource TemplatedParent}}" />
+                                </DockPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A lookup used as a page field rather than inside a line keeps a border, like its neighbours. -->
+    <Style x:Key="FieldLookup" TargetType="{x:Type controls:LookupBox}"
+           BasedOn="{StaticResource {x:Type controls:LookupBox}}">
+        <Setter Property="Margin" Value="0,0,16,0" />
+        <Setter Property="MinWidth" Value="180" />
+        <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+</ResourceDictionary>

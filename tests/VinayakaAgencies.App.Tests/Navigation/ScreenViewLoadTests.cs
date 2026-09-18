@@ -2,6 +2,7 @@ using System.Text;
 using System.Windows;
 using WpfApplication = System.Windows.Application;
 using VinayakaAgencies.App.Navigation;
+using VinayakaAgencies.App.Presentation.Controls;
 
 namespace VinayakaAgencies.App.Tests.Navigation;
 
@@ -31,7 +32,7 @@ public sealed class ScreenViewLoadTests
     [Fact]
     public void EveryRegisteredScreenView_LoadsWithTheApplicationResources()
     {
-        var (attempted, failures) = LoadAllViewsOnStaThread();
+        var (attempted, failures, _) = LoadAllViewsOnStaThread();
 
         failures.ShouldBeEmpty(
             "every screen registered in a module must be constructible; these threw when loaded");
@@ -57,16 +58,41 @@ public sealed class ScreenViewLoadTests
         offenders.ShouldBeEmpty();
     }
 
-    private static (int Attempted, List<string> Failures) LoadAllViewsOnStaThread()
+    /// <summary>
+    /// The lookup field's default style must be reachable from the application's own dictionaries
+    /// (ADR-0007).
+    /// </summary>
+    /// <remarks>
+    /// The view sweep above cannot catch this. A <c>LookupBox</c> whose style is missing constructs
+    /// perfectly happily — it simply renders as an empty rectangle with no text box and no list, so
+    /// every voucher line would silently lose its ledger field. Asserting the style resolves is the
+    /// only cheap way to know the control is actually wired to a template.
+    /// </remarks>
+    [Fact]
+    public void LookupBox_ResolvesItsDefaultStyleFromTheApplicationDictionaries()
+    {
+        var (_, failures, lookupStyleFound) = LoadAllViewsOnStaThread();
+
+        failures.ShouldBeEmpty();
+        lookupStyleFound.ShouldBeTrue(
+            "Entry.xaml must carry an implicit Style for LookupBox, or every lookup renders blank");
+    }
+
+    private static (int Attempted, List<string> Failures, bool LookupStyleFound) LoadAllViewsOnStaThread()
     {
         var failures = new List<string>();
         var attempted = 0;
+        var lookupStyleFound = false;
 
         var thread = new Thread(() =>
         {
             try
             {
                 EnsureApplicationWithThemes();
+
+                lookupStyleFound =
+                    WpfApplication.Current?.TryFindResource(typeof(LookupBox)) is Style style
+                    && style.TargetType == typeof(LookupBox);
 
                 foreach (var screen in ScreenModuleCatalog.Discover().SelectMany(module => module.Screens))
                 {
@@ -92,7 +118,7 @@ public sealed class ScreenViewLoadTests
         thread.Start();
         thread.Join(TimeSpan.FromMinutes(2));
 
-        return (attempted, failures);
+        return (attempted, failures, lookupStyleFound);
     }
 
     private static void EnsureApplicationWithThemes()
@@ -100,7 +126,7 @@ public sealed class ScreenViewLoadTests
         var application = WpfApplication.Current ?? new WpfApplication();
 
         // Same dictionaries, same order as App.xaml.
-        foreach (var theme in new[] { "Colors", "Typography", "Controls", "Shell", "Pages" })
+        foreach (var theme in new[] { "Colors", "Typography", "Controls", "Shell", "Pages", "Entry" })
         {
             application.Resources.MergedDictionaries.Add(new ResourceDictionary
             {

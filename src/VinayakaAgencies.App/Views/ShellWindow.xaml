@@ -43,6 +43,7 @@
                     <DataTemplate>
                         <Button Style="{StaticResource TopMenuButtonStyle}"
                                 Command="{Binding Command}"
+                                CommandParameter="{Binding CommandParameter}"
                                 IsEnabled="{Binding IsAvailable}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding Label}" />
@@ -170,6 +171,7 @@
                         <DataTemplate>
                             <Button Style="{StaticResource SideButtonStyle}"
                                     Command="{Binding Command}"
+                                    CommandParameter="{Binding CommandParameter}"
                                     IsEnabled="{Binding IsAvailable}">
                                 <StackPanel>
                                     <TextBlock Text="{Binding Gesture}"
@@ -196,6 +198,7 @@
                     <DataTemplate>
                         <Button Style="{StaticResource ActionButtonStyle}"
                                 Command="{Binding Command}"
+                                CommandParameter="{Binding CommandParameter}"
                                 IsEnabled="{Binding IsAvailable}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding Gesture}"

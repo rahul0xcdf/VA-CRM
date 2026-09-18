@@ -21,7 +21,22 @@ namespace VinayakaAgencies.App.Presentation.Keyboard;
 /// <param name="Shortcut">The gesture, which also supplies the label shown.</param>
 /// <param name="Label">What the action is called, e.g. "Accept".</param>
 /// <param name="Command">The command to run, or null when unavailable here.</param>
-public sealed record ShortcutButton(AppShortcut Shortcut, string Label, ICommand? Command = null)
+/// <param name="CommandParameter">
+/// What the command is run with. Voucher-type keys are one command taking the kind to switch to, so
+/// the bar has to carry the argument next to the gesture; without it, eight nearly identical commands
+/// would exist only to close over eight constants (ADR-0007).
+/// </param>
+/// <param name="IsCurrent">
+/// True for the entry describing the state the screen is already in — the voucher type now being
+/// entered, the document kind now being drafted. Tally marks it, and an operator glancing at the bar
+/// to check which voucher they are in should not have to look elsewhere for the answer.
+/// </param>
+public sealed record ShortcutButton(
+    AppShortcut Shortcut,
+    string Label,
+    ICommand? Command = null,
+    object? CommandParameter = null,
+    bool IsCurrent = false)
 {
     /// <summary>The gesture as written on the bar.</summary>
     public string Gesture => Shortcut.Display;

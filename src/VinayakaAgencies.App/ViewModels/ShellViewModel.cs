@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -44,6 +45,10 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly Stack<NavigationItem> _history = new();
     private NavigationItem? _activeScreen;
     private bool _suppressHistory;
+
+    /// <summary>The screen now showing, and the notifier the bars are re-read from.</summary>
+    private IScreenShortcuts? _activeShortcuts;
+    private INotifyPropertyChanged? _activeNotifier;
 
     [ObservableProperty]
     private string _title = "Vinayaka Agencies";
@@ -271,6 +276,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         if (value is null)
         {
+            AttachShortcuts(null);
             ActiveView = null;
             IsGatewayVisible = true;
             CurrentMode = "Gateway";
@@ -289,14 +295,63 @@ public sealed partial class ShellViewModel : ObservableObject
             element.DataContext = viewModel;
         }
 
-        var shortcuts = viewModel as IScreenShortcuts;
-
-        ShortcutHints = shortcuts is { StatusBarHints: { Length: > 0 } hints } ? hints : DefaultHints;
+        AttachShortcuts(viewModel);
 
         ActiveView = view;
         IsGatewayVisible = false;
 
-        ComposeBars(shortcuts);
+        RefreshFromActiveScreen();
+    }
+
+    /// <summary>
+    /// Follows the screen now showing, so its bars stay true as its state changes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="IScreenShortcuts"/> has always documented that a screen may raise
+    /// <c>PropertyChanged</c> for a bar and have the shell re-read it; until now nothing subscribed,
+    /// so the promise was empty and the bars were whatever the screen happened to offer at the instant
+    /// it was constructed.
+    /// </para>
+    /// <para>
+    /// That is not a cosmetic gap. Voucher entry advertises one key per voucher type and marks the
+    /// selected one; a bar frozen at construction would show the keys of whichever type happened to
+    /// load first and would go on showing them after the operator pressed F5. Because the shell also
+    /// <em>routes</em> keys from the bars, the wrong bar means the wrong key fires.
+    /// </para>
+    /// </remarks>
+    private void AttachShortcuts(object? viewModel)
+    {
+        if (_activeNotifier is not null)
+        {
+            _activeNotifier.PropertyChanged -= OnActiveScreenPropertyChanged;
+        }
+
+        _activeShortcuts = viewModel as IScreenShortcuts;
+        _activeNotifier = _activeShortcuts is null ? null : viewModel as INotifyPropertyChanged;
+
+        if (_activeNotifier is not null)
+        {
+            _activeNotifier.PropertyChanged += OnActiveScreenPropertyChanged;
+        }
+    }
+
+    private void OnActiveScreenPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is null
+            or nameof(IScreenShortcuts.ButtonBar)
+            or nameof(IScreenShortcuts.ActionBar)
+            or nameof(IScreenShortcuts.StatusBarHints))
+        {
+            RefreshFromActiveScreen();
+        }
+    }
+
+    private void RefreshFromActiveScreen()
+    {
+        ShortcutHints = _activeShortcuts is { StatusBarHints: { Length: > 0 } hints } ? hints : DefaultHints;
+
+        ComposeBars(_activeShortcuts);
     }
 
     /// <summary>
