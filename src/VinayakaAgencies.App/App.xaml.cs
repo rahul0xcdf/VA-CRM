@@ -117,6 +117,25 @@ public partial class App : System.Windows.Application
             splash.ReportStatus("Preparing customer masters…");
             await provisioning.EnsureCustomerSeedAsync(companyId).ConfigureAwait(true);
 
+            // Phase 5: the output/input GST ledgers and the settings row naming the round-off
+            // ledger. Phase 5 delivered this seed but never called it from startup, so an install
+            // that had not opened the GST settings screen had no ledgers for a tax line to post
+            // to — fixed here rather than left for the first invoice to discover.
+            splash.ReportStatus("Preparing GST masters…");
+            await provisioning.EnsureGstSeedAsync(companyId).ConfigureAwait(true);
+
+            // Phase 7: the TDS and TCS payable ledgers and the settings row naming them. No
+            // section, rate or threshold is seeded — those are the owner's master data
+            // (phase-7-tds-payroll-banking.md §2, checkpoints C7.2 and C7.5).
+            splash.ReportStatus("Preparing TDS masters…");
+            await provisioning.EnsureTdsSeedAsync(companyId).ConfigureAwait(true);
+
+            // Phase 7b: the salary and statutory ledgers, and the payroll settings row. All three
+            // statutory flags start off, so this costs a row and no behaviour until the owner
+            // declares a scheme applies (checkpoint C7.7).
+            splash.ReportStatus("Preparing payroll masters…");
+            await provisioning.EnsurePayrollSeedAsync(companyId).ConfigureAwait(true);
+
             var shell = _shellScope.ServiceProvider.GetRequiredService<ShellWindow>();
 
             // Exercise both database paths at startup exactly as the Phase 0 shell did (C0.7): the

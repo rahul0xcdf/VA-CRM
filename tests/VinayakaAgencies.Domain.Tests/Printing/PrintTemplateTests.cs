@@ -1,5 +1,4 @@
 using VinayakaAgencies.Domain.Printing;
-using VinayakaAgencies.Domain.Trade;
 
 namespace VinayakaAgencies.Domain.Tests.Printing;
 
@@ -81,7 +80,7 @@ public class PrintTemplateTests
     private static PrintTemplate NewTemplate(int priority, string? name = null) =>
         new(
             CompanyId,
-            TradeDocumentKind.TaxInvoice,
+            PrintDocumentKind.TaxInvoice,
             name ?? "Tax Invoice — Detailed",
             priority,
             description: null);

@@ -2,14 +2,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using VinayakaAgencies.Application.Accounting;
 using VinayakaAgencies.Application.Auditing;
+using VinayakaAgencies.Application.Banking;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Inventory;
+using VinayakaAgencies.Application.Payroll;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Reporting;
+using VinayakaAgencies.Application.Tds;
 using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
 
@@ -84,6 +87,24 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IEinvoiceSettingsService, EinvoiceSettingsService>();
         services.AddScoped<IEinvoiceService, EinvoiceService>();
         services.AddScoped<IEwayBillService, EwayBillService>();
+
+        // Phase 7a TDS/TCS and banking: the section/rate/threshold masters, the computation and
+        // posting path, and the per-company applicability flags. Every figure the engine uses is a
+        // data row — no section number or rate appears in src/ (checkpoint C7.5).
+        services.AddScoped<ITaxSectionService, TaxSectionService>();
+        services.AddScoped<ITaxDeductionService, TaxDeductionService>();
+        services.AddScoped<ITdsSettingsService, TdsSettingsService>();
+
+        // Phase 7a banking: payment/receipt settlement, the cheque register, and the data a
+        // cheque layout places. Layouts are Phase 3 print templates of kind Cheque (ADR-0004,
+        // §4a D4) — there is no second template system.
+        services.AddScoped<IBankingService, BankingService>();
+
+        // Phase 7b payroll: employee and pay-head masters, the effective-dated statutory config,
+        // and the monthly run that posts through the journal engine. Every statutory figure is a
+        // data row, and each statute is gated by its own flag (checkpoint C7.7).
+        services.AddScoped<IPayrollMasterService, PayrollMasterService>();
+        services.AddScoped<IPayrollRunService, PayrollRunService>();
 
         return services;
     }

@@ -1,5 +1,4 @@
 using VinayakaAgencies.Domain.Common;
-using VinayakaAgencies.Domain.Trade;
 
 namespace VinayakaAgencies.Domain.Printing;
 
@@ -22,7 +21,7 @@ public sealed class PrintTemplate : Entity, IAuditStamped
 
     public PrintTemplate(
         Guid companyId,
-        TradeDocumentKind documentKind,
+        PrintDocumentKind documentKind,
         string name,
         int priority,
         string? description)
@@ -47,7 +46,7 @@ public sealed class PrintTemplate : Entity, IAuditStamped
 
     public Guid CompanyId { get; private set; }
 
-    public TradeDocumentKind DocumentKind { get; private set; }
+    public PrintDocumentKind DocumentKind { get; private set; }
 
     public string Name { get; private set; } = string.Empty;
 

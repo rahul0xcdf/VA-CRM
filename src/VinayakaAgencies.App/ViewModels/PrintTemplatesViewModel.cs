@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VinayakaAgencies.App.Presentation.Keyboard;
 using VinayakaAgencies.Application.Printing;
-using VinayakaAgencies.Domain.Trade;
+using VinayakaAgencies.Domain.Printing;
 
 namespace VinayakaAgencies.App.ViewModels;
 
@@ -38,7 +38,7 @@ public sealed partial class PrintTemplatesViewModel : ObservableObject, IScreenS
         "Ctrl+Enter Open · Ctrl+A Save as a new version · Alt+D Activate or deactivate";
 
     [ObservableProperty]
-    private TradeDocumentKind? _kindFilter;
+    private PrintDocumentKind? _kindFilter;
 
     [ObservableProperty]
     private ObservableCollection<PrintTemplateSummary> _templates = [];
@@ -97,15 +97,16 @@ public sealed partial class PrintTemplatesViewModel : ObservableObject, IScreenS
     [ObservableProperty]
     private bool _isBusy;
 
-    public IReadOnlyList<TradeDocumentKind> KindChoices { get; } =
+    public IReadOnlyList<PrintDocumentKind> KindChoices { get; } =
     [
-        TradeDocumentKind.Quotation,
-        TradeDocumentKind.SalesOrder,
-        TradeDocumentKind.DeliveryChallan,
-        TradeDocumentKind.TaxInvoice,
-        TradeDocumentKind.PurchaseOrder,
-        TradeDocumentKind.GoodsReceipt,
-        TradeDocumentKind.PurchaseInvoice,
+        PrintDocumentKind.Quotation,
+        PrintDocumentKind.SalesOrder,
+        PrintDocumentKind.DeliveryChallan,
+        PrintDocumentKind.TaxInvoice,
+        PrintDocumentKind.PurchaseOrder,
+        PrintDocumentKind.GoodsReceipt,
+        PrintDocumentKind.PurchaseInvoice,
+        PrintDocumentKind.Cheque,
     ];
 
     private readonly IPrintTemplateService _templateService;

@@ -85,4 +85,34 @@ public interface ICompanyProvisioningService
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
     Task EnsureGstSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures the TDS/TCS setup a company needs before its first deducting voucher: the TDS and
+    /// TCS payable ledgers, and the settings row naming them —
+    /// phase-7-tds-payroll-banking.md §2.
+    /// </summary>
+    /// <remarks>
+    /// Idempotent and row-granular like its siblings, and it seeds <b>no section, rate or
+    /// threshold</b> — not even 194C, the one section §4a D1 names as in use today. Those are the
+    /// owner's master data entered through
+    /// <see cref="VinayakaAgencies.Application.Tds.ITaxSectionService"/>, which is what makes
+    /// checkpoints C7.2 and C7.5 hold. Both applicability flags start off (§4a D2).
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
+    Task EnsureTdsSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures the payroll setup: the salary and statutory ledgers, and the settings row carrying
+    /// the three applicability flags — phase-7-tds-payroll-banking.md §4a D3.
+    /// </summary>
+    /// <remarks>
+    /// Idempotent and row-granular like its siblings, and it seeds <b>no contribution rate, wage
+    /// ceiling, professional tax slab or pay head</b>. §2 extends non-negotiable #6 to the first
+    /// three by name; pay heads are the owner's own salary structure, entered through
+    /// <see cref="VinayakaAgencies.Application.Payroll.IPayrollMasterService"/>. All three
+    /// statutory flags start off, so the module is inert until the owner declares otherwise
+    /// (checkpoint C7.7).
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
+    Task EnsurePayrollSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
 }

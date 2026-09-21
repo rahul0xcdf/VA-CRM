@@ -1144,7 +1144,7 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
                 return;
             }
 
-            var defaultTemplate = await _printTemplates.ResolveDefaultAsync(document.Kind, cancellationToken)
+            var defaultTemplate = await _printTemplates.ResolveDefaultAsync(document.Kind.ToPrintKind(), cancellationToken)
                 .ConfigureAwait(true);
 
             var template = defaultTemplate is null
@@ -1177,7 +1177,7 @@ public sealed partial class TradeDocumentsViewModel : ObservableObject, IScreenS
     private static PrintTemplateDetail FallbackTemplate(TradeDocumentKind kind) =>
         new(
             Guid.Empty,
-            kind,
+            kind.ToPrintKind(),
             "(built-in)",
             Description: null,
             Priority: int.MaxValue,

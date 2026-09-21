@@ -1,0 +1,137 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.TdsSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:VinayakaAgencies.App.Presentation.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="1150">
+
+    <!--
+        Settings page (ADR-0006 shape, ADR-0007 internals). The two flags are declared by the
+        owner and never inferred from computed turnover; the payee panel carries the buyer's
+        declaration that switches our collection off (checkpoint C7.6).
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="TDS / TCS setup" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="liability ledgers, applicability, and who we deduct from"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel>
+                <TextBlock Text="LIABILITY LEDGERS" Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="TDS payable" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="200" Style="{StaticResource FieldBox}"
+                             Text="{Binding TdsPayableLedgerName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="TCS payable" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="200" Style="{StaticResource FieldBox}"
+                             Text="{Binding TcsPayableLedgerName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Button Content="Save" Style="{StaticResource BandButton}"
+                            Command="{Binding SaveCommand}" />
+                    <Button Content="Refresh" Style="{StaticResource BandButton}"
+                            Command="{Binding RefreshCommand}" />
+                </StackPanel>
+
+                <TextBlock Text="TURNOVER-LINKED SECTIONS" Style="{StaticResource EntryHeadingText}"
+                           Margin="0,10,0,0" />
+
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Content="We deduct on purchases of goods" Style="{StaticResource FieldCheck}"
+                              IsChecked="{Binding IsPurchaseOfGoodsDeductionEnabled}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="250"
+                                        Watermark="Which TDS section"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding TdsSectionChoices}"
+                                        SelectedItem="{Binding PurchaseOfGoodsSection, Mode=TwoWay}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <CheckBox Content="We collect on sales of goods" Style="{StaticResource FieldCheck}"
+                              IsChecked="{Binding IsSaleOfGoodsCollectionEnabled}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="250"
+                                        Watermark="Which TCS section"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding TcsSectionChoices}"
+                                        SelectedItem="{Binding SaleOfGoodsSection, Mode=TwoWay}" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PageHintText}" Margin="0,8,0,0"
+                           Text="Declared, never computed. Turnover as the books measure it is not necessarily turnover as the statute defines it, and an obligation that switches itself on silently is worse than one that is declared." />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding Profiles}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Party" Binding="{Binding LedgerName}" Width="*" />
+                    <DataGridTextColumn Header="Class of person" Binding="{Binding PayeeCategory}" Width="150" />
+                    <DataGridTextColumn Header="PAN" Binding="{Binding Pan}" Width="130" />
+                    <DataGridCheckBoxColumn Header="Deduct from" Binding="{Binding IsDeductionApplicable}"
+                                            Width="100" />
+                    <DataGridCheckBoxColumn Header="They deduct on purchase"
+                                            Binding="{Binding DeclaresDeductingOnPurchases}" Width="180" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No payee profiles yet. A party needs one before tax can be deducted from it."
+                       Visibility="{Binding Profiles.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel>
+                <TextBlock Text="PAYEE PROFILE" Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Party" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="240"
+                                        Watermark="Ledger name"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding LedgerChoices}"
+                                        SelectedItem="{Binding ProfileLedger, Mode=TwoWay}" />
+
+                    <TextBlock Text="Class of person" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="150" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding CategoryChoices}"
+                              SelectedItem="{Binding ProfileCategory}" />
+
+                    <TextBlock Text="PAN" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="130" Style="{StaticResource FieldBox}"
+                             Text="{Binding ProfilePan, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <CheckBox Content="Deduct from this party" Style="{StaticResource FieldCheck}"
+                              IsChecked="{Binding ProfileIsDeductionApplicable}" />
+
+                    <CheckBox Content="They deduct on their purchases" Style="{StaticResource FieldCheck}"
+                              IsChecked="{Binding ProfileDeclaresDeductingOnPurchases}" />
+
+                    <Button Content="Save payee" Style="{StaticResource BandButton}"
+                            Command="{Binding SavePayeeCommand}" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PageHintText}" Margin="0,8,0,0"
+                           Text="No PAN on file means the higher rate applies, where the section has one. A buyer's written declaration that they deduct on their purchases is what stops us collecting on the same transaction." />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
+    </Grid>
+</UserControl>

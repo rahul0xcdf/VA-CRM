@@ -3,7 +3,7 @@
 ```yaml
 Phase: 5
 Title: GST Returns & Tax Invoice Compliance
-Status: Draft
+Status: Approved
 Source: project.md §4.5, §10 (Phase 5)
 Depends on: Phases 1–4
 Blocks: Phase 6

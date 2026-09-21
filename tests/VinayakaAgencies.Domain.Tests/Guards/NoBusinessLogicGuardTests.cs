@@ -4,7 +4,7 @@ using VinayakaAgencies.Domain.Tests.TestSupport;
 namespace VinayakaAgencies.Domain.Tests.Guards;
 
 /// <summary>
-/// C0.8 (Phase 0) — "No business logic leaked in", updated for Phases 1 through 4.
+/// C0.8 (Phase 0) — "No business logic leaked in", updated for Phases 1 through 7.
 /// </summary>
 /// <remarks>
 /// Phase 0's version of this guard asserted the domain contained exactly one entity, <c>Company</c>,
@@ -33,11 +33,23 @@ public class NoBusinessLogicGuardTests
     /// containing one of these words as a fragment does not produce a false positive.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>Voucher</c>, <c>Ledger</c> and <c>JournalLine</c> were forbidden under Phase 0 and are
     /// removed here because Phase 1 was approved to introduce exactly those concepts (spec §5).
     /// <c>JournalEntry</c> stays forbidden even though it is a Phase 1 concept in spirit — the actual
     /// type is named <c>JournalLine</c> (spec §5, ADR-0002), and "JournalEntry" appearing anywhere
     /// would mean someone invented a second, unapproved name for the same thing.
+    /// </para>
+    /// <para>
+    /// <c>TdsSection</c> and <c>TcsSection</c> were forbidden until Phase 7 approved them
+    /// (<c>specs/phase-7-tds-payroll-banking.md</c>, Approved 18 Sep 2026) and are removed here. The
+    /// implementation uses neither name — one <c>TaxSection</c> master carries both kinds, as
+    /// <c>HsnSac</c> carries HSN and SAC — but leaving them forbidden after their phase is approved
+    /// would make the guard assert a scope rule that no longer exists. <c>TaxRate</c> stays forbidden
+    /// as an exact name: the approved type is <c>TaxRateSchedule</c>, and a bare <c>TaxRate</c>
+    /// appearing anywhere would mean a rate had been modelled without its effective dates, which is
+    /// precisely what checkpoint C7.4 forbids.
+    /// </para>
     /// </remarks>
     private static readonly string[] ForbiddenTypeNames =
     [
@@ -48,20 +60,21 @@ public class NoBusinessLogicGuardTests
         "GstType",
         "PriceList",
         "TaxRate",
-        "TdsSection",
-        "TcsSection",
         "PurchaseOrder",
         "SalesOrder",
         "Quotation",
     ];
 
     /// <summary>
-    /// The closed set of types deriving directly from <c>Entity</c> that Phases 0 through 4 were
+    /// The closed set of types deriving directly from <c>Entity</c> that Phases 0 through 7 were
     /// approved to add (Phase 0: <c>Company</c>; Phase 1: spec §5's entity table; Phase 2:
     /// <c>specs/phase-2-inventory.md</c> §1 as approved; Phase 3:
     /// <c>specs/phase-3-sales-purchase-pipeline.md</c> §1–§2 — trade documents and print
     /// templates; Phase 4: <c>specs/phase-4-customer-pricing.md</c> §2 — customers, categories,
-    /// price lines and sales settings). Deliberately a fixed list, not "however many exist today" —
+    /// price lines and sales settings; Phase 5-6: GST, e-invoicing and e-way bill;
+    /// Phase 7: <c>specs/phase-7-tds-payroll-banking.md</c> §2 — the TDS/TCS section master, its
+    /// dated rate schedules, payee profiles, Section 197 certificates, posted deductions and the
+    /// settings row carrying the 194Q/206C(1H) flags). Deliberately a fixed list, not "however many exist today" —
     /// a new entry here is a spec change, not a test update to follow the code.
     /// </summary>
     private static readonly string[] ApprovedEntityTypeNames =
@@ -89,6 +102,12 @@ public class NoBusinessLogicGuardTests
         "ItemKitComponent",
         "JournalLine",
         "Ledger",
+        "LowerDeductionCertificate",
+        "Employee",
+        "PayHead",
+        "PaymentInstrument",
+        "PayrollSettings",
+        "ProfessionalTaxSlab",
         "PeriodLock",
         "PrintTemplate",
         "PrintTemplateRevision",
@@ -97,7 +116,16 @@ public class NoBusinessLogicGuardTests
         "StockGroup",
         "StockLedgerEntry",
         "StockVoucher",
+        "SalaryStructureLine",
+        "SalaryVoucher",
+        "SalaryVoucherLine",
+        "StatutoryRateSchedule",
         "StockVoucherLine",
+        "TaxDeduction",
+        "TaxPayeeProfile",
+        "TaxRateSchedule",
+        "TaxSection",
+        "TdsSettings",
         "TradeDocument",
         "TradeDocumentLine",
         "UnitOfMeasure",
@@ -162,7 +190,7 @@ public class NoBusinessLogicGuardTests
     }
 
     [Fact]
-    public void EntityTypesInDomain_MatchExactlyThePhase0Through6ApprovedSet()
+    public void EntityTypesInDomain_MatchExactlyThePhase0Through7ApprovedSet()
     {
         // Belt-and-braces version of the two checks above: verifies the guard would also catch a
         // business entity dropped in the wrong folder (e.g. Domain/Common), and — unlike the Phase 0

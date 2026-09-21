@@ -1,0 +1,173 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.PayrollRunView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:presentation="clr-namespace:VinayakaAgencies.App.Presentation"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1200">
+
+    <UserControl.Resources>
+        <presentation:BoolToVisibilityConverter x:Key="PaneVisibility" />
+    </UserControl.Resources>
+
+    <!--
+        Report/entry hybrid (ADR-0007): compute first, post second, and the challan roll-up is the
+        drill pane — collapsed until Ctrl+Enter asks for it, and not queried until then.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Payroll" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="one month at a time, posted through the journal engine"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Month ending" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="130" SelectedDate="{Binding PeriodEnd}" />
+
+                <Button Content="Compute" Style="{StaticResource BandButton}"
+                        Command="{Binding PreviewCommand}" />
+                <Button Content="Post" Style="{StaticResource BandButton}"
+                        Command="{Binding PostCommand}" />
+                <Button Content="Challan summary" Style="{StaticResource BandButton}"
+                        Command="{Binding ToggleChallanCommand}" />
+
+                <Border Width="1" Margin="12,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+
+                <TextBlock Text="Gross" Style="{StaticResource FieldLabel}" />
+                <TextBlock Text="{Binding GrossEarnings}" Style="{StaticResource PageStatusText}"
+                           Margin="0,0,14,0" />
+                <TextBlock Text="Deductions" Style="{StaticResource FieldLabel}" />
+                <TextBlock Text="{Binding TotalDeductions}" Style="{StaticResource PageStatusText}"
+                           Margin="0,0,14,0" />
+                <TextBlock Text="Employer" Style="{StaticResource FieldLabel}" />
+                <TextBlock Text="{Binding EmployerContributions}" Style="{StaticResource PageStatusText}"
+                           Margin="0,0,14,0" />
+                <TextBlock Text="Net payable" Style="{StaticResource FieldLabel}" />
+                <TextBlock Text="{Binding NetPayable}" Style="{StaticResource PageStatusText}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Warnings are shown, never swallowed: a flag on with no rate in force is a zero
+             either way, and the only question is whether anybody finds out in time. -->
+        <ItemsControl Grid.Row="2" ItemsSource="{Binding Warnings}" Margin="14,6,14,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" Style="{StaticResource PageHintText}" TextWrapping="Wrap" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0">
+                <DataGrid Style="{StaticResource PageGrid}"
+                          ItemsSource="{Binding PaySlips}"
+                          SelectedItem="{Binding SelectedSlip}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="80" />
+                        <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="*" />
+                        <DataGridTextColumn Header="Gross" Binding="{Binding GrossEarnings, StringFormat=N2}"
+                                            Width="110"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Deductions" Binding="{Binding TotalDeductions, StringFormat=N2}"
+                                            Width="110"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Employer" Binding="{Binding EmployerContributions, StringFormat=N2}"
+                                            Width="110"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Net pay" Binding="{Binding NetPay, StringFormat=N2}"
+                                            Width="120"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Style="{StaticResource EmptyStateText}"
+                           Text="Pick a month and press Compute."
+                           Visibility="{Binding PaySlips.Count, Converter={StaticResource ZeroToVisibility}}" />
+            </Grid>
+
+            <DataGrid Grid.Column="1" Style="{StaticResource PageGrid}"
+                      ItemsSource="{Binding SelectedSlipLines}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Pay head" Binding="{Binding PayHeadName}" Width="*" />
+                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="140" />
+                    <DataGridTextColumn Header="Statute" Binding="{Binding Statute}" Width="130" />
+                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <Border Grid.Row="4" Style="{StaticResource EntryPanelStyle}"
+                Visibility="{Binding IsChallanVisible, Converter={StaticResource PaneVisibility}}">
+            <StackPanel>
+                <TextBlock Text="TO REMIT" Style="{StaticResource EntryHeadingText}" />
+
+                <DataGrid Style="{StaticResource PageGrid}" MaxHeight="160"
+                          ItemsSource="{Binding ChallanRows}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Statute" Binding="{Binding Statute}" Width="200" />
+                        <DataGridTextColumn Header="Employees" Binding="{Binding EmployeeCount}" Width="100"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Employee share" Binding="{Binding EmployeeShare, StringFormat=N2}"
+                                            Width="140"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Employer share" Binding="{Binding EmployerShare, StringFormat=N2}"
+                                            Width="140"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=N2}" Width="140"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Text="POSTED RUNS" Style="{StaticResource EntryHeadingText}" Margin="0,10,0,0" />
+
+                <DataGrid Style="{StaticResource PageGrid}" MaxHeight="130"
+                          ItemsSource="{Binding RunsHistory}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Month end" Binding="{Binding PeriodEnd}" Width="110" />
+                        <DataGridTextColumn Header="Voucher" Binding="{Binding PostedVoucherNumber}" Width="120" />
+                        <DataGridTextColumn Header="Employees" Binding="{Binding EmployeeCount}" Width="100"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Net payable" Binding="{Binding NetPayable, StringFormat=N2}"
+                                            Width="140"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="5" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
+    </Grid>
+</UserControl>

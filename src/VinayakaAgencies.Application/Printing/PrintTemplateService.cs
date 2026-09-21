@@ -4,7 +4,6 @@ using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Common;
 using VinayakaAgencies.Domain.Printing;
-using VinayakaAgencies.Domain.Trade;
 
 namespace VinayakaAgencies.Application.Printing;
 
@@ -30,7 +29,7 @@ public sealed class PrintTemplateService(IUnitOfWork unitOfWork, ICompanyContext
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<PrintTemplateSummary>> ListAsync(
-        TradeDocumentKind? documentKind = null,
+        PrintDocumentKind? documentKind = null,
         CancellationToken cancellationToken = default)
     {
         var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
@@ -49,7 +48,7 @@ public sealed class PrintTemplateService(IUnitOfWork unitOfWork, ICompanyContext
 
     /// <inheritdoc />
     public async Task<PrintTemplateSummary?> ResolveDefaultAsync(
-        TradeDocumentKind documentKind,
+        PrintDocumentKind documentKind,
         CancellationToken cancellationToken = default)
     {
         var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
@@ -302,7 +301,7 @@ public sealed class PrintTemplateService(IUnitOfWork unitOfWork, ICompanyContext
 
     private sealed class TemplatesOfCompany : Specification<PrintTemplate>
     {
-        public TemplatesOfCompany(Guid companyId, TradeDocumentKind? documentKind)
+        public TemplatesOfCompany(Guid companyId, PrintDocumentKind? documentKind)
         {
             Where(template => template.CompanyId == companyId
                 && (documentKind.HasValue == false || template.DocumentKind == documentKind.Value));
@@ -312,7 +311,7 @@ public sealed class PrintTemplateService(IUnitOfWork unitOfWork, ICompanyContext
 
     private sealed class ActiveTemplatesOfKind : Specification<PrintTemplate>
     {
-        public ActiveTemplatesOfKind(Guid companyId, TradeDocumentKind documentKind)
+        public ActiveTemplatesOfKind(Guid companyId, PrintDocumentKind documentKind)
         {
             Where(template => template.CompanyId == companyId
                 && template.DocumentKind == documentKind
@@ -323,7 +322,7 @@ public sealed class PrintTemplateService(IUnitOfWork unitOfWork, ICompanyContext
 
     private sealed class TemplateByName : Specification<PrintTemplate>
     {
-        public TemplateByName(Guid companyId, TradeDocumentKind documentKind, string nameNormalised)
+        public TemplateByName(Guid companyId, PrintDocumentKind documentKind, string nameNormalised)
         {
             Where(template => template.CompanyId == companyId
                 && template.DocumentKind == documentKind

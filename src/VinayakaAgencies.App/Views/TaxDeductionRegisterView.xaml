@@ -1,0 +1,115 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.TaxDeductionRegisterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:VinayakaAgencies.App.Presentation.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="620" d:DesignWidth="1150">
+
+    <!--
+        Report page (ADR-0007): the register is the default view, and the challan roll-up is the
+        drill pane — collapsed until Ctrl+Enter asks for it, and not queried until then.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="TDS / TCS register" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="what was deducted, at the rate that was applied"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="From" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="120" SelectedDate="{Binding FromDate}" />
+
+                <TextBlock Text="To" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="120" SelectedDate="{Binding ToDate}" />
+
+                <TextBlock Text="Section" Style="{StaticResource FieldLabel}" />
+                <controls:LookupBox Style="{StaticResource FieldLookup}" Width="240"
+                                    Watermark="All sections"
+                                    DisplayMemberPath="Name"
+                                    ItemsSource="{Binding SectionChoices}"
+                                    SelectedItem="{Binding SelectedSection, Mode=TwoWay}" />
+
+                <Button Content="Refresh" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+                <Button Content="Challan summary" Style="{StaticResource BandButton}"
+                        Command="{Binding ToggleChallanCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}" ItemsSource="{Binding Rows}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="100" />
+                    <DataGridTextColumn Header="Section" Binding="{Binding Section}" Width="90" />
+                    <DataGridTextColumn Header="Party" Binding="{Binding Party}" Width="*" />
+                    <DataGridTextColumn Header="PAN" Binding="{Binding Pan}" Width="110" />
+                    <DataGridTextColumn Header="Payment" Binding="{Binding BaseAmount}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Taxed on" Binding="{Binding TaxableBase}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Rate" Binding="{Binding Rate}" Width="70"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Deducted" Binding="{Binding Deducted}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Certificate" Binding="{Binding Certificate}" Width="130" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="Nothing deducted in this period."
+                       Visibility="{Binding Rows.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <!-- The drill pane. Collapsed until Ctrl+Enter, and not queried until it opens. -->
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}"
+                Visibility="{Binding IsChallanVisible, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="TO DEPOSIT" Style="{StaticResource EntryHeadingText}" />
+
+                <DataGrid Style="{StaticResource PageGrid}" MaxHeight="180"
+                          ItemsSource="{Binding ChallanRows}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Section" Binding="{Binding Section}" Width="100" />
+                        <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="70" />
+                        <DataGridTextColumn Header="2025 code" Binding="{Binding PaymentCode}" Width="90" />
+                        <DataGridTextColumn Header="Deductees" Binding="{Binding Deductees}" Width="90"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="Taxed on" Binding="{Binding TotalBase}" Width="130"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridTextColumn Header="To deposit" Binding="{Binding TotalDeducted}" Width="130"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+                <TextBlock Text="Total withheld" Style="{StaticResource FieldLabel}" Margin="24,0,6,0" />
+                <TextBlock Text="{Binding TotalDeducted}" Style="{StaticResource PageStatusText}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

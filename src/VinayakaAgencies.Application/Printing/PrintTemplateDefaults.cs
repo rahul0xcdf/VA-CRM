@@ -1,4 +1,4 @@
-using VinayakaAgencies.Domain.Trade;
+using VinayakaAgencies.Domain.Printing;
 
 namespace VinayakaAgencies.Application.Printing;
 
@@ -17,7 +17,7 @@ internal static class PrintTemplateDefaults
         ["Original for Recipient", "Duplicate for Transporter", "Triplicate for Supplier"];
 
     internal sealed record Seed(
-        TradeDocumentKind DocumentKind,
+        PrintDocumentKind DocumentKind,
         string Name,
         int Priority,
         string Description,
@@ -26,7 +26,7 @@ internal static class PrintTemplateDefaults
     internal static IReadOnlyList<Seed> Seeds { get; } =
     [
         new(
-            TradeDocumentKind.TaxInvoice,
+            PrintDocumentKind.TaxInvoice,
             "Tax Invoice — Detailed",
             10,
             "Default: full header, item grid and Rule-46 copy labels.",
@@ -47,7 +47,7 @@ internal static class PrintTemplateDefaults
                 CopyLabels: DefaultCopyLabels)),
 
         new(
-            TradeDocumentKind.TaxInvoice,
+            PrintDocumentKind.TaxInvoice,
             "Tax Invoice — Compact",
             20,
             "Denser grid for invoices with many lines.",

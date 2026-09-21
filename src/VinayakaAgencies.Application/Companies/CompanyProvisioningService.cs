@@ -1,6 +1,9 @@
+using VinayakaAgencies.Application.Banking;
 using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Gst;
+using VinayakaAgencies.Application.Payroll;
 using VinayakaAgencies.Application.Printing;
+using VinayakaAgencies.Application.Tds;
 using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
@@ -9,7 +12,9 @@ using VinayakaAgencies.Domain.Customers;
 using VinayakaAgencies.Domain.Entities;
 using VinayakaAgencies.Domain.Gst;
 using VinayakaAgencies.Domain.Inventory;
+using VinayakaAgencies.Domain.Payroll;
 using VinayakaAgencies.Domain.Printing;
+using VinayakaAgencies.Domain.Tds;
 using VinayakaAgencies.Domain.Trade;
 
 namespace VinayakaAgencies.Application.Companies;
@@ -566,6 +571,166 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// The TDS/TCS seed: the two liability ledgers and the settings row naming them
+    /// (phase-7-tds-payroll-banking.md §2). Row-granular and idempotent like its siblings.
+    /// </summary>
+    /// <remarks>
+    /// <b>No section, rate or threshold is seeded</b> — not even 194C, which §4a D1 names as the
+    /// only section in use today. Those are the owner's master data (non-negotiable #6), and a
+    /// seeded rate is a rate nobody owns when the notification changes it. See
+    /// <see cref="TdsSeedData"/>.
+    /// <para>
+    /// Both applicability flags start off, which is §4a D2's whole point: a business below the
+    /// turnover limit carries two booleans and no behaviour, and crossing the limit later is a
+    /// settings change rather than a migration.
+    /// </para>
+    /// </remarks>
+    public async Task EnsureTdsSeedAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        if (companyId == Guid.Empty)
+        {
+            throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+        }
+
+        var company = await _unitOfWork.Repository<Company>()
+            .GetByIdAsync(companyId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (company is null)
+        {
+            throw new InvalidOperationException(
+                $"Company '{companyId}' does not exist, so there is nothing to seed TDS into.");
+        }
+
+        await using var transaction = await _unitOfWork
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var ledgerName in TdsSeedData.PayableLedgerNames)
+        {
+            await EnsureTaxLedgerAsync(
+                    companyId,
+                    ledgerName,
+                    TdsSeedData.DutiesAndTaxesGroupName,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (!await _unitOfWork.Repository<TdsSettings>()
+                .AnyAsync(new TdsSettingsOfCompany(companyId), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            await _unitOfWork.Repository<TdsSettings>().AddAsync(
+                new TdsSettings(
+                    companyId,
+                    TdsSeedData.TdsPayableLedgerName,
+                    TdsSeedData.TcsPayableLedgerName),
+                cancellationToken).ConfigureAwait(false);
+            await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        // The cheque layout, as a Phase 3 print template of kind Cheque — not a second template
+        // system (§4a D4). One adjustable CTS-2010 layout, no bank named and none seeded: the
+        // owner measures against a real cheque and saves a new version, which is checkpoint C7.8.
+        await EnsureChequeTemplateAsync(companyId, cancellationToken).ConfigureAwait(false);
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The payroll seed: the salary and statutory ledgers, and the settings row
+    /// (phase-7-tds-payroll-banking.md §4a D3). Row-granular and idempotent like its siblings.
+    /// </summary>
+    /// <remarks>
+    /// <b>No rate, ceiling, slab or pay head is seeded.</b> §2 extends non-negotiable #6 to PF and
+    /// ESI contribution rates, their wage ceilings and Professional Tax slabs by name; pay heads
+    /// are the owner's own salary structure. See <see cref="PayrollSeedData"/>.
+    /// <para>
+    /// All three statutory flags start off, which is §4a D3's answer to a headcount nobody had at
+    /// approval: with them off the module is inert (checkpoint C7.7), and switching PF on when the
+    /// business crosses twenty employees is a settings change rather than a migration.
+    /// </para>
+    /// </remarks>
+    public async Task EnsurePayrollSeedAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        if (companyId == Guid.Empty)
+        {
+            throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+        }
+
+        var company = await _unitOfWork.Repository<Company>()
+            .GetByIdAsync(companyId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (company is null)
+        {
+            throw new InvalidOperationException(
+                $"Company '{companyId}' does not exist, so there is nothing to seed payroll into.");
+        }
+
+        await using var transaction = await _unitOfWork
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var (ledgerName, groupName) in PayrollSeedData.Ledgers)
+        {
+            await EnsureTaxLedgerAsync(companyId, ledgerName, groupName, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (!await _unitOfWork.Repository<PayrollSettings>()
+                .AnyAsync(new PayrollSettingsOfCompany(companyId), cancellationToken)
+                .ConfigureAwait(false))
+        {
+            await _unitOfWork.Repository<PayrollSettings>().AddAsync(
+                new PayrollSettings(companyId, PayrollSeedData.SalaryPayableLedgerName),
+                cancellationToken).ConfigureAwait(false);
+            await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureChequeTemplateAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var normalised = NameNormaliser.Normalise(ChequeLayoutDefaults.DefaultTemplateName);
+
+        if (await _unitOfWork.Repository<PrintTemplate>()
+                .AnyAsync(
+                    new TemplateByName(companyId, PrintDocumentKind.Cheque, normalised),
+                    cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var template = new PrintTemplate(
+            companyId,
+            PrintDocumentKind.Cheque,
+            ChequeLayoutDefaults.DefaultTemplateName,
+            priority: 10,
+            description: "Field positions for a standard CTS-2010 leaf. Adjust against a real cheque.");
+
+        var revision = new PrintTemplateRevision(
+            companyId,
+            template.Id,
+            version: 1,
+            PrintTemplateService.Serialise(ChequeLayoutDefaults.Default));
+
+        template.AttachRevision(revision.Id, revision.Version);
+
+        await _unitOfWork.Repository<PrintTemplate>().AddAsync(template, cancellationToken)
+            .ConfigureAwait(false);
+        await _unitOfWork.Repository<PrintTemplateRevision>().AddAsync(revision, cancellationToken)
+            .ConfigureAwait(false);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task EnsureTaxLedgerAsync(
         Guid companyId,
         string ledgerName,
@@ -756,7 +921,7 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
 
     private sealed class TemplateByName : Specification<PrintTemplate>
     {
-        public TemplateByName(Guid companyId, TradeDocumentKind documentKind, string nameNormalised)
+        public TemplateByName(Guid companyId, PrintDocumentKind documentKind, string nameNormalised)
         {
             Where(template => template.CompanyId == companyId
                 && template.DocumentKind == documentKind
@@ -832,6 +997,24 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
     private sealed class GstSettingsOfCompany : Specification<GstSettings>
     {
         public GstSettingsOfCompany(Guid companyId)
+        {
+            Where(settings => settings.CompanyId == companyId);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class PayrollSettingsOfCompany : Specification<PayrollSettings>
+    {
+        public PayrollSettingsOfCompany(Guid companyId)
+        {
+            Where(settings => settings.CompanyId == companyId);
+            ApplyNoTracking();
+        }
+    }
+
+    private sealed class TdsSettingsOfCompany : Specification<TdsSettings>
+    {
+        public TdsSettingsOfCompany(Guid companyId)
         {
             Where(settings => settings.CompanyId == companyId);
             ApplyNoTracking();

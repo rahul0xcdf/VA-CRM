@@ -7,6 +7,7 @@ using VinayakaAgencies.App.Presentation;
 using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Trade;
+using VinayakaAgencies.Domain.Printing;
 using VinayakaAgencies.Domain.Trade;
 
 namespace VinayakaAgencies.App.Views;
@@ -33,7 +34,7 @@ public partial class PrintPreviewWindow : Window
         InitializeComponent();
 
         _document = document;
-        _layout = (template is not null ? template.Layout : null) ?? BuiltInLayout(document.Kind);
+        _layout = (template is not null ? template.Layout : null) ?? BuiltInLayout(document.Kind.ToPrintKind());
         _companyName = company?.LegalName ?? company?.Name;
 
         // A template with no copy labels prints one unlabelled copy; a seeded one prints its
@@ -55,7 +56,7 @@ public partial class PrintPreviewWindow : Window
     private void Render(string copyLabel) =>
         Viewer.Document = TradeDocumentPrinter.Build(_document, _layout, _companyName, copyLabel);
 
-    private static PrintTemplateLayout BuiltInLayout(TradeDocumentKind kind) =>
+    private static PrintTemplateLayout BuiltInLayout(PrintDocumentKind kind) =>
         new(
             Title: kind.ToString(),
             ShowLogo: false,
