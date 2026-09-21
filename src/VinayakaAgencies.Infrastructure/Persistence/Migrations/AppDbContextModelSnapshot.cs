@@ -800,6 +800,80 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Banking.PaymentInstrument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("BankLedgerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BankReference")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("InstrumentDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InstrumentNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPrinted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PayeeName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("PrintedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankLedgerId");
+
+                    b.HasIndex("VoucherId")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "InstrumentNumber")
+                        .HasFilter("[InstrumentNumber] IS NOT NULL");
+
+                    b.HasIndex("CompanyId", "BankLedgerId", "InstrumentDate");
+
+                    b.ToTable("PaymentInstruments", (string)null);
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Customers.CategoryPriceListLine", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2215,6 +2289,463 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.ToTable("UnitsOfMeasure", (string)null);
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.Employee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Designation")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EsiNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("JoinedOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("LeftOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameNormalised")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Pan")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Uan")
+                        .HasMaxLength(12)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.HasIndex("CompanyId", "NameNormalised");
+
+                    b.ToTable("Employees", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.PayHead", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Basis")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("LedgerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameNormalised")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Statute")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LedgerId");
+
+                    b.HasIndex("CompanyId", "NameNormalised")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.HasIndex("CompanyId", "Statute");
+
+                    b.ToTable("PayHeads", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.PayrollSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsEmployeeStateInsuranceEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsProfessionalTaxEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsProvidentFundEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SalaryPayableLedgerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("PayrollSettings", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.ProfessionalTaxSlab", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("TaxAmountMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("WageFromMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("WageToMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "EffectiveFrom", "WageFromMinor");
+
+                    b.ToTable("ProfessionalTaxSlabs", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.SalaryStructureLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AmountMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Basis")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PayHeadId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("PercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("PayHeadId");
+
+                    b.HasIndex("CompanyId", "EmployeeId", "EffectiveFrom");
+
+                    b.ToTable("SalaryStructureLines", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.SalaryVoucher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Narration")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("PeriodEnd")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("PeriodStart")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PostedVoucherId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostedVoucherNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostedVoucherId");
+
+                    b.HasIndex("CompanyId", "PeriodEnd")
+                        .IsUnique();
+
+                    b.ToTable("SalaryVouchers", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.SalaryVoucherLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AmountMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("LedgerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PayHeadId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PayHeadName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SalaryVoucherId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Statute")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("LedgerId");
+
+                    b.HasIndex("PayHeadId");
+
+                    b.HasIndex("CompanyId", "Statute");
+
+                    b.HasIndex("SalaryVoucherId", "EmployeeId", "SortOrder");
+
+                    b.ToTable("SalaryVoucherLines", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.StatutoryRateSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("EligibilityCeilingMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("EmployeeRatePercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("EmployerRatePercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Statute")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("WageCeilingMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Statute", "EffectiveFrom");
+
+                    b.ToTable("StatutoryRateSchedules", (string)null);
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Printing.PrintTemplate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2314,6 +2845,381 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("PrintTemplateRevisions", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.LowerDeductionCertificate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("CeilingAmountMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CertificateNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("LedgerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("RatePercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TaxSectionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ValidFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ValidTo")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LedgerId");
+
+                    b.HasIndex("TaxSectionId");
+
+                    b.HasIndex("CompanyId", "LedgerId", "TaxSectionId", "ValidFrom");
+
+                    b.ToTable("LowerDeductionCertificates", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TaxDeduction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AppliedRatePercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("BaseAmountMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CertificateNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CumulativeBaseAfterMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DeductedAmountMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("DeductionDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("FinancialYearId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsCertificateApplied")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsThresholdCrossingPayment")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("LedgerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PayeeCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("PayeeHadPan")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SectionCode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TaxSectionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("TaxableBaseMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinancialYearId");
+
+                    b.HasIndex("LedgerId");
+
+                    b.HasIndex("TaxSectionId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.HasIndex("CompanyId", "TaxSectionId", "DeductionDate");
+
+                    b.HasIndex("CompanyId", "LedgerId", "TaxSectionId", "FinancialYearId", "DeductionDate");
+
+                    b.ToTable("TaxDeductions", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TaxPayeeProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("DeclaresDeductingOnPurchases")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeductionApplicable")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("LedgerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Pan")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PayeeCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LedgerId");
+
+                    b.HasIndex("CompanyId", "LedgerId")
+                        .IsUnique();
+
+                    b.ToTable("TaxPayeeProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TaxRateSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AnnualThresholdMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PayeeCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("RatePercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("RateWithoutPanPercentMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("SingleTransactionThresholdMinor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TaxSectionId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaxSectionId");
+
+                    b.HasIndex("CompanyId", "EffectiveFrom");
+
+                    b.HasIndex("CompanyId", "TaxSectionId", "EffectiveFrom");
+
+                    b.ToTable("TaxRateSchedules", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TaxSection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StatutePaymentCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "IsActive");
+
+                    b.HasIndex("CompanyId", "Kind", "Code")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("TaxSections", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TdsSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPurchaseOfGoodsDeductionEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSaleOfGoodsCollectionEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PurchaseOfGoodsSectionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("SaleOfGoodsSectionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TcsPayableLedgerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TdsPayableLedgerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique();
+
+                    b.HasIndex("PurchaseOfGoodsSectionId");
+
+                    b.HasIndex("SaleOfGoodsSectionId");
+
+                    b.ToTable("TdsSettings", (string)null);
                 });
 
             modelBuilder.Entity("VinayakaAgencies.Domain.Trade.TradeDocument", b =>
@@ -2724,6 +3630,27 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Banking.PaymentInstrument", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
+                        .WithMany()
+                        .HasForeignKey("BankLedgerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Voucher", null)
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Customers.CategoryPriceListLine", b =>
                 {
                     b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
@@ -3084,6 +4011,120 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.Employee", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.PayHead", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
+                        .WithMany()
+                        .HasForeignKey("LedgerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.PayrollSettings", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.ProfessionalTaxSlab", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.SalaryStructureLine", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Payroll.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Payroll.PayHead", null)
+                        .WithMany()
+                        .HasForeignKey("PayHeadId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.SalaryVoucher", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Voucher", null)
+                        .WithMany()
+                        .HasForeignKey("PostedVoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.SalaryVoucherLine", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Payroll.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
+                        .WithMany()
+                        .HasForeignKey("LedgerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Payroll.PayHead", null)
+                        .WithMany()
+                        .HasForeignKey("PayHeadId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Payroll.SalaryVoucher", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("SalaryVoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.StatutoryRateSchedule", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Printing.PrintTemplate", b =>
                 {
                     b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
@@ -3106,6 +4147,118 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .HasForeignKey("TemplateId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.LowerDeductionCertificate", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
+                        .WithMany()
+                        .HasForeignKey("LedgerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Tds.TaxSection", null)
+                        .WithMany()
+                        .HasForeignKey("TaxSectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TaxDeduction", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.FinancialYear", null)
+                        .WithMany()
+                        .HasForeignKey("FinancialYearId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
+                        .WithMany()
+                        .HasForeignKey("LedgerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Tds.TaxSection", null)
+                        .WithMany()
+                        .HasForeignKey("TaxSectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Voucher", null)
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TaxPayeeProfile", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Accounting.Ledger", null)
+                        .WithMany()
+                        .HasForeignKey("LedgerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TaxRateSchedule", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Tds.TaxSection", null)
+                        .WithMany()
+                        .HasForeignKey("TaxSectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TaxSection", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Tds.TdsSettings", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Tds.TaxSection", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseOfGoodsSectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VinayakaAgencies.Domain.Tds.TaxSection", null)
+                        .WithMany()
+                        .HasForeignKey("SaleOfGoodsSectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("VinayakaAgencies.Domain.Trade.TradeDocument", b =>
@@ -3165,6 +4318,11 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockVoucher", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Payroll.SalaryVoucher", b =>
                 {
                     b.Navigation("Lines");
                 });

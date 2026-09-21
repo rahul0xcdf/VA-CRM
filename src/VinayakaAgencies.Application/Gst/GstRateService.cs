@@ -63,21 +63,32 @@ public sealed class GstRateService(
 
         // Close any open-ended row on the same code up to the day before the newcomer begins, so
         // at most one schedule covers any date. Overlapping dated rows are refused outright.
-        foreach (var open in await _unitOfWork.Repository<GstRateSchedule>()
-                     .ListAsync(new OpenSchedulesOfCode(companyId, request.HsnSacId), cancellationToken)
+        //
+        // The newcomer is open-ended and therefore owns every date from EffectiveFrom onward: a
+        // row beginning on or after that date would be swallowed by it, and a closed row still
+        // running past it would overlap. An *open* row that began earlier is the ordinary case —
+        // a notification superseding the current rate — and is closed the day before.
+        //
+        // Testing Covers() alone cannot separate these, because an open row covers every later
+        // date by definition; doing so rejected the supersession this method exists to perform,
+        // which made a GST rate change impossible to record. Found while building the Phase 7
+        // TDS equivalent, which was modelled on this method and inherited the same defect.
+        foreach (var existing in await _unitOfWork.Repository<GstRateSchedule>()
+                     .ListAsync(new SchedulesOfCode(companyId, request.HsnSacId), cancellationToken)
                      .ConfigureAwait(false))
         {
-            if (open.Covers(request.EffectiveFrom))
+            if (existing.EffectiveFrom >= request.EffectiveFrom
+                || (existing.EffectiveTo.HasValue && existing.EffectiveTo.Value >= request.EffectiveFrom))
             {
                 throw new InvalidOperationException(
-                    "A rate schedule already covers this HSN/SAC code on the requested effective "
-                    + "date. Rates are added as non-overlapping dated rows, never overlaid.");
+                    "A rate schedule already covers this HSN/SAC code on or after the requested "
+                    + "effective date. Rates are added as non-overlapping dated rows, never overlaid.");
             }
 
-            if (!open.EffectiveTo.HasValue && open.EffectiveFrom < request.EffectiveFrom)
+            if (!existing.EffectiveTo.HasValue)
             {
-                open.CloseAsOf(request.EffectiveFrom.AddDays(-1));
-                _unitOfWork.Repository<GstRateSchedule>().Update(open);
+                existing.CloseAsOf(request.EffectiveFrom.AddDays(-1));
+                _unitOfWork.Repository<GstRateSchedule>().Update(existing);
             }
         }
 

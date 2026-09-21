@@ -1,0 +1,208 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.PayrollSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:VinayakaAgencies.App.Presentation.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="760" d:DesignWidth="1200">
+
+    <!--
+        Settings page (ADR-0006 shape, ADR-0007 internals). Three flags decide whether any
+        statutory path runs at all (C7.7); every rate, ceiling and slab beneath them is a dated
+        data row, because §2 extends non-negotiable #6 to all of them.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Payroll setup" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="pay heads, statutory rates and slabs — all data, never code"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel>
+                <TextBlock Text="WHICH STATUTES APPLY" Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Content="Provident Fund" Style="{StaticResource FieldCheck}"
+                              IsChecked="{Binding IsProvidentFundEnabled}" />
+                    <CheckBox Content="Employees' State Insurance" Style="{StaticResource FieldCheck}"
+                              IsChecked="{Binding IsEmployeeStateInsuranceEnabled}" />
+                    <CheckBox Content="Professional Tax" Style="{StaticResource FieldCheck}"
+                              IsChecked="{Binding IsProfessionalTaxEnabled}" />
+
+                    <TextBlock Text="Net pay to" Style="{StaticResource FieldLabel}" Margin="18,0,6,0" />
+                    <TextBox Width="200" Style="{StaticResource FieldBox}"
+                             Text="{Binding SalaryPayableLedgerName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Button Content="Save settings" Style="{StaticResource BandButton}"
+                            Command="{Binding SaveSettingsCommand}" />
+                    <Button Content="Refresh" Style="{StaticResource BandButton}"
+                            Command="{Binding RefreshCommand}" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PageHintText}" Margin="0,8,0,0"
+                           Text="With all three off, no statutory line is produced and no statutory path runs. Turning one on needs a rate row in force before it computes." />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+
+            <DataGrid Grid.Column="0" Style="{StaticResource PageGrid}" ItemsSource="{Binding PayHeads}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Pay head" Binding="{Binding Name}" Width="*" />
+                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="130" />
+                    <DataGridTextColumn Header="Basis" Binding="{Binding Basis}" Width="120" />
+                    <DataGridTextColumn Header="Statute" Binding="{Binding Statute}" Width="130" />
+                    <DataGridTextColumn Header="Ledger" Binding="{Binding LedgerName}" Width="150" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <DataGrid Grid.Column="1" Style="{StaticResource PageGrid}" ItemsSource="{Binding Rates}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Statute" Binding="{Binding Statute}" Width="150" />
+                    <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeRatePercentMinor}" Width="80"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Employer" Binding="{Binding EmployerRatePercentMinor}" Width="80"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Wage cap" Binding="{Binding WageCeiling, StringFormat=N0}" Width="100"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Excl. above" Binding="{Binding EligibilityCeiling, StringFormat=N0}"
+                                        Width="100"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="From" Binding="{Binding EffectiveFrom}" Width="100" />
+                    <DataGridTextColumn Header="To" Binding="{Binding EffectiveTo}" Width="100" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <DataGrid Grid.Column="2" Style="{StaticResource PageGrid}" ItemsSource="{Binding Slabs}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Wage from" Binding="{Binding WageFrom, StringFormat=N0}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Below" Binding="{Binding WageTo, StringFormat=N0}" Width="110"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="Tax" Binding="{Binding TaxAmount, StringFormat=N0}" Width="100"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridTextColumn Header="From" Binding="{Binding EffectiveFrom}" Width="100" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel>
+                <TextBlock Text="ADD A PAY HEAD" Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="190" Style="{StaticResource FieldBox}"
+                             Text="{Binding HeadName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Type" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="170" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding TypeChoices}" SelectedItem="{Binding HeadType}" />
+
+                    <TextBlock Text="Basis" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="150" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding BasisChoices}" SelectedItem="{Binding HeadBasis}" />
+
+                    <TextBlock Text="Statute" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="170" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding StatuteChoices}" SelectedItem="{Binding HeadStatute}" />
+
+                    <TextBlock Text="Posts to" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="200"
+                                        Watermark="Ledger name"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding LedgerChoices}"
+                                        SelectedItem="{Binding HeadLedger, Mode=TwoWay}" />
+
+                    <Button Content="Add head" Style="{StaticResource BandButton}"
+                            Command="{Binding AddPayHeadCommand}" />
+                </StackPanel>
+
+                <TextBlock Text="CONTRIBUTION RATE FROM A DATE" Style="{StaticResource EntryHeadingText}"
+                           Margin="0,10,0,0" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Statute" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="190" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding RateStatuteChoices}" SelectedItem="{Binding RateStatute}" />
+
+                    <TextBlock Text="Employee %" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="70" Style="{StaticResource FieldBox}"
+                             Text="{Binding EmployeeRatePercent, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Employer %" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="70" Style="{StaticResource FieldBox}"
+                             Text="{Binding EmployerRatePercent, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Wage cap" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="90" Style="{StaticResource FieldBox}"
+                             Text="{Binding WageCeiling, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Exclude above" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="90" Style="{StaticResource FieldBox}"
+                             Text="{Binding EligibilityCeiling, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="From" Style="{StaticResource FieldLabel}" />
+                    <DatePicker Width="120" SelectedDate="{Binding RateEffectiveFrom}" />
+
+                    <Button Content="Add rate" Style="{StaticResource BandButton}"
+                            Command="{Binding AddRateCommand}" />
+                </StackPanel>
+
+                <TextBlock Text="PROFESSIONAL TAX SLAB" Style="{StaticResource EntryHeadingText}"
+                           Margin="0,10,0,0" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Wage from" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="100" Style="{StaticResource FieldBox}"
+                             Text="{Binding SlabFrom, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="below" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="100" Style="{StaticResource FieldBox}"
+                             Text="{Binding SlabTo, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Tax" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="90" Style="{StaticResource FieldBox}"
+                             Text="{Binding SlabTax, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="From" Style="{StaticResource FieldLabel}" />
+                    <DatePicker Width="120" SelectedDate="{Binding SlabEffectiveFrom}" />
+
+                    <Button Content="Add slab" Style="{StaticResource BandButton}"
+                            Command="{Binding AddSlabCommand}" />
+
+                    <TextBlock Style="{StaticResource PageHintText}" Margin="14,0,0,0"
+                               Text="Leave 'below' blank for the open top band." />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
+    </Grid>
+</UserControl>

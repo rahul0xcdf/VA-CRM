@@ -1,0 +1,34 @@
+<Window x:Class="VinayakaAgencies.App.Views.ChequePreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cheque preview"
+        Height="480" Width="900"
+        WindowStartupLocation="CenterOwner">
+
+    <!--
+        The preview a cheque run goes through before a leaf is consumed (checkpoint C7.8). The
+        page is otherwise blank: the leaf is pre-printed by the bank, so the only thing drawn is
+        the values, at the millimetres the layout names.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="HeadingText" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="load a blank cheque and print at 100% scale — do not fit to page"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <DocumentViewer Grid.Row="1" x:Name="Viewer" />
+
+        <Border Grid.Row="2" Style="{StaticResource PageStatusStyle}">
+            <TextBlock x:Name="StatusText" Style="{StaticResource PageStatusText}" />
+        </Border>
+    </Grid>
+</Window>

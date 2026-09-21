@@ -3,7 +3,7 @@ using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Entities;
-using VinayakaAgencies.Domain.Trade;
+using VinayakaAgencies.Domain.Printing;
 using VinayakaAgencies.Infrastructure.Tests.TestSupport;
 
 namespace VinayakaAgencies.Infrastructure.Tests.Printing;
@@ -24,7 +24,7 @@ public sealed class PrintTemplateWorkflowTests
 
         var templates = await TemplatesAsync(host);
 
-        var taxInvoiceTemplates = templates.Where(row => row.DocumentKind == TradeDocumentKind.TaxInvoice).ToList();
+        var taxInvoiceTemplates = templates.Where(row => row.DocumentKind == PrintDocumentKind.TaxInvoice).ToList();
         taxInvoiceTemplates.Count.ShouldBe(2);
 
         // Listed by ascending priority, as every picker shows them.
@@ -33,7 +33,7 @@ public sealed class PrintTemplateWorkflowTests
 
         // The rule itself: among active templates, the lowest priority prints by default.
         var defaultTemplate = await host.InScopeAsync(sp => sp.GetRequiredService<IPrintTemplateService>()
-            .ResolveDefaultAsync(TradeDocumentKind.TaxInvoice));
+            .ResolveDefaultAsync(PrintDocumentKind.TaxInvoice));
         defaultTemplate!.Name.ShouldBe("Tax Invoice — Detailed");
     }
 
@@ -51,7 +51,7 @@ public sealed class PrintTemplateWorkflowTests
             .SetActiveAsync(detailed.Id, isActive: false));
 
         var fallback = await host.InScopeAsync(sp => sp.GetRequiredService<IPrintTemplateService>()
-            .ResolveDefaultAsync(TradeDocumentKind.TaxInvoice));
+            .ResolveDefaultAsync(PrintDocumentKind.TaxInvoice));
         fallback!.Name.ShouldBe("Tax Invoice — Compact");
 
         // Bringing it back restores the original order.
@@ -59,7 +59,7 @@ public sealed class PrintTemplateWorkflowTests
             .SetActiveAsync(detailed.Id, isActive: true));
 
         (await host.InScopeAsync(sp => sp.GetRequiredService<IPrintTemplateService>()
-                .ResolveDefaultAsync(TradeDocumentKind.TaxInvoice)))
+                .ResolveDefaultAsync(PrintDocumentKind.TaxInvoice)))
             !.Name.ShouldBe("Tax Invoice — Detailed");
     }
 

@@ -118,17 +118,50 @@ with India GST/TDS compliance as a core requirement.
   key routing table — were frozen at construction; stock groups and godowns never loaded the selected
   row into their editor, so Save renamed whatever the editor still held. Feature doc:
   `tally-entry-patterns.md`. Remaining before sign-off: owner walkthrough and screenshots.
+- **Phase 7 (TDS/TCS, payroll, banking) — implemented and verified by tests.** Spec approved
+  18 Sep 2026; decisions in §4a (194C only at launch and nothing seeded; 194Q and 206C(1H) both
+  built and both gated by a declared flag, never inferred from turnover; payroll scoped to employee
+  master, pay heads, salary voucher and PF/ESI/PT as effective-dated config behind per-statute
+  flags, with Form 24Q and Form 16 deferred; cheque layouts reusing the Phase 3 print-template
+  engine with no bank seeded; delivered as 7a TDS+banking then 7b payroll).
+  **All eight checkpoints met** — C7.1 deduction computed from config rows and posted as balanced
+  journal lines; C7.2 a section usable from two data rows with no rebuild; C7.3 the annual
+  threshold's catch-up on the crossing payment; C7.4 dated rate changes on either side of the
+  effective date; **C7.5 executed as a test** (`NoHardcodedTaxFigureGuardTests`) rather than a grep
+  somebody remembers — no section number in any string or identifier in `src/`, and `TdsMath` /
+  `PayrollMath` hold no figure beyond the minor-unit scale; C7.6 the 194Q/206C(1H) exclusion driven
+  by the buyer's recorded declaration; C7.7 every statutory flag off producing no row and running no
+  statutory path; C7.8 a cheque layout repositioned as template data — the software half proven, the
+  physical print pending the owner. Section 197 certificates (nil, capped, expired) and the 206AA
+  no-PAN uplift are covered. Nothing tax-related is seeded anywhere — not even 194C.
+  §4b records three additive changes beyond spec: `PrintTemplate.DocumentKind` retyped to the new
+  `PrintDocumentKind` so a cheque is not forced into the trade-document enum (names unchanged, so no
+  data migration), positioned `Fields` on `PrintTemplateLayout`, and
+  `TaxPayeeProfile.DeclaresDeductingOnPurchases` which C7.6 needs.
+  **Two pre-existing Phase 5 defects were found and fixed on the way**: `GstRateService.AddAsync`
+  rejected every rate change (an open-ended row covers every later date, so the overlap guard made
+  supersession impossible and the close-the-previous-row branch unreachable) — the Phase 7 TDS
+  service inherited it and C7.4 caught it, both are fixed and `GstRateScheduleTests` is the
+  regression; and `EnsureGstSeedAsync` was never called from startup, so an install that had not
+  opened a GST screen had no tax ledgers to post to. Feature docs: `tds-tcs-engine.md`,
+  `banking-and-cheque-printing.md`, `payroll-statutory-basics.md`. Evidence filed at
+  `specs/evidence/phase-7-evidence.md`. Remaining before sign-off: owner walkthrough of the seven
+  new screens, screenshots, the physical cheque print, and the payroll headcount (§5 — it gates
+  nothing built and only decides whether the PF/ESI flags are on at go-live).
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
   `print-templates.md`. Phase 4 additions: `customer-categories.md`, `customer-master.md`,
   `customer-pricing-engine.md`, `customer-statement-outstanding.md`.
   Phase 6 additions: `einvoice-irn-and-qr.md`, `eway-bill.md`.
+  Phase 7 additions: `tds-tcs-engine.md`, `banking-and-cheque-printing.md`,
+  `payroll-statutory-basics.md`.
   UI: `tally-style-ui-foundation.md` (shell, ADR-0005/0006) and `tally-entry-patterns.md`
   (inside the screens, ADR-0007 — read this before building any new screen).
   **End-user guides** (how to run the features from the screen) live in
   `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`; Phase 4:
-  `phase-4-customers-and-pricing.md`; Phase 6: `phase-6-einvoice-and-eway-bill.md`.
+  `phase-4-customers-and-pricing.md`; Phase 6: `phase-6-einvoice-and-eway-bill.md`;
+  Phase 7: `phase-7-tds-payroll-and-banking.md`.
 
 ## Development workflow (replaces the removed Claude hooks)
 

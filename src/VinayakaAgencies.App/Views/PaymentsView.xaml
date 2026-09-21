@@ -1,0 +1,159 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.PaymentsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:VinayakaAgencies.App.Presentation.Controls"
+             xmlns:presentation="clr-namespace:VinayakaAgencies.App.Presentation"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1150">
+
+    <UserControl.Resources>
+        <presentation:BoolToVisibilityConverter x:Key="ModeFieldVisibility" />
+    </UserControl.Resources>
+
+    <!--
+        Entry page (ADR-0006 shape, ADR-0007 internals): every master-picking field is a
+        LookupBox, and the identifier fields appear only for the modes that have them — the rule
+        itself lives in PaymentInstrument, where a test can reach it without a window.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Payments &amp; receipts" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="cheque, NEFT, RTGS, IMPS, UPI — and the cheque register"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Date" Style="{StaticResource FieldLabel}" />
+                    <DatePicker Width="120" SelectedDate="{Binding VoucherDate}" />
+
+                    <TextBlock Text="Party" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="230"
+                                        Watermark="Ledger name"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding LedgerChoices}"
+                                        SelectedItem="{Binding PartyLedger, Mode=TwoWay}" />
+
+                    <TextBlock Text="Through" Style="{StaticResource FieldLabel}" />
+                    <controls:LookupBox Style="{StaticResource FieldLookup}" Width="200"
+                                        Watermark="Bank or cash account"
+                                        DisplayMemberPath="Name"
+                                        ItemsSource="{Binding LedgerChoices}"
+                                        SelectedItem="{Binding BankLedger, Mode=TwoWay}" />
+
+                    <TextBlock Text="Amount" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="120" Style="{StaticResource FieldBox}"
+                             Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <CheckBox Content="Receipt" Style="{StaticResource FieldCheck}"
+                              IsChecked="{Binding IsReceipt}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="Mode" Style="{StaticResource FieldLabel}" />
+                    <ComboBox Width="140" Style="{StaticResource FieldCombo}"
+                              ItemsSource="{Binding ModeChoices}"
+                              SelectedItem="{Binding Mode}" />
+
+                    <TextBlock Text="Instrument date" Style="{StaticResource FieldLabel}" />
+                    <DatePicker Width="120" SelectedDate="{Binding InstrumentDate}" />
+
+                    <TextBlock Text="Cheque / DD no." Style="{StaticResource FieldLabel}"
+                               Visibility="{Binding NeedsInstrumentNumber, Converter={StaticResource ModeFieldVisibility}}" />
+                    <TextBox Width="120" Style="{StaticResource FieldBox}"
+                             Visibility="{Binding NeedsInstrumentNumber, Converter={StaticResource ModeFieldVisibility}}"
+                             Text="{Binding InstrumentNumber, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="UTR / txn ref" Style="{StaticResource FieldLabel}"
+                               Visibility="{Binding NeedsBankReference, Converter={StaticResource ModeFieldVisibility}}" />
+                    <TextBox Width="180" Style="{StaticResource FieldBox}"
+                             Visibility="{Binding NeedsBankReference, Converter={StaticResource ModeFieldVisibility}}"
+                             Text="{Binding BankReference, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Pay to" Style="{StaticResource FieldLabel}"
+                               Visibility="{Binding NeedsInstrumentNumber, Converter={StaticResource ModeFieldVisibility}}" />
+                    <TextBox Width="200" Style="{StaticResource FieldBox}"
+                             Visibility="{Binding NeedsInstrumentNumber, Converter={StaticResource ModeFieldVisibility}}"
+                             Text="{Binding PayeeName, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="Narration" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="380" Style="{StaticResource FieldBox}"
+                             Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Button Content="Post" Style="{StaticResource BandButton}"
+                            Command="{Binding PostCommand}" />
+                    <Button Content="Clear" Style="{StaticResource BandButton}"
+                            Command="{Binding ClearCommand}" />
+                </StackPanel>
+
+                <!-- The words, as they will print. Computed once, in the domain. -->
+                <TextBlock Style="{StaticResource PageHintText}" Margin="0,8,0,0"
+                           Text="{Binding AmountInWords}" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Style="{StaticResource FilterBarStyle}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Register from" Style="{StaticResource FieldLabel}" />
+                    <DatePicker Width="120" SelectedDate="{Binding FromDate}" />
+
+                    <TextBlock Text="to" Style="{StaticResource FieldLabel}" />
+                    <DatePicker Width="120" SelectedDate="{Binding ToDate}" />
+
+                    <Button Content="Refresh" Style="{StaticResource BandButton}"
+                            Command="{Binding RefreshCommand}" />
+                    <Button Content="Print cheque" Style="{StaticResource BandButton}"
+                            Command="{Binding PrintChequeCommand}" />
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <DataGrid Style="{StaticResource PageGrid}"
+                          ItemsSource="{Binding Rows}"
+                          SelectedItem="{Binding SelectedRow}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Voucher" Binding="{Binding VoucherNumber}" Width="110" />
+                        <DataGridTextColumn Header="Instr. date" Binding="{Binding InstrumentDate}" Width="100" />
+                        <DataGridTextColumn Header="Party" Binding="{Binding PartyLedgerName}" Width="*" />
+                        <DataGridTextColumn Header="Through" Binding="{Binding BankLedgerName}" Width="160" />
+                        <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="90" />
+                        <DataGridTextColumn Header="Cheque no." Binding="{Binding InstrumentNumber}" Width="110" />
+                        <DataGridTextColumn Header="Reference" Binding="{Binding BankReference}" Width="150" />
+                        <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="120"
+                                            ElementStyle="{StaticResource NumericCell}"
+                                            HeaderStyle="{StaticResource NumericColumnHeader}" />
+                        <DataGridCheckBoxColumn Header="Printed" Binding="{Binding IsPrinted}" Width="65" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Style="{StaticResource EmptyStateText}"
+                           Text="No payments or receipts in this period."
+                           Visibility="{Binding Rows.Count, Converter={StaticResource ZeroToVisibility}}" />
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
+    </Grid>
+</UserControl>

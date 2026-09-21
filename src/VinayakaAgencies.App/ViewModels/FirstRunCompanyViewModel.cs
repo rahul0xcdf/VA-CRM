@@ -101,6 +101,15 @@ public sealed partial class FirstRunCompanyViewModel : ObservableObject
             Status = "Preparing customer setup…";
             await _provisioning.EnsureCustomerSeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
 
+            Status = "Preparing GST setup…";
+            await _provisioning.EnsureGstSeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
+
+            Status = "Preparing TDS setup…";
+            await _provisioning.EnsureTdsSeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
+
+            Status = "Preparing payroll setup…";
+            await _provisioning.EnsurePayrollSeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
+
             CreatedCompanyId = company.Id;
             Status = $"{company.Name} is ready. Opening…";
 

@@ -57,6 +57,8 @@ keeps the whole page until you ask a question of it.
 | Day book | Every line of the highlighted row's voucher — the day book lists lines, so a payment shows as two rows pages apart |
 | Edit log | The highlighted row's before and after images in full, untruncated |
 | GST rate schedules | That code's full rate history |
+| TDS/TCS register | The challan summary — what to deposit per section, with the deductee count |
+| Payroll run | The statutory remittance summary — employee share, employer share and total per statute |
 
 Reports with nothing to drill into — number gaps, diagnostics, outstanding orders, stock reports —
 deliberately do not show the key.
