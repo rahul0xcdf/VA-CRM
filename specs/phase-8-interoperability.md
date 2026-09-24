@@ -123,6 +123,48 @@ targets the canonical model of D3, not a vendor: whatever Marg would need later 
 adapter in front of a model that already exists, not a second import pipeline. Nothing built in this
 phase has to be undone to add it.
 
+## 4b. Changes beyond the spec, and why
+
+### B1 — Voucher types are exported as masters
+
+§2 lists the masters to export as "ledgers, stock items, groups, units, godowns". Voucher types are
+added to that list, because without them the transactions half of the same file cannot be imported by
+anyone.
+
+A company's voucher types are its own: "Stock Journal", "Cash Sales", "Bank Payment". None of those is
+a name Tally ships with, so a file that referenced one without defining it leaves the reader with a
+document and no way to know which of the eight posting behaviours it carries. Inferring one from the
+name is the tempting answer and the wrong one — guess that "Bank Payment" is a payment and you happen
+to be right; guess wrong on some other name and real money posts down the wrong path with nothing in
+the file to show it happened. The exported `VOUCHERTYPE` element declares its behaviour through the
+built-in type it inherits from, which is how Tally itself expresses the same thing, and it is equally
+needed in the other direction: a voucher filed under a type the accountant's company does not hold
+would be rejected there too (C8.1).
+
+### B2 — A whole-life journal totals query
+
+`Interop.JournalTotals`, one statement per provider, added for the C8.6 reconciliation §4a D2
+introduced. The trial balance could not serve: `GetTrialBalanceAsync` resolves its date to a financial
+year, so a migration carrying five years of history would have reconciled against one of them and
+reported a difference that was not real. The new query reads whole-life debit and credit through the
+same current-revision predicate every other reporting statement uses.
+
+### B3 — Two entities, one migration
+
+`ExcelColumnMapping` and `ExcelColumnMappingColumn` (migration `AddExcelColumnMappings`). §2 already
+requires mappings to be "saveable and reusable", so this is the spec's own requirement rather than an
+addition — recorded here because it is the only schema Phase 8 adds. Everything else in the phase
+reads and writes files.
+
+### B4 — A Phase 2 defect fixed on the way
+
+`StockReportService.ReconcileValuationAsync` threw on a company with no stock movements. Dapper builds
+its deserialiser from the reader's schema before it knows whether any rows came back, and on an empty
+result SQLite reports no type for an aggregate expression — so the positional record was asked for a
+`byte[]` constructor and found none. Every other report in the suite returns a row per master and
+never reaches the condition. Found here because the import reconciles against a fresh company; it
+would otherwise have surfaced as the Stock Valuation screen throwing on a new install.
+
 ## 5. Checkpoint addition from §4a
 
 | # | Criterion |

@@ -1701,6 +1701,112 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.ToTable("HsnSac", (string)null);
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Interop.ExcelColumnMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("HeaderRowNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("ModifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameNormalised")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SheetName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "NameNormalised")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.HasIndex("CompanyId", "Target");
+
+                    b.ToTable("ExcelColumnMappings", (string)null);
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Interop.ExcelColumnMappingColumn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("MappingId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceHeader")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceHeaderNormalised")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetField")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("MappingId", "SourceHeaderNormalised")
+                        .IsUnique();
+
+                    b.HasIndex("MappingId", "TargetField")
+                        .IsUnique();
+
+                    b.ToTable("ExcelColumnMappingColumns", (string)null);
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.Godown", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3819,6 +3925,30 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("VinayakaAgencies.Domain.Interop.ExcelColumnMapping", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Interop.ExcelColumnMappingColumn", b =>
+                {
+                    b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VinayakaAgencies.Domain.Interop.ExcelColumnMapping", null)
+                        .WithMany("Columns")
+                        .HasForeignKey("MappingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.Godown", b =>
                 {
                     b.HasOne("VinayakaAgencies.Domain.Entities.Company", null)
@@ -4315,6 +4445,11 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("VinayakaAgencies.Domain.Accounting.VoucherRevision", b =>
                 {
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("VinayakaAgencies.Domain.Interop.ExcelColumnMapping", b =>
+                {
+                    b.Navigation("Columns");
                 });
 
             modelBuilder.Entity("VinayakaAgencies.Domain.Inventory.StockVoucher", b =>

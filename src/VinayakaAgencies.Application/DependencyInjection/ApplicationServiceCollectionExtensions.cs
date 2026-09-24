@@ -114,6 +114,9 @@ public static class ApplicationServiceCollectionExtensions
         // taking them on.
         services.AddScoped<IInteropExportService, InteropExportService>();
         services.AddScoped<IInteropImportService, InteropImportService>();
+        services.AddScoped<IInteropSourceFactory, InteropSourceFactory>();
+        services.AddScoped<IInteropWorkbookExporter, InteropWorkbookExporter>();
+        services.AddScoped<IExcelMappingService, ExcelMappingService>();
 
         return services;
     }

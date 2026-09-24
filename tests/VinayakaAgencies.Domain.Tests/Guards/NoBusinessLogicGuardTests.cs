@@ -66,7 +66,7 @@ public class NoBusinessLogicGuardTests
     ];
 
     /// <summary>
-    /// The closed set of types deriving directly from <c>Entity</c> that Phases 0 through 7 were
+    /// The closed set of types deriving directly from <c>Entity</c> that Phases 0 through 8 were
     /// approved to add (Phase 0: <c>Company</c>; Phase 1: spec §5's entity table; Phase 2:
     /// <c>specs/phase-2-inventory.md</c> §1 as approved; Phase 3:
     /// <c>specs/phase-3-sales-purchase-pipeline.md</c> §1–§2 — trade documents and print
@@ -74,7 +74,10 @@ public class NoBusinessLogicGuardTests
     /// price lines and sales settings; Phase 5-6: GST, e-invoicing and e-way bill;
     /// Phase 7: <c>specs/phase-7-tds-payroll-banking.md</c> §2 — the TDS/TCS section master, its
     /// dated rate schedules, payee profiles, Section 197 certificates, posted deductions and the
-    /// settings row carrying the 194Q/206C(1H) flags). Deliberately a fixed list, not "however many exist today" —
+    /// settings row carrying the 194Q/206C(1H) flags; Phase 8:
+    /// <c>specs/phase-8-interoperability.md</c> §2 — the saved Excel column mapping and its columns,
+    /// which are the only rows that phase persists: every other part of it reads and writes files).
+    /// Deliberately a fixed list, not "however many exist today" —
     /// a new entry here is a spec change, not a test update to follow the code.
     /// </summary>
     private static readonly string[] ApprovedEntityTypeNames =
@@ -92,6 +95,8 @@ public class NoBusinessLogicGuardTests
         "EinvoiceRegistration",
         "EinvoiceSettings",
         "EwayBill",
+        "ExcelColumnMapping",
+        "ExcelColumnMappingColumn",
         "FinancialYear",
         "GstRateSchedule",
         "GstSettings",
@@ -190,7 +195,7 @@ public class NoBusinessLogicGuardTests
     }
 
     [Fact]
-    public void EntityTypesInDomain_MatchExactlyThePhase0Through7ApprovedSet()
+    public void EntityTypesInDomain_MatchExactlyThePhase0Through8ApprovedSet()
     {
         // Belt-and-braces version of the two checks above: verifies the guard would also catch a
         // business entity dropped in the wrong folder (e.g. Domain/Common), and — unlike the Phase 0

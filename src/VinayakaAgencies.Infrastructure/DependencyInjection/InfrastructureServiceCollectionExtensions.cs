@@ -6,7 +6,9 @@ using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.Configuration;
 using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Infrastructure.Data;
+using VinayakaAgencies.Application.Interop;
 using VinayakaAgencies.Infrastructure.Einvoicing;
+using VinayakaAgencies.Infrastructure.Interop;
 using VinayakaAgencies.Infrastructure.Persistence;
 
 namespace VinayakaAgencies.Infrastructure.DependencyInjection;
@@ -91,6 +93,12 @@ public static class InfrastructureServiceCollectionExtensions
             client.BaseAddress = new Uri(baseAddress, UriKind.Absolute);
             client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
         });
+
+        // Phase 8 interoperability: the two workbook ports Infrastructure satisfies with ClosedXML
+        // (MIT; never EPPlus — paid licence since v5). Singletons because neither holds state
+        // between calls: each opens the file it is handed and closes it again.
+        services.TryAddSingleton<IWorkbookReader, ClosedXmlWorkbookReader>();
+        services.TryAddSingleton<IWorkbookWriter, ClosedXmlWorkbookWriter>();
 
         return services;
     }
