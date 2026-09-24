@@ -43,18 +43,29 @@ internal sealed class FakeInteropImportService : IInteropImportService
 
     public InteropImportResult? Result { get; set; }
 
+    public IReadOnlyList<InteropImportProgress> Reports => _reports;
+
+    private readonly List<InteropImportProgress> _reports = [];
+
     public Task<InteropImportPreview> ValidateAsync(
         IInteropSource source,
         InteropImportOptions options,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(Preview);
+        IProgress<InteropImportProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        progress?.Report(new InteropImportProgress(Preview.RecordCount, RecordsTotal: 0, "records"));
+        return Task.FromResult(Preview);
+    }
 
     public Task<InteropImportResult> CommitAsync(
         IInteropSource source,
         InteropImportOptions options,
         IProgress<InteropImportProgress>? progress = null,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(Result ?? new InteropImportResult(Preview, Committed: true));
+        CancellationToken cancellationToken = default)
+    {
+        progress?.Report(new InteropImportProgress(Preview.RecordCount, Preview.RecordCount, "records"));
+        return Task.FromResult(Result ?? new InteropImportResult(Preview, Committed: true));
+    }
 }
 
 internal sealed class FakeInteropSourceFactory : IInteropSourceFactory

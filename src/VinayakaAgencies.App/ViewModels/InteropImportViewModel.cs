@@ -68,7 +68,18 @@ public sealed partial class InteropImportViewModel : ObservableObject, IScreenSh
     private string _reconciliation = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsProgressIndeterminate))]
     private bool _isBusy;
+
+    [ObservableProperty]
+    private double _progressFraction;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsProgressIndeterminate))]
+    private bool _isProgressDeterminate;
+
+    [ObservableProperty]
+    private string _progressText = string.Empty;
 
     private InteropImportPreview? _preview;
 
@@ -88,6 +99,9 @@ public sealed partial class InteropImportViewModel : ObservableObject, IScreenSh
         || FilePath.EndsWith(".xlsm", StringComparison.OrdinalIgnoreCase);
 
     public bool CanCommit => _preview is { CanCommit: true } && !IsBusy;
+
+    /// <summary>The bar sweeps while a total is not yet known, and fills once it is.</summary>
+    public bool IsProgressIndeterminate => IsBusy && !IsProgressDeterminate;
 
     public ICommand? AcceptCommand => CommitCommand;
 
@@ -162,7 +176,7 @@ public sealed partial class InteropImportViewModel : ObservableObject, IScreenSh
         try
         {
             _preview = await _import
-                .ValidateAsync(source, Options(), cancellationToken)
+                .ValidateAsync(source, Options(), Reporter(), cancellationToken)
                 .ConfigureAwait(true);
 
             Show(_preview);
@@ -198,7 +212,7 @@ public sealed partial class InteropImportViewModel : ObservableObject, IScreenSh
         try
         {
             var result = await _import
-                .CommitAsync(source, Options(), progress: null, cancellationToken)
+                .CommitAsync(source, Options(), Reporter(), cancellationToken)
                 .ConfigureAwait(true);
 
             _preview = result.Preview;
@@ -238,10 +252,34 @@ public sealed partial class InteropImportViewModel : ObservableObject, IScreenSh
         Warnings = [];
         Tallies = [];
         Reconciliation = string.Empty;
+        ProgressText = string.Empty;
+        ProgressFraction = 0d;
+        IsProgressDeterminate = false;
         Status = "Cleared.";
         OnPropertyChanged(nameof(IsWorkbook));
         RaiseBars();
     }
+
+    /// <summary>
+    /// A progress sink that marshals back to the UI thread.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Progress{T}"/> captures the synchronisation context it is constructed on — the UI
+    /// thread here — so the handler does not have to marshal by hand. During validation the total is
+    /// unknown and the bar runs indeterminate: a bar sitting at zero through the first half of a long
+    /// import says less than a count that keeps moving.
+    /// </remarks>
+    private Progress<InteropImportProgress> Reporter() => new(report =>
+    {
+        IsProgressDeterminate = report.IsDeterminate;
+        ProgressFraction = report.Fraction;
+
+        ProgressText = report.IsDeterminate
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"{report.RecordsRead:N0} of {report.RecordsTotal:N0} {report.CurrentKind}")
+            : string.Create(CultureInfo.InvariantCulture, $"{report.RecordsRead:N0} read");
+    });
 
     private InteropImportOptions Options() => new(ImportMasters, ImportVouchers);
 

@@ -122,7 +122,23 @@
         </Border>
 
         <Border Grid.Row="6" Style="{StaticResource PageStatusStyle}">
-            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" TextWrapping="Wrap" />
+            <DockPanel LastChildFill="True">
+                <!--
+                    Indeterminate while the file is being read, because how many records it holds is
+                    not knowable until it has been. Hidden entirely when nothing is running, so the
+                    status line does not carry a dead bar.
+                -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                            Visibility="{Binding ProgressText, Converter={StaticResource EmptyStringToVisibility}}">
+                    <TextBlock Text="{Binding ProgressText}" Style="{StaticResource StatusHintText}"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ProgressBar Width="160" Height="10" VerticalAlignment="Center"
+                                 IsIndeterminate="{Binding IsProgressIndeterminate}"
+                                 Minimum="0" Maximum="1" Value="{Binding ProgressFraction, Mode=OneWay}" />
+                </StackPanel>
+
+                <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" TextWrapping="Wrap" />
+            </DockPanel>
         </Border>
     </Grid>
 </UserControl>

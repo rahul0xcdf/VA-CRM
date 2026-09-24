@@ -18,9 +18,16 @@ namespace VinayakaAgencies.Application.Interop;
 public interface IInteropImportService
 {
     /// <summary>Reads the whole source and reports what is wrong with it. Writes nothing.</summary>
+    /// <remarks>
+    /// Progress carries a running count with no total, because how many records a file holds is not
+    /// knowable until it has been read. This is the pass that runs first and, on a full history, for
+    /// longest — a screen that said nothing until it finished would look hung for the part of the
+    /// work the owner is least prepared for.
+    /// </remarks>
     Task<InteropImportPreview> ValidateAsync(
         IInteropSource source,
         InteropImportOptions options,
+        IProgress<InteropImportProgress>? progress = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

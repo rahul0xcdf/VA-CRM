@@ -95,10 +95,18 @@ public sealed record InteropImportPreview(
         new(sourceDescription, formatName, [], [], [], new InteropTotals(0, 0));
 }
 
-/// <summary>Progress during a commit, for a file large enough that the screen has to say something.</summary>
-public sealed record InteropImportProgress(int RecordsWritten, int RecordsTotal, string CurrentKind)
+/// <summary>Progress through a file large enough that the screen has to say something (§4a D2).</summary>
+/// <param name="RecordsTotal">
+/// Zero while the total is not yet known, which is the whole of the validation pass: how many records
+/// a file holds is not knowable until it has been read. A screen shows a running count then and a
+/// proportion afterwards, rather than a bar that sits at nothing for the first half of the work.
+/// </param>
+public sealed record InteropImportProgress(int RecordsRead, int RecordsTotal, string CurrentKind)
 {
-    public double Fraction => RecordsTotal == 0 ? 0d : (double)RecordsWritten / RecordsTotal;
+    /// <summary>True once the total is known, so a proportion means something.</summary>
+    public bool IsDeterminate => RecordsTotal > 0;
+
+    public double Fraction => IsDeterminate ? (double)RecordsRead / RecordsTotal : 0d;
 }
 
 /// <summary>What the import did.</summary>

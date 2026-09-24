@@ -79,6 +79,7 @@ public sealed class InteropImportService : IInteropImportService
     public async Task<InteropImportPreview> ValidateAsync(
         IInteropSource source,
         InteropImportOptions options,
+        IProgress<InteropImportProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -86,7 +87,8 @@ public sealed class InteropImportService : IInteropImportService
 
         var index = await LoadIndexAsync(cancellationToken).ConfigureAwait(false);
 
-        return await ValidateCoreAsync(source, options, index, cancellationToken).ConfigureAwait(false);
+        return await ValidateCoreAsync(source, options, index, progress, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public async Task<InteropImportResult> CommitAsync(
@@ -98,7 +100,7 @@ public sealed class InteropImportService : IInteropImportService
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(options);
 
-        var preview = await ValidateAsync(source, options, cancellationToken).ConfigureAwait(false);
+        var preview = await ValidateAsync(source, options, progress, cancellationToken).ConfigureAwait(false);
 
         if (preview.Problems.Count > 0)
         {
@@ -186,14 +188,26 @@ public sealed class InteropImportService : IInteropImportService
         IInteropSource source,
         InteropImportOptions options,
         InteropMasterIndex index,
+        IProgress<InteropImportProgress>? progress,
         CancellationToken cancellationToken)
     {
         var pass = new ValidationPass(index, options);
+        var read = 0;
 
         await foreach (var record in source.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             pass.Accept(record);
+            read++;
+
+            // Reported every batch rather than every record. A full history posting a progress
+            // message per row spends more time marshalling to the UI thread than reading the file.
+            if (progress is not null && read % BatchSize == 0)
+            {
+                progress.Report(new InteropImportProgress(read, RecordsTotal: 0, record.Kind));
+            }
         }
+
+        progress?.Report(new InteropImportProgress(read, RecordsTotal: 0, "records"));
 
         return pass.ToPreview(source);
     }
@@ -274,10 +288,14 @@ public sealed class InteropImportService : IInteropImportService
             {
                 await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 sinceSave = 0;
-            }
 
-            progress?.Report(new InteropImportProgress(written, preview.RecordCount, record.Kind));
+                // On the batch boundary, not every record. A full history posting a progress message
+                // per row spends more time marshalling to the UI thread than it does writing.
+                progress?.Report(new InteropImportProgress(written, preview.RecordCount, record.Kind));
+            }
         }
+
+        progress?.Report(new InteropImportProgress(written, preview.RecordCount, "records"));
     }
 
     private static bool Wanted(InteropRecord record, InteropImportOptions options) => record switch

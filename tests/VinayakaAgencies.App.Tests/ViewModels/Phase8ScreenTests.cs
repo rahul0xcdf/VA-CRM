@@ -220,6 +220,61 @@ public sealed class Phase8ScreenTests
         viewModel.Status.ShouldContain("Imported");
     }
 
+    /// <summary>
+    /// Validation reports a count; the commit reports a proportion.
+    /// </summary>
+    /// <remarks>
+    /// §4a D2 asks the importer to report progress on a full history. The distinction matters because
+    /// the total is not knowable until the file has been read — a determinate bar through the
+    /// validation pass would be a bar sitting at nothing for the longest part of the work.
+    /// </remarks>
+    [Fact]
+    public async Task Import_WhileChecking_ReportsACountWithNoTotal()
+    {
+        using var context = new InlineContext();
+        var viewModel = Import(out var import);
+        import.Preview = PreviewWith(tallies: [new InteropRecordTally("Ledger", 40, 0)]);
+
+        viewModel.FilePath = "books.xml";
+        await ((IAsyncRelayCommand)viewModel.CheckCommand).ExecuteAsync(null);
+
+        viewModel.ProgressText.ShouldBe("40 read");
+        viewModel.IsProgressDeterminate.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Import_WhileCommitting_ReportsAProportion()
+    {
+        using var context = new InlineContext();
+        var viewModel = Import(out var import);
+        import.Preview = PreviewWith(tallies: [new InteropRecordTally("Ledger", 40, 0)]);
+
+        viewModel.FilePath = "books.xml";
+        await ((IAsyncRelayCommand)viewModel.CommitCommand).ExecuteAsync(null);
+
+        viewModel.ProgressText.ShouldBe("40 of 40 records");
+        viewModel.IsProgressDeterminate.ShouldBeTrue();
+        viewModel.ProgressFraction.ShouldBe(1d);
+
+        // Nothing is running any more, so the bar does not sweep.
+        viewModel.IsProgressIndeterminate.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Import_Clear_TakesTheProgressOffTheStatusLine()
+    {
+        using var context = new InlineContext();
+        var viewModel = Import(out var import);
+        import.Preview = PreviewWith(tallies: [new InteropRecordTally("Ledger", 40, 0)]);
+
+        viewModel.FilePath = "books.xml";
+        await ((IAsyncRelayCommand)viewModel.CheckCommand).ExecuteAsync(null);
+        viewModel.ClearCommand.Execute(null);
+
+        viewModel.ProgressText.ShouldBeEmpty();
+        viewModel.ProgressFraction.ShouldBe(0d);
+    }
+
     [Fact]
     public async Task Import_WhenTheBooksDoNotReconcile_SaysSoOnTheStatusLine()
     {
@@ -389,6 +444,30 @@ public sealed class Phase8ScreenTests
         var saved = service.Saved.ShouldHaveSingleItem();
         saved.Columns.Count.ShouldBe(2);
         saved.Columns.ShouldNotContain(column => column.SourceHeader == "Warranty");
+    }
+
+    /// <summary>
+    /// Runs posted callbacks on the calling thread, for the duration of a <c>using</c>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Progress{T}"/> delivers through the synchronisation context it captured, which is
+    /// what makes it the right sink for a viewmodel — the import service reports from whatever thread
+    /// it happens to be on, and the handler still touches bound properties on the UI thread. Under a
+    /// test runner there is no such context and delivery is queued to the thread pool, so a test that
+    /// asserted straight after the await would be racing it. Supplying one that runs inline removes
+    /// the race without changing what the viewmodel does.
+    /// </remarks>
+    private sealed class InlineContext : SynchronizationContext, IDisposable
+    {
+        private readonly SynchronizationContext? _previous = Current;
+
+        public InlineContext() => SetSynchronizationContext(this);
+
+        public override void Post(SendOrPostCallback d, object? state) => d(state);
+
+        public override void Send(SendOrPostCallback d, object? state) => d(state);
+
+        public void Dispose() => SetSynchronizationContext(_previous);
     }
 
     private static InteropImportPreview PreviewWith(

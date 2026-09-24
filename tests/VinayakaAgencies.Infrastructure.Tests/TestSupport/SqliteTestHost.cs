@@ -35,10 +35,15 @@ public sealed class SqliteTestHost : IAsyncDisposable
         IIrpClient? irpClient = null,
         ICredentialProtector? credentialProtector = null)
     {
+        // A directory per host, not a file per host in one shared directory. xUnit runs test classes
+        // in parallel and several of them create databases; one run of the suite failed inside
+        // SqliteConnection.Open with no assertion reached, which is what contention on a single
+        // directory looks like on Windows. A directory each costs nothing and removes the question.
         _databasePath = Path.Combine(
             Path.GetTempPath(),
             "VinayakaAgencies.Tests",
-            $"{Guid.NewGuid():N}.db");
+            $"db-{Guid.NewGuid():N}",
+            "company.db");
 
         Directory.CreateDirectory(Path.GetDirectoryName(_databasePath)!);
 
@@ -132,6 +137,25 @@ public sealed class SqliteTestHost : IAsyncDisposable
         TryDelete(_databasePath);
         TryDelete(_databasePath + "-wal");
         TryDelete(_databasePath + "-shm");
+        TryDeleteDirectory(Path.GetDirectoryName(_databasePath)!);
+    }
+
+    private static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+        }
+        catch (IOException)
+        {
+            // Same reasoning as the files: a leaked handle should not fail a passing run.
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private static void TryDelete(string path)

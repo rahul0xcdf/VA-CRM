@@ -9,7 +9,7 @@
 
 | # | Criterion | Status | Evidence |
 |---|---|---|---|
-| C8.1 | A company's masters + transactions exported from this app import cleanly into a real (or sandboxed) TallyPrime company without errors | **Not met — needs a real Tally** | See §3 |
+| C8.1 | A company's masters + transactions exported from this app import cleanly into a real (or sandboxed) TallyPrime company without errors | **Not met — needs a real Tally** | See §4 |
 | C8.2 | Round-tripping export → import of the same data does not duplicate records | **Met** | `InteropWorkflowTests.Import_OfThisCompanysOwnExport_ChangesNothing` (XML and JSON), `…_CountsEverythingAsAnUpdate`, `…Import_OfAnUnchangedVoucher_AddsNoRevision` |
 | C8.3 | An Excel item import with a non-standard column order succeeds via the mapping step | **Met** | `ExcelWorkbookTests.Import_ItemSheetInANonStandardColumnOrder_ReachesTheItemMaster`, `ExcelInteropSourceTests.ReadAsync_ItemsInANonStandardColumnOrder_ImportsThemAnyway` |
 | C8.4 | An import with one invalid row commits nothing and reports the offending row and reason | **Met** | `InteropWorkflowTests.Import_WithOneUnbalancedVoucher_CommitsNothingAndNamesTheRow`, `…Import_ReportsEveryProblemInOnePass` |
@@ -48,30 +48,33 @@ that waits on a real file.
 ```
 Passed!  - Failed: 0, Passed: 485, Skipped: 0, Total: 485 - VinayakaAgencies.Domain.Tests.dll
 Passed!  - Failed: 0, Passed: 112, Skipped: 0, Total: 112 - VinayakaAgencies.Application.Tests.dll
-Passed!  - Failed: 0, Passed: 157, Skipped: 0, Total: 157 - VinayakaAgencies.App.Tests.dll
+Passed!  - Failed: 0, Passed: 160, Skipped: 0, Total: 160 - VinayakaAgencies.App.Tests.dll
 Passed!  - Failed: 0, Passed: 249, Skipped: 0, Total: 249 - VinayakaAgencies.Infrastructure.Tests.dll
 
 === Done (build + test succeeded) ===
 ```
 
-**1,003 tests, 0 failures, 0 warnings** under warnings-as-errors.
+**1,006 tests, 0 failures, 0 warnings** under warnings-as-errors.
 
-### One intermittent failure, recorded
-
-On one run of the four above, a single Infrastructure test failed inside
-`RelationalConnection.OpenAsync` — a SQLite connection that would not open. It did not recur on the
-next two full runs, and no assertion was involved: the test never reached one.
-
-`SqliteTestHost` gives every test its own file under the temp directory and xUnit runs test classes in
-parallel, so the likely cause is file-handle contention on Windows under load rather than anything in
-Phase 8 — the Excel tests added a second class that writes temp files, which is new pressure on the
-same directory. It is written down rather than run away from because an intermittent failure that
-nobody records is one that gets blamed on the next change. **Watch for it**; if it recurs, the fix is
-to give the test hosts per-class directories or to serialise the two file-writing suites.
-
-Phase 8 added 90: 40 in Application (the serialisers, the readers' behaviour on bad input, the Excel
+Phase 8 added 93: 40 in Application (the serialisers, the readers' behaviour on bad input, the Excel
 mapping rules), 20 in Infrastructure (the database claims and the ClosedXML adapters against real
-`.xlsx` files), 24 in App (the three screens' own rules), and the guard-set updates in Domain.
+`.xlsx` files), 27 in App (the three screens' own rules, including progress reporting), and the
+guard-set updates in Domain.
+
+### One intermittent failure, and what was done about it
+
+On one run, a single Infrastructure test failed inside `RelationalConnection.OpenAsync` — a SQLite
+connection that would not open. No assertion was involved; the test never reached one.
+
+`SqliteTestHost` gave every test its own database *file* inside one shared temp directory, and xUnit
+runs test classes in parallel. Phase 8 added a second class that writes temp files into the same
+place, which is new pressure on it. Each host now gets its own **directory** and removes it on
+dispose.
+
+Three consecutive runs of the Infrastructure suite are clean since. That is suggestive rather than
+proof — the failure was rare to begin with, so three clean runs would be the expected outcome either
+way. It is recorded because an intermittent failure nobody writes down is one that gets blamed on the
+next change. If it recurs, the next step is to serialise the two file-writing suites.
 
 ### The Phase 8 integration tests
 
@@ -103,7 +106,41 @@ Interop.ExcelWorkbookTests
 
 ---
 
-## 3. What is not proven, and why
+## 3. Smoke run
+
+Run against a **copy** of the working database from `%LOCALAPPDATA%\VinayakaAgencies`, not the file
+itself. The point of the exercise is that the phase's migration applies to a database with real rows
+already in it, and taking a copy gets that without putting the owner's data in the path of a test.
+
+```
+MOTORPUMP_Database__ConnectionString="Data Source=…\phase7-copy.db" dotnet run --project src\VinayakaAgencies.App
+```
+
+```
+2026-09-24 13:58:31.469 [INF] Applying migration '20260921043012_AddTdsAndBanking'.
+2026-09-24 13:58:31.556 [INF] Applying migration '20260921045412_AddPayroll'.
+2026-09-24 13:58:31.623 [INF] Applying migration '20260924051041_AddExcelColumnMappings'.
+2026-09-24 13:58:33.154 [INF] Shell window opened.
+```
+
+The copy was older than expected and took three migrations rather than one, which makes the run
+better evidence than intended: the Phase 8 migration applied on top of two others in the same
+startup, against populated tables, and the shell still opened.
+
+**Zero `[ERR]` or `[FTL]` rows** in `log-20260924.txt` for the run. Both new tables are present in the
+migrated file:
+
+```
+ExcelColumnMappings
+ExcelColumnMappingColumns
+```
+
+The owner's own `motorpump.db` was not opened and is unchanged. It will take the same migration the
+next time they start the application, which is the normal path.
+
+---
+
+## 4. What is not proven, and why
 
 ### C8.1 needs a TallyPrime
 
@@ -136,7 +173,7 @@ real import runs: a migration is precisely when duplicate names arrive from outs
 
 ---
 
-## 4. Defects found and fixed during the phase
+## 5. Defects found and fixed during the phase
 
 ### A Phase 2 defect: stock valuation on an empty ledger
 
@@ -170,7 +207,7 @@ vocabulary throughout and only the serialiser knows Tally calls it `STOCKITEM`.
 
 ---
 
-## 5. Schema
+## 6. Schema
 
 One migration: `AddExcelColumnMappings` — `ExcelColumnMappings` and `ExcelColumnMappingColumns`. §2
 already requires mappings to be saveable and reusable, so this is the spec's own requirement; it is
