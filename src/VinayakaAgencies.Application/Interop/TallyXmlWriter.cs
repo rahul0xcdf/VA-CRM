@@ -133,7 +133,7 @@ public static class TallyXmlWriter
             yield return Message(Godown(godown));
         }
 
-        foreach (var item in document.StockItems)
+        foreach (var item in document.Items)
         {
             yield return Message(StockItem(item));
         }
@@ -148,6 +148,13 @@ public static class TallyXmlWriter
         foreach (var ledger in document.Ledgers)
         {
             yield return Message(Ledger(ledger));
+        }
+
+        // Voucher types before the vouchers that name them: a voucher filed under a type the reader
+        // has not met yet has no behaviour it can be posted with.
+        foreach (var voucherType in document.VoucherTypes)
+        {
+            yield return Message(VoucherType(voucherType));
         }
 
         foreach (var voucher in document.Vouchers)
@@ -187,7 +194,7 @@ public static class TallyXmlWriter
         return element;
     }
 
-    private static XElement StockItem(InteropStockItem item)
+    private static XElement StockItem(InteropItem item)
     {
         var element = Master(TallyXmlNames.StockItem, item.Name, item.Id);
         element.Add(new XElement(TallyXmlNames.Parent, item.StockGroupName ?? string.Empty));
@@ -223,6 +230,26 @@ public static class TallyXmlWriter
         AddOptional(element, TallyXmlNames.Description, ledger.Description);
         AddOptional(element, TallyXmlNames.PartyGstin, ledger.Gstin);
         AddActive(element, ledger.IsActive);
+        return element;
+    }
+
+    private static XElement VoucherType(InteropVoucherType voucherType)
+    {
+        var element = Master(TallyXmlNames.VoucherTypeElement, voucherType.Name, voucherType.Id);
+
+        // PARENT names the built-in type whose behaviour this one inherits. That is how Tally itself
+        // says what a user-defined voucher type does, and it is what the reader reads the kind from.
+        element.Add(new XElement(TallyXmlNames.Parent, TallyConventions.VoucherTypeName(voucherType.Kind)));
+        element.Add(new XElement(TallyXmlNames.NumberingMethod, "Automatic"));
+
+        if (!string.IsNullOrWhiteSpace(voucherType.NumberPrefix))
+        {
+            element.Add(new XElement(
+                TallyXmlNames.PrefixDetails,
+                new XElement(TallyXmlNames.Prefix, voucherType.NumberPrefix)));
+        }
+
+        AddActive(element, voucherType.IsActive);
         return element;
     }
 
@@ -314,6 +341,7 @@ public static class TallyXmlWriter
             element.Add(new XElement(
                 TallyXmlNames.BatchAllocations,
                 new XElement(TallyXmlNames.GodownName, entry.GodownName),
+                new XElement(TallyXmlNames.BatchName, entry.BatchName ?? string.Empty),
                 new XElement(TallyXmlNames.ActualQuantity, quantity),
                 new XElement(TallyXmlNames.BilledQuantity, quantity),
                 new XElement(TallyXmlNames.Amount, TallyConventions.Amount(entry.AmountMinor))));

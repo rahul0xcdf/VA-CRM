@@ -46,9 +46,9 @@ public sealed class TallySerialisationTests
         Units = [new InteropUnit("Nos", 0, Guid.NewGuid(), "Numbers")],
         StockGroups = [new InteropStockGroup("Submersible Pumps", Guid.NewGuid(), "Borewell range")],
         Godowns = [new InteropGodown("Main Location", Guid.NewGuid(), "Shop floor")],
-        StockItems =
+        Items =
         [
-            new InteropStockItem(
+            new InteropItem(
                 "Openwell Pump 1 HP",
                 "Nos",
                 Guid.NewGuid(),
@@ -113,7 +113,7 @@ public sealed class TallySerialisationTests
         result.Units.Single().ShouldBe(original.Units.Single());
         result.StockGroups.Single().ShouldBe(original.StockGroups.Single());
         result.Godowns.Single().ShouldBe(original.Godowns.Single());
-        result.StockItems.Single().ShouldBe(original.StockItems.Single());
+        result.Items.Single().ShouldBe(original.Items.Single());
         result.AccountGroups.Single().ShouldBe(original.AccountGroups.Single());
         result.Ledgers.Count.ShouldBe(2);
         result.Ledgers[0].ShouldBe(original.Ledgers[0]);

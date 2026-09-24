@@ -301,11 +301,33 @@ public sealed class StockReportService(
         long OnHandMinor,
         long ValueMinor);
 
-    internal sealed record ValuationSqlRow(
-        string ItemId,
-        string ItemName,
-        long OnHandMinor,
-        long ValueMinor);
+    /// <summary>
+    /// The valuation read model. A settable class, not a positional record, and deliberately so.
+    /// </summary>
+    /// <remarks>
+    /// Dapper builds its deserialiser from the reader's schema before it knows whether any rows came
+    /// back. On an empty result SQLite can report no type for an aggregate expression, and
+    /// Microsoft.Data.Sqlite falls back to <c>byte[]</c> — so a positional record is asked for a
+    /// constructor taking <c>byte[]</c>, finds none, and throws. Every other report in this suite
+    /// returns a row per master and so never hits it; this one groups over the stock ledger, which is
+    /// empty on a company that has not moved any stock yet. Mapping by property instead defers the
+    /// conversion to a row that actually exists.
+    /// <para>
+    /// Found by the Phase 8 importer, which reads this to reconcile an import (C8.6) and therefore
+    /// reads it on a fresh company. It would otherwise have surfaced as the Stock Valuation screen
+    /// throwing on a new install.
+    /// </para>
+    /// </remarks>
+    internal sealed class ValuationSqlRow
+    {
+        public string ItemId { get; init; } = string.Empty;
+
+        public string ItemName { get; init; } = string.Empty;
+
+        public long OnHandMinor { get; init; }
+
+        public long ValueMinor { get; init; }
+    }
 
     internal sealed record ReorderSqlRow(
         string ItemId,

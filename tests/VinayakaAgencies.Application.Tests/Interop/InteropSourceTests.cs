@@ -100,16 +100,18 @@ public sealed class InteropSourceTests
     }
 
     /// <summary>
-    /// A voucher type the application does not post is reported, never guessed at.
+    /// A voucher type the reader does not recognise is carried with no behaviour, never guessed at.
     /// </summary>
     /// <remarks>
-    /// <see cref="TallyConventions.ParseVoucherKind"/> returns null rather than defaulting because a
-    /// Tally company routinely carries user-defined voucher types. Guessing "Bank Payment" is a
-    /// payment happens to be right; guessing wrong posts real money through the wrong path, and
-    /// nothing in the file would show it had happened.
+    /// A Tally company routinely carries user-defined voucher types — "Stock Journal", "Cash Sales",
+    /// "Bank Payment" — and none of them is a name the format defines. Guessing that "Bank Payment"
+    /// is a payment happens to be right; guessing wrong posts real money through the wrong path and
+    /// nothing in the file would show it had happened. So the reader leaves
+    /// <see cref="InteropVoucher.Kind"/> null and the importer resolves it against the
+    /// <c>VOUCHERTYPE</c> master the file is expected to carry.
     /// </remarks>
     [Fact]
-    public async Task ReadAsync_UnrecognisedVoucherType_IsReported()
+    public async Task ReadAsync_UnrecognisedVoucherType_LeavesTheBehaviourUnstated()
     {
         var xml = Wrap(Message(
             "<VOUCHER VCHTYPE=\"Stock Journal\"><VOUCHERTYPENAME>Stock Journal</VOUCHERTYPENAME>"
@@ -117,9 +119,37 @@ public sealed class InteropSourceTests
 
         var records = await TallyXmlSource.FromText(xml).ReadAllAsync();
 
-        records.ShouldHaveSingleItem()
+        var voucher = records.ShouldHaveSingleItem().ShouldBeOfType<InteropRecord.Voucher>();
+        voucher.Value.VoucherTypeName.ShouldBe("Stock Journal");
+        voucher.Value.Kind.ShouldBeNull();
+    }
+
+    /// <summary>A voucher type master states its behaviour through the built-in type it inherits.</summary>
+    [Fact]
+    public async Task ReadAsync_VoucherTypeMaster_TakesItsKindFromItsParent()
+    {
+        var xml = Wrap(Message(
+            "<VOUCHERTYPE NAME=\"Stock Journal\"><NAME>Stock Journal</NAME><PARENT>Journal</PARENT>"
+            + "<PREFIXDETAILS.LIST><PREFIX>SJ/</PREFIX></PREFIXDETAILS.LIST></VOUCHERTYPE>"));
+
+        var record = (await TallyXmlSource.FromText(xml).ReadAllAsync())
+            .ShouldHaveSingleItem()
+            .ShouldBeOfType<InteropRecord.VoucherType>();
+
+        record.Value.Kind.ShouldBe(VoucherKind.Journal);
+        record.Value.NumberPrefix.ShouldBe("SJ/");
+    }
+
+    [Fact]
+    public async Task ReadAsync_VoucherTypeInheritingSomethingUnknown_IsReported()
+    {
+        var xml = Wrap(Message(
+            "<VOUCHERTYPE><NAME>Memorandum</NAME><PARENT>Memorandum</PARENT></VOUCHERTYPE>"));
+
+        (await TallyXmlSource.FromText(xml).ReadAllAsync())
+            .ShouldHaveSingleItem()
             .ShouldBeOfType<InteropRecord.Unreadable>()
-            .Label.ShouldContain("Stock Journal");
+            .Label.ShouldContain("Memorandum");
     }
 
     [Fact]

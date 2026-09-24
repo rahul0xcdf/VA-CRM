@@ -8,6 +8,7 @@ using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Application.Gst;
+using VinayakaAgencies.Application.Interop;
 using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Application.Payroll;
 using VinayakaAgencies.Application.Printing;
@@ -105,6 +106,14 @@ public static class ApplicationServiceCollectionExtensions
         // data row, and each statute is gated by its own flag (checkpoint C7.7).
         services.AddScoped<IPayrollMasterService, PayrollMasterService>();
         services.AddScoped<IPayrollRunService, PayrollRunService>();
+
+        // Phase 8 interoperability: the books read into the canonical document, and a file read back
+        // out of it. Tally XML and JSON are two serialisers over that one model (§4a D1/D3), so both
+        // directions are registered here; the Excel adapters are ports satisfied by Infrastructure,
+        // because ClosedXML is a file-format dependency and this layer declares needs rather than
+        // taking them on.
+        services.AddScoped<IInteropExportService, InteropExportService>();
+        services.AddScoped<IInteropImportService, InteropImportService>();
 
         return services;
     }

@@ -64,10 +64,18 @@ public abstract record InteropRecord
         public override string Label => Value.Name;
     }
 
-    public sealed record StockItem(InteropSourceLocation Location, InteropStockItem Value)
+    public sealed record Item(InteropSourceLocation Location, InteropItem Value)
         : InteropRecord(Location)
     {
         public override string Kind => "Stock item";
+
+        public override string Label => Value.Name;
+    }
+
+    public sealed record VoucherType(InteropSourceLocation Location, InteropVoucherType Value)
+        : InteropRecord(Location)
+    {
+        public override string Kind => "Voucher type";
 
         public override string Label => Value.Name;
     }

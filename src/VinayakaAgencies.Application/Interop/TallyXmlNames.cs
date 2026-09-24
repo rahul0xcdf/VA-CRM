@@ -55,6 +55,11 @@ internal static class TallyXmlNames
     internal const string PartNumber = "PARTNO";
     internal const string HsnCode = "HSNCODE";
 
+    internal const string VoucherTypeElement = "VOUCHERTYPE";
+    internal const string PrefixDetails = "PREFIXDETAILS.LIST";
+    internal const string Prefix = "PREFIX";
+    internal const string NumberingMethod = "NUMBERINGMETHOD";
+
     internal const string Voucher = "VOUCHER";
     internal const string VoucherTypeAttribute = "VCHTYPE";
     internal const string VoucherTypeName = "VOUCHERTYPENAME";
@@ -80,6 +85,7 @@ internal static class TallyXmlNames
     internal const string BilledQuantity = "BILLEDQTY";
     internal const string Rate = "RATE";
     internal const string BatchAllocations = "BATCHALLOCATIONS.LIST";
+    internal const string BatchName = "BATCHNAME";
     internal const string GodownName = "GODOWNNAME";
 
     /// <summary>

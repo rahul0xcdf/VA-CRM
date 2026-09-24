@@ -43,7 +43,9 @@ public sealed record InteropDocument
 
     public IReadOnlyList<InteropGodown> Godowns { get; init; } = [];
 
-    public IReadOnlyList<InteropStockItem> StockItems { get; init; } = [];
+    public IReadOnlyList<InteropItem> Items { get; init; } = [];
+
+    public IReadOnlyList<InteropVoucherType> VoucherTypes { get; init; } = [];
 
     public IReadOnlyList<InteropVoucher> Vouchers { get; init; } = [];
 
@@ -63,7 +65,8 @@ public sealed record InteropDocument
         || Units.Count > 0
         || StockGroups.Count > 0
         || Godowns.Count > 0
-        || StockItems.Count > 0;
+        || Items.Count > 0
+        || VoucherTypes.Count > 0;
 
     public bool IsEmpty => !HasMasters && Vouchers.Count == 0;
 }
@@ -117,8 +120,25 @@ public sealed record InteropGodown(
     string? Address = null,
     bool IsActive = true);
 
+/// <summary>
+/// A voucher type: the document kind the owner files under, and the behaviour it posts with.
+/// </summary>
+/// <remarks>
+/// Carried as a master because a company's voucher types are its own. "Stock Journal", "Cash Sales",
+/// "Bank Payment" — none of them is a name Tally ships with, and a file that named one without
+/// defining it would leave the reader guessing which of the eight behaviours it posts with. Guessing
+/// wrong sends real money down the wrong path, so the file says.
+/// </remarks>
+/// <param name="NumberPrefix">The series prefix, so a type created on import numbers the way it did before.</param>
+public sealed record InteropVoucherType(
+    string Name,
+    VoucherKind Kind,
+    Guid? Id = null,
+    string? NumberPrefix = null,
+    bool IsActive = true);
+
 /// <summary>A stock item, filed under a stock group and measured in a base unit, both by name.</summary>
-public sealed record InteropStockItem(
+public sealed record InteropItem(
     string Name,
     string BaseUnitCode,
     Guid? Id = null,
@@ -143,7 +163,15 @@ public sealed record InteropVoucher
 
     public required string VoucherTypeName { get; init; }
 
-    public required VoucherKind Kind { get; init; }
+    /// <summary>
+    /// The posting behaviour, when the type name alone settles it.
+    /// </summary>
+    /// <remarks>
+    /// Null for a type name the reader does not recognise, which is the normal case for a
+    /// user-defined type. The importer resolves it from the <see cref="InteropVoucherType"/> master
+    /// in the same file rather than inferring it here — see that type's remarks.
+    /// </remarks>
+    public VoucherKind? Kind { get; init; }
 
     public required DateOnly Date { get; init; }
 
@@ -200,4 +228,5 @@ public sealed record InteropInventoryEntry(
     long AmountMinor,
     string? GodownName = null,
     string? UnitCode = null,
-    long? RateMinor = null);
+    long? RateMinor = null,
+    string? BatchName = null);

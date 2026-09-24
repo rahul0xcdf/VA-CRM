@@ -84,7 +84,8 @@ public static class TallyXmlReader
             Units = [.. materialised.OfType<InteropRecord.Unit>().Select(r => r.Value)],
             StockGroups = [.. materialised.OfType<InteropRecord.StockGroup>().Select(r => r.Value)],
             Godowns = [.. materialised.OfType<InteropRecord.Godown>().Select(r => r.Value)],
-            StockItems = [.. materialised.OfType<InteropRecord.StockItem>().Select(r => r.Value)],
+            Items = [.. materialised.OfType<InteropRecord.Item>().Select(r => r.Value)],
+            VoucherTypes = [.. materialised.OfType<InteropRecord.VoucherType>().Select(r => r.Value)],
             Vouchers = [.. materialised.OfType<InteropRecord.Voucher>().Select(r => r.Value)],
         };
     }
@@ -103,6 +104,7 @@ public static class TallyXmlReader
             TallyXmlNames.StockGroup => ParseStockGroup(element, location),
             TallyXmlNames.Godown => ParseGodown(element, location),
             TallyXmlNames.StockItem => ParseStockItem(element, location),
+            TallyXmlNames.VoucherTypeElement => ParseVoucherType(element, location),
             TallyXmlNames.Voucher => ParseVoucher(element, location),
             var other => new InteropRecord.Unreadable(
                 location,
@@ -272,15 +274,46 @@ public static class TallyXmlReader
 
         var parent = Text(element, TallyXmlNames.Parent);
 
-        return new InteropRecord.StockItem(
+        return new InteropRecord.Item(
             location,
-            new InteropStockItem(
+            new InteropItem(
                 name.Trim(),
                 baseUnit.Trim(),
                 TallyConventions.ParseGuid(Text(element, TallyXmlNames.Guid)),
                 Text(element, TallyXmlNames.PartNumber),
                 string.IsNullOrWhiteSpace(parent) ? null : parent.Trim(),
                 Text(element, TallyXmlNames.HsnCode),
+                IsActive(element)));
+    }
+
+    private static InteropRecord ParseVoucherType(XElement element, InteropSourceLocation location)
+    {
+        var name = Text(element, TallyXmlNames.Name) ?? Attribute(element, TallyXmlNames.NameAttribute);
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return Unreadable(location, TallyXmlNames.VoucherTypeElement, "the voucher type has no name.");
+        }
+
+        var parent = Text(element, TallyXmlNames.Parent);
+        var kind = TallyConventions.ParseVoucherKind(parent) ?? TallyConventions.ParseVoucherKind(name);
+
+        if (kind is null)
+        {
+            return Unreadable(
+                location,
+                TallyXmlNames.VoucherTypeElement,
+                $"voucher type '{name}' inherits from '{parent}', which is not one of the eight "
+                + "behaviours this application posts. A voucher type has to say which of them it is.");
+        }
+
+        return new InteropRecord.VoucherType(
+            location,
+            new InteropVoucherType(
+                name.Trim(),
+                kind.Value,
+                TallyConventions.ParseGuid(Text(element, TallyXmlNames.Guid)),
+                Text(element.Element(TallyXmlNames.PrefixDetails), TallyXmlNames.Prefix),
                 IsActive(element)));
     }
 
@@ -294,16 +327,10 @@ public static class TallyXmlReader
             return Unreadable(location, TallyXmlNames.Voucher, "the voucher declares no voucher type.");
         }
 
+        // Null when the name is not one of Tally's eight. That is normal — a company's own voucher
+        // types are declared by the VOUCHERTYPE masters in the same file, and the importer resolves
+        // against those rather than having the reader guess a behaviour from a name.
         var kind = TallyConventions.ParseVoucherKind(typeName);
-
-        if (kind is null)
-        {
-            return Unreadable(
-                location,
-                TallyXmlNames.Voucher,
-                $"voucher type '{typeName}' is not one this application posts. Rename it in the "
-                + "source, or create a matching voucher type before importing.");
-        }
 
         var date = TallyConventions.ParseDate(Text(element, TallyXmlNames.Date));
 
@@ -357,13 +384,16 @@ public static class TallyXmlReader
 
             var (rate, _) = TallyConventions.ParseQuantity(Text(entryElement, TallyXmlNames.Rate));
 
+            var allocation = entryElement.Element(TallyXmlNames.BatchAllocations);
+
             inventoryEntries.Add(new InteropInventoryEntry(
                 itemName.Trim(),
                 quantity.Value,
                 amount.Value,
-                Text(entryElement.Element(TallyXmlNames.BatchAllocations), TallyXmlNames.GodownName),
+                Text(allocation, TallyXmlNames.GodownName),
                 unit,
-                rate));
+                rate,
+                Text(allocation, TallyXmlNames.BatchName)));
         }
 
         return new InteropRecord.Voucher(
@@ -372,7 +402,7 @@ public static class TallyXmlReader
             {
                 Id = TallyConventions.ParseGuid(Text(element, TallyXmlNames.Guid)),
                 VoucherTypeName = typeName.Trim(),
-                Kind = kind.Value,
+                Kind = kind,
                 Date = date.Value,
                 Number = Text(element, TallyXmlNames.VoucherNumber)?.Trim() ?? string.Empty,
                 Narration = Text(element, TallyXmlNames.Narration),
