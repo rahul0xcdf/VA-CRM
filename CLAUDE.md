@@ -148,17 +148,32 @@ with India GST/TDS compliance as a core requirement.
   `specs/evidence/phase-7-evidence.md`. Remaining before sign-off: owner walkthrough of the seven
   new screens, screenshots, the physical cheque print, and the payroll headcount (§5 — it gates
   nothing built and only decides whether the PF/ESI flags are on at go-live).
-- **Phase 8 (Tally & Excel interoperability) — approved 24 Sep 2026, implementation starting.**
-  `specs/CURRENT_PHASE` is now `8`. Decisions in §4a: TallyPrime **7.0+**, so XML *and* JSON, built as
-  two serialisers over one canonical document model (D1); a **full history is being migrated in**, so
-  import is a first-class half of the phase — streaming, batched, still all-or-nothing — and a real
-  Tally/Marg export file is a tracked dependency (`open-questions.md` #22) that blocks C8.1/C8.6
-  sign-off but not implementation (D2); both directions built together off that one mapping layer,
-  with Excel's column-mapping step targeting the same model (D3); cost-centre name uniqueness
-  (`open-questions.md` #18) becomes live because Tally import matches cost centres by name (D4);
-  **Marg is out of scope** — the accountant uses Tally, and a Marg adapter later sits in front of the
-  same canonical model rather than needing a second pipeline (D5).
-  C8.6 added by §4a: after importing, trial balance and closing stock must equal the source company's.
+- **Phase 8 (Tally & Excel interoperability) — implemented and verified by tests; C8.1 blocked on a
+  real Tally.** Spec approved 24 Sep 2026; decisions in §4a (TallyPrime **7.0+**, so XML *and* JSON as
+  two serialisers over one canonical model; a **full history is being migrated in**, so import is a
+  first-class half of the phase and a real Tally export is a tracked dependency —
+  `open-questions.md` #22 — that blocks C8.1/C8.6 sign-off but not implementation; both directions
+  built off one mapping layer that Excel's column-mapping step also targets; cost-centre name
+  uniqueness (#18) now live because Tally import matches cost centres by name; **Marg out of scope**).
+  `InteropDocument` is the vendor-neutral model both directions read, everything in minor units;
+  `TallyConventions` holds every encoding rule the format imposes — the amount sign above all, since
+  Tally writes a debit as a **negative**, and a round trip cannot catch that being wrong. JSON is
+  transcoded from the identical element tree, so a field cannot exist in one format and not the other.
+  Import is two passes — validate everything, then write in one transaction — posting through
+  `IVoucherPostingService` and nowhere else. **C8.2–C8.5 met; C8.6 met against our own export**
+  (a second SQLite database reproducing the origin's trial balance and closing stock). **C8.1 not met**
+  and C8.6 unproven against real Tally data — both need #22.
+  §4b records four things beyond spec: **voucher types exported as masters** (a company's own types —
+  "Stock Journal", "Cash Sales" — are not names Tally ships with, and inferring a posting behaviour
+  from an unrecognised name would put real money down the wrong path); `Interop.JournalTotals`,
+  because the trial balance is financial-year scoped and a multi-year migration would reconcile
+  against one year; the `ExcelColumnMapping` schema (one migration, the only rows the phase persists);
+  and **a pre-existing Phase 2 defect fixed** — `ReconcileValuationAsync` threw on a company with no
+  stock movements, which would have surfaced as the Stock Valuation screen crashing on a new install.
+  Three screens under a new **Import & Export** group. Feature docs: `tally-interchange.md`,
+  `excel-import-export.md`. Evidence at `specs/evidence/phase-8-evidence.md`. Remaining before
+  sign-off: the real Tally export file (#22), the exchange with the accountant, owner walkthrough of
+  the three screens, and screenshots.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
@@ -166,13 +181,14 @@ with India GST/TDS compliance as a core requirement.
   `customer-pricing-engine.md`, `customer-statement-outstanding.md`.
   Phase 6 additions: `einvoice-irn-and-qr.md`, `eway-bill.md`.
   Phase 7 additions: `tds-tcs-engine.md`, `banking-and-cheque-printing.md`,
-  `payroll-statutory-basics.md`.
+  `payroll-statutory-basics.md`. Phase 8 additions: `tally-interchange.md`,
+  `excel-import-export.md`.
   UI: `tally-style-ui-foundation.md` (shell, ADR-0005/0006) and `tally-entry-patterns.md`
   (inside the screens, ADR-0007 — read this before building any new screen).
   **End-user guides** (how to run the features from the screen) live in
   `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`; Phase 4:
   `phase-4-customers-and-pricing.md`; Phase 6: `phase-6-einvoice-and-eway-bill.md`;
-  Phase 7: `phase-7-tds-payroll-and-banking.md`.
+  Phase 7: `phase-7-tds-payroll-and-banking.md`; Phase 8: `phase-8-interoperability.md`.
 
 ## Development workflow (replaces the removed Claude hooks)
 

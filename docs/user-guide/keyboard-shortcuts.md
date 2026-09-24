@@ -114,6 +114,25 @@ letters and pressing `Enter` is safe without looking.
 still visible above it. `Ctrl+A` saves the new master and puts it straight onto the line you were
 filling; `Alt+X` abandons it and leaves the voucher untouched.
 
+## Import and export
+
+Three screens under **Import & Export**, and two keys that mean something particular there.
+
+| Key | Export | Import | Column mappings |
+|---|---|---|---|
+| `Alt+F` | — | Choose the file to import | Read a sheet's column headers |
+| `Ctrl+E` | Write the export file | — | — |
+| `Alt+C` | — | — | New mapping |
+| `Ctrl+A` | Write the export file | Import — refused while any problem stands | Save the mapping |
+| `Alt+D` | — | — | Deactivate the selected mapping |
+| `Alt+X` | Clear the preview | Clear the file and its report | Reload the selected mapping |
+
+`Ctrl+A` and `Ctrl+E` do the same thing on Export, deliberately: `Ctrl+A` because it is Accept
+everywhere, `Ctrl+E` because Export is what this screen is. On Import, `Ctrl+A` stays dimmed until the
+file has been checked and has nothing wrong with it.
+
+See `docs/user-guide/phase-8-interoperability.md` for what each screen is for.
+
 ## Where the keys are shown
 
 Two surfaces advertise what is available, so nothing has to be memorised first:
