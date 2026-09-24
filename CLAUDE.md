@@ -148,6 +148,17 @@ with India GST/TDS compliance as a core requirement.
   `specs/evidence/phase-7-evidence.md`. Remaining before sign-off: owner walkthrough of the seven
   new screens, screenshots, the physical cheque print, and the payroll headcount (§5 — it gates
   nothing built and only decides whether the PF/ESI flags are on at go-live).
+- **Phase 8 (Tally & Excel interoperability) — approved 24 Sep 2026, implementation starting.**
+  `specs/CURRENT_PHASE` is now `8`. Decisions in §4a: TallyPrime **7.0+**, so XML *and* JSON, built as
+  two serialisers over one canonical document model (D1); a **full history is being migrated in**, so
+  import is a first-class half of the phase — streaming, batched, still all-or-nothing — and a real
+  Tally/Marg export file is a tracked dependency (`open-questions.md` #22) that blocks C8.1/C8.6
+  sign-off but not implementation (D2); both directions built together off that one mapping layer,
+  with Excel's column-mapping step targeting the same model (D3); cost-centre name uniqueness
+  (`open-questions.md` #18) becomes live because Tally import matches cost centres by name (D4);
+  **Marg is out of scope** — the accountant uses Tally, and a Marg adapter later sits in front of the
+  same canonical model rather than needing a second pipeline (D5).
+  C8.6 added by §4a: after importing, trial balance and closing stock must equal the source company's.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
