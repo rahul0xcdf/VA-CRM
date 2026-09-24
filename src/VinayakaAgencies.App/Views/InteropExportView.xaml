@@ -1,0 +1,82 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.InteropExportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="620" d:DesignWidth="1020">
+
+    <!-- Report page (ADR-0006): header, filter band, totals, contents, status. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Export" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="the books as a Tally interchange file or a workbook — masters carry their own identifiers, so a re-import overwrites rather than duplicates"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Masters" Style="{StaticResource FieldCheck}"
+                          IsChecked="{Binding IncludeMasters}" />
+                <CheckBox Content="Vouchers" Style="{StaticResource FieldCheck}"
+                          IsChecked="{Binding IncludeVouchers}" />
+
+                <TextBlock Text="Format" Style="{StaticResource FieldLabel}" Margin="16,0,0,0" />
+                <ComboBox Width="150" Style="{StaticResource FieldCombo}"
+                          ItemsSource="{Binding Formats}" SelectedItem="{Binding Format}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Whole book" Style="{StaticResource FieldCheck}"
+                          IsChecked="{Binding WholeBook}" />
+
+                <TextBlock Text="From" Style="{StaticResource FieldLabel}" Margin="16,0,0,0" />
+                <DatePicker Width="140" Margin="0,0,12,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding FromDate}" IsEnabled="{Binding IsDateRangeEnabled}" />
+
+                <TextBlock Text="to" Style="{StaticResource FieldLabel}" />
+                <DatePicker Width="140" Margin="0,0,16,0" VerticalAlignment="Center"
+                            SelectedDate="{Binding ToDate}" IsEnabled="{Binding IsDateRangeEnabled}" />
+
+                <Button Content="Preview" Style="{StaticResource BandButton}"
+                        Command="{Binding PreviewCommand}" />
+                <Button Content="Write file (Ctrl+E)" Style="{StaticResource BandButton}"
+                        Command="{Binding WriteFileCommand}" IsEnabled="{Binding CanWrite}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource TotalsBandStyle}"
+                Visibility="{Binding Totals, Converter={StaticResource EmptyStringToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Vouchers" Style="{StaticResource TotalsLabelText}" />
+                <TextBlock Text="{Binding Totals}" Style="{StaticResource TotalsValueText}" />
+            </StackPanel>
+        </Border>
+
+        <DataGrid Grid.Row="4" Style="{StaticResource PageGrid}" ItemsSource="{Binding Contents}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Record kind" Binding="{Binding Kind}" Width="260" />
+                <DataGridTextColumn Header="Count" Binding="{Binding Count}" Width="120"
+                                    ElementStyle="{StaticResource NumericCell}"
+                                    HeaderStyle="{StaticResource NumericColumnHeader}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="5" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
+    </Grid>
+</UserControl>
