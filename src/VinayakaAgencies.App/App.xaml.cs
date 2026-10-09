@@ -136,6 +136,13 @@ public partial class App : System.Windows.Application
             splash.ReportStatus("Preparing payroll masters…");
             await provisioning.EnsurePayrollSeedAsync(companyId).ConfigureAwait(true);
 
+            // Phase 9: the Owner and Operator roles (§4a D4). Roles only — no account is seeded,
+            // because a shipped user name with a default password is a hole, not a convenience.
+            // Until the first account exists every permission is granted, so this changes nothing
+            // for an install that has not been secured yet.
+            splash.ReportStatus("Preparing user roles…");
+            await provisioning.EnsureSecuritySeedAsync(companyId).ConfigureAwait(true);
+
             var shell = _shellScope.ServiceProvider.GetRequiredService<ShellWindow>();
 
             // Exercise both database paths at startup exactly as the Phase 0 shell did (C0.7): the

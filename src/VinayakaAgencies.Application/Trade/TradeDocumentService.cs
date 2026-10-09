@@ -6,6 +6,7 @@ using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
 using VinayakaAgencies.Domain.Common;
+using VinayakaAgencies.Domain.Security;
 using VinayakaAgencies.Domain.Customers;
 using VinayakaAgencies.Domain.Inventory;
 using VinayakaAgencies.Domain.Trade;
@@ -36,7 +37,8 @@ public sealed class TradeDocumentService(
     IVoucherNumberAllocator numberAllocator,
     IVoucherPostingService voucherPostingService,
     IStockValuationService valuationService,
-    IGstComputationService taxComputationService) : ITradeDocumentService
+    IGstComputationService taxComputationService,
+    IPermissionAuthority permissions) : ITradeDocumentService
 {
     /// <summary>The seeded control account stock value reconciles to (checkpoint C2.1).</summary>
     public const string ControlLedgerName = "Stock-in-Hand";
@@ -49,6 +51,11 @@ public sealed class TradeDocumentService(
 
     private readonly IUnitOfWork _unitOfWork = unitOfWork
         ?? throw new ArgumentNullException(nameof(unitOfWork));
+
+    // Phase 9 §4a D4: the price-override right now has a holder rather than being on or off for
+    // everybody. The Sales setting stays the company-wide switch; this is the per-person gate.
+    private readonly IPermissionAuthority _permissions = permissions
+        ?? throw new ArgumentNullException(nameof(permissions));
 
     private readonly ICompanyContext _companyContext = companyContext
         ?? throw new ArgumentNullException(nameof(companyContext));
@@ -749,8 +756,12 @@ public sealed class TradeDocumentService(
             }
         }
 
-        // C4.5's backstop: when the override gate is off, no sale line may save a rate that moved
-        // off the price the engine applied — the UI hides the path, this refuses any other.
+        // C4.5's backstop, now carrying Phase 9's per-person gate as well (§4a D4). An override
+        // needs the company-wide switch *and* the permission, and requiring both is what makes the
+        // upgrade behaviour-identical: an install with the switch off still refuses every override,
+        // and an install that has not created its first account yet grants the permission to
+        // everybody — which is exactly how Phase 8 behaved. The UI hides the path; this refuses any
+        // other route to it, which is the half C9.2 is about.
         if (TradeDocument.IsSalesSide(request.Kind))
         {
             var settingsRows = await _unitOfWork.Repository<SalesSettings>()
@@ -758,8 +769,19 @@ public sealed class TradeDocumentService(
                 .ConfigureAwait(false);
             var settings = settingsRows.Count > 0 ? settingsRows[0] : null;
 
-            if (settings is { AllowPriceOverride: false })
+            var lockedOff = settings is { AllowPriceOverride: false };
+            var mayOverride = await _permissions
+                .HasPermissionAsync(PermissionKind.OverrideSalesPrice, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (lockedOff || !mayOverride)
             {
+                // The switch is reported before the permission, because it is the one the operator
+                // can see on a settings screen and ask about.
+                var because = lockedOff
+                    ? "price overrides are locked off in Sales settings"
+                    : "your role does not allow a price override";
+
                 ordinal = 0;
 
                 foreach (var line in request.Lines)
@@ -775,7 +797,7 @@ public sealed class TradeDocumentService(
                     {
                         errors.Add(
                             $"Line {ordinal} carries a price different from its auto-applied price, "
-                            + "but price overrides are locked off in Sales settings.");
+                            + $"but {because}.");
                     }
                 }
             }

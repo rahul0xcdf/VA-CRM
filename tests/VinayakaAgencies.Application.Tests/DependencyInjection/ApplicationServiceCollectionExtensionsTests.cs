@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.DependencyInjection;
+using VinayakaAgencies.Application.Security;
 using VinayakaAgencies.Application.Tests.TestDoubles;
 using VinayakaAgencies.Domain.Abstractions;
 using Shouldly;
@@ -38,15 +39,69 @@ public sealed class ApplicationServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddApplication_Always_RegistersCurrentUserAsSingleton()
+    public void AddApplication_Always_RegistersUserSessionAsSingleton()
     {
         var services = new FakeServiceCollection();
 
         services.AddApplication();
 
-        var descriptor = services.Single(d => d.ServiceType == typeof(ICurrentUser));
-        descriptor.ImplementationType.ShouldBe(typeof(EnvironmentCurrentUser));
+        var descriptor = services.Single(d => d.ServiceType == typeof(IUserSession));
+        descriptor.ImplementationType.ShouldBe(typeof(UserSession));
         descriptor.Lifetime.ShouldBe(ServiceLifetime.Singleton);
+    }
+
+    [Fact]
+    public void AddApplication_Always_RegistersCurrentUserAsSingletonReadingThroughTheSession()
+    {
+        // Phase 9 §4a D2 changed this registration: the audit trail must name the signed-in
+        // application account, not the Windows login a whole counter shares. So ICurrentUser is no
+        // longer EnvironmentCurrentUser directly — it is a SessionCurrentUser wrapping it.
+        var services = new FakeServiceCollection();
+
+        services.AddApplication();
+
+        var descriptor = services.Single(d => d.ServiceType == typeof(ICurrentUser));
+        descriptor.Lifetime.ShouldBe(ServiceLifetime.Singleton);
+        descriptor.ImplementationFactory.ShouldNotBeNull();
+
+        var resolved = descriptor.ImplementationFactory!(new SessionOnlyProvider(new UserSession()));
+        resolved.ShouldBeOfType<SessionCurrentUser>();
+    }
+
+    [Fact]
+    public void AddApplication_NobodySignedIn_CurrentUserStillNamesSomebody()
+    {
+        // ICurrentUser's contract is that it never resolves to blank — an unattributable change is
+        // not an audit trail (non-negotiable #3). The state worth pinning is the one Phase 9
+        // introduced: the session is empty, because provisioning runs before any login prompt could
+        // have been shown.
+        var services = new FakeServiceCollection();
+        services.AddApplication();
+        var descriptor = services.Single(d => d.ServiceType == typeof(ICurrentUser));
+
+        var resolved = (ICurrentUser)descriptor.ImplementationFactory!(
+            new SessionOnlyProvider(new UserSession()));
+
+        resolved.UserName.ShouldNotBeNullOrWhiteSpace();
+        resolved.UserName.ShouldStartWith(SessionCurrentUser.UnauthenticatedPrefix);
+    }
+
+    /// <summary>
+    /// The one dependency the <see cref="ICurrentUser"/> factory asks for.
+    /// </summary>
+    /// <remarks>
+    /// This project does not reference the concrete container (see
+    /// <see cref="FakeServiceCollection"/>), so the factory is invoked against this instead of a
+    /// built provider. Anything other than <see cref="IUserSession"/> is a bug in the factory, so
+    /// it throws rather than returning null.
+    /// </remarks>
+    private sealed class SessionOnlyProvider(IUserSession session) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) =>
+            serviceType == typeof(IUserSession)
+                ? session
+                : throw new InvalidOperationException(
+                    $"The ICurrentUser factory asked for {serviceType.Name}, which it should not need.");
     }
 
     [Fact]

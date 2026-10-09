@@ -13,6 +13,7 @@ using VinayakaAgencies.Application.Inventory;
 using VinayakaAgencies.Application.Payroll;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Reporting;
+using VinayakaAgencies.Application.Security;
 using VinayakaAgencies.Application.Tds;
 using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
@@ -30,7 +31,16 @@ public static class ApplicationServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddSingleton<IClock, SystemClock>();
-        services.TryAddSingleton<ICurrentUser, EnvironmentCurrentUser>();
+        services.TryAddSingleton<IUserSession, UserSession>();
+
+        // Phase 9 §4a D2: the audit trail has to name the application account, not the Windows
+        // login a whole counter shares. ICurrentUser therefore reads through the session and falls
+        // back to the Windows identity only in the two states where no account can be named — an
+        // install whose first user has not been created, and the provisioning that runs before any
+        // login prompt could have been shown. TryAdd, so a test's stub still wins.
+        services.TryAddSingleton<ICurrentUser>(provider => new SessionCurrentUser(
+            provider.GetRequiredService<IUserSession>(),
+            new EnvironmentCurrentUser()));
 
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<ICompanyProvisioningService, CompanyProvisioningService>();
@@ -117,6 +127,14 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IInteropSourceFactory, InteropSourceFactory>();
         services.AddScoped<IInteropWorkbookExporter, InteropWorkbookExporter>();
         services.AddScoped<IExcelMappingService, ExcelMappingService>();
+
+        // Phase 9 security: who is signed in, what their role grants, and the administration of
+        // both. The authority is scoped because it reads the user and role rows through the unit of
+        // work on every check — deliberately not snapshotted at sign-in, so a revoked permission
+        // bites at once rather than at the holder's next login.
+        services.AddScoped<IPermissionAuthority, PermissionAuthority>();
+        services.AddScoped<ISignInService, SignInService>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
 
         return services;
     }

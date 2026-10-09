@@ -110,6 +110,9 @@ public sealed partial class FirstRunCompanyViewModel : ObservableObject
             Status = "Preparing payroll setup…";
             await _provisioning.EnsurePayrollSeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
 
+            Status = "Preparing user roles…";
+            await _provisioning.EnsureSecuritySeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
+
             CreatedCompanyId = company.Id;
             Status = $"{company.Name} is ready. Opening…";
 

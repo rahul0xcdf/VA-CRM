@@ -2,6 +2,7 @@ using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
 using VinayakaAgencies.Domain.Common;
+using VinayakaAgencies.Domain.Security;
 
 namespace VinayakaAgencies.Application.Accounting;
 
@@ -25,7 +26,8 @@ namespace VinayakaAgencies.Application.Accounting;
 public sealed class VoucherPostingService(
     IUnitOfWork unitOfWork,
     ICompanyContext companyContext,
-    IVoucherNumberAllocator numberAllocator) : IVoucherPostingService
+    IVoucherNumberAllocator numberAllocator,
+    IPermissionAuthority permissions) : IVoucherPostingService
 {
     /// <summary>The seeded groups whose subtree defines "cash or bank" for the Contra rule.</summary>
     /// <remarks>
@@ -46,6 +48,12 @@ public sealed class VoucherPostingService(
 
     private readonly IVoucherNumberAllocator _numberAllocator = numberAllocator
         ?? throw new ArgumentNullException(nameof(numberAllocator));
+
+    // Phase 9: posting, altering and cancelling each have their own permission (§4a D4 refuses the
+    // Operator role cancellation specifically). Required rather than optional, like the audit
+    // trail's dependencies, so this service cannot be composed without its gate.
+    private readonly IPermissionAuthority _permissions = permissions
+        ?? throw new ArgumentNullException(nameof(permissions));
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<VoucherTypeSummary>> ListVoucherTypesAsync(
@@ -70,6 +78,9 @@ public sealed class VoucherPostingService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        await _permissions.EnsureAsync(PermissionKind.PostVoucher, cancellationToken)
+            .ConfigureAwait(false);
 
         var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
         var voucherType = await RequireActiveVoucherTypeAsync(companyId, request.VoucherTypeId, cancellationToken)
@@ -140,6 +151,9 @@ public sealed class VoucherPostingService(
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.ChangeReason);
+
+        await _permissions.EnsureAsync(PermissionKind.AlterVoucher, cancellationToken)
+            .ConfigureAwait(false);
 
         var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
 
@@ -216,6 +230,9 @@ public sealed class VoucherPostingService(
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        await _permissions.EnsureAsync(PermissionKind.CancelVoucher, cancellationToken)
+            .ConfigureAwait(false);
 
         var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
 

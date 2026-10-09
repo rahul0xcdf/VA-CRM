@@ -10,6 +10,7 @@ using VinayakaAgencies.Application.Interop;
 using VinayakaAgencies.Infrastructure.Einvoicing;
 using VinayakaAgencies.Infrastructure.Interop;
 using VinayakaAgencies.Infrastructure.Persistence;
+using VinayakaAgencies.Infrastructure.Security;
 
 namespace VinayakaAgencies.Infrastructure.DependencyInjection;
 
@@ -70,6 +71,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.TryAddSingleton<ISqlDialect, SqliteDialect>();
         services.TryAddSingleton<IDbConnectionFactory, SqliteConnectionFactory>();
         services.AddScoped<ISqlQueryExecutor, DapperSqlQueryExecutor>();
+
+        // Phase 9 §4a D2: application accounts need a one-way verifier. Stateless and thread-safe,
+        // so a singleton. Deliberately registered beside ICredentialProtector and deliberately not
+        // the same thing — that protects secrets we must replay to the IRP, this protects passwords
+        // which must never be recoverable at all.
+        services.TryAddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
         services.AddScoped<IDatabaseInitialiser, DatabaseInitialiser>();
 

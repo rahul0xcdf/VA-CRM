@@ -123,4 +123,15 @@ internal static class ColumnLengths
     /// rather than an unbounded one by accident.
     /// </remarks>
     internal const int TemplateLayoutJson = 8000;
+
+    /// <summary>
+    /// A password verifier: scheme name, iteration count, salt and derived key.
+    /// </summary>
+    /// <remarks>
+    /// <c>Pbkdf2PasswordHasher</c> emits about 90 characters. Sized well past that so raising the
+    /// cost, lengthening the salt or moving to a different scheme later does not need a migration
+    /// against a table holding the only credentials anybody can sign in with. Not indexed — a
+    /// verifier is never searched on — so the width only bounds storage.
+    /// </remarks>
+    internal const int PasswordVerifier = 256;
 }

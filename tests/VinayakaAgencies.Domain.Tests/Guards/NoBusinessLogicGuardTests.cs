@@ -66,7 +66,7 @@ public class NoBusinessLogicGuardTests
     ];
 
     /// <summary>
-    /// The closed set of types deriving directly from <c>Entity</c> that Phases 0 through 8 were
+    /// The closed set of types deriving directly from <c>Entity</c> that Phases 0 through 9 were
     /// approved to add (Phase 0: <c>Company</c>; Phase 1: spec §5's entity table; Phase 2:
     /// <c>specs/phase-2-inventory.md</c> §1 as approved; Phase 3:
     /// <c>specs/phase-3-sales-purchase-pipeline.md</c> §1–§2 — trade documents and print
@@ -76,13 +76,17 @@ public class NoBusinessLogicGuardTests
     /// dated rate schedules, payee profiles, Section 197 certificates, posted deductions and the
     /// settings row carrying the 194Q/206C(1H) flags; Phase 8:
     /// <c>specs/phase-8-interoperability.md</c> §2 — the saved Excel column mapping and its columns,
-    /// which are the only rows that phase persists: every other part of it reads and writes files).
+    /// which are the only rows that phase persists: every other part of it reads and writes files;
+    /// Phase 9: <c>specs/phase-9-multiuser.md</c> §4a D2/D4 — the application account, the role it is
+    /// assigned, and one row per permission that role grants).
     /// Deliberately a fixed list, not "however many exist today" —
     /// a new entry here is a spec change, not a test update to follow the code.
     /// </summary>
     private static readonly string[] ApprovedEntityTypeNames =
     [
         "AccountGroup",
+        "AppRole",
+        "AppUser",
         "BankReconciliationMark",
         "CategoryPriceListLine",
         "Company",
@@ -117,6 +121,7 @@ public class NoBusinessLogicGuardTests
         "PrintTemplate",
         "PrintTemplateRevision",
         "SalesSettings",
+        "RolePermissionGrant",
         "SerialNumber",
         "StockGroup",
         "StockLedgerEntry",
@@ -195,13 +200,13 @@ public class NoBusinessLogicGuardTests
     }
 
     [Fact]
-    public void EntityTypesInDomain_MatchExactlyThePhase0Through8ApprovedSet()
+    public void EntityTypesInDomain_MatchExactlyThePhase0Through9ApprovedSet()
     {
         // Belt-and-braces version of the two checks above: verifies the guard would also catch a
         // business entity dropped in the wrong folder (e.g. Domain/Common), and — unlike the Phase 0
         // version of this test, which asserted a single fixed name — verifies the *set* is exactly
         // what the approved phase specs added, so an entity from a not-yet-approved phase (e.g. a
-        // hypothetical `TdsSection : Entity` from Phase 7) still fails even though it does not
+        // hypothetical entity from Phase 10) still fails even though it does not
         // collide with any name in ForbiddenTypeNames.
         var domainDirectory = Path.Combine(SrcDirectory, "VinayakaAgencies.Domain");
         var entityDeclaringFiles = new List<string>();

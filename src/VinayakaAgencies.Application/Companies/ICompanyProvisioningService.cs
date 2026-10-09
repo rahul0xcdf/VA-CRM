@@ -115,4 +115,22 @@ public interface ICompanyProvisioningService
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
     Task EnsurePayrollSeedAsync(Guid companyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures the two roles `phase-9-multiuser.md` §4a D4 settles on — Owner and Operator —
+    /// exist for the company.
+    /// </summary>
+    /// <remarks>
+    /// Idempotent and row-granular like its Phase 2–7 siblings, so an install provisioned under an
+    /// earlier phase gains the roles at the next startup.
+    /// <para>
+    /// Seeds <b>roles only, never a user</b>. A seeded account would ship every install with a
+    /// known user name and a password somebody has to remember to change, which is how products
+    /// end up with an <c>admin</c>/<c>admin</c> nobody touched. The first account is created at
+    /// first launch through
+    /// <see cref="VinayakaAgencies.Application.Security.ISignInService.CreateFirstAccountAsync"/>.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="companyId"/> is empty.</exception>
+    Task EnsureSecuritySeedAsync(Guid companyId, CancellationToken cancellationToken = default);
 }

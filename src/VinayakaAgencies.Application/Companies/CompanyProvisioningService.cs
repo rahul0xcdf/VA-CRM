@@ -3,6 +3,7 @@ using VinayakaAgencies.Application.Customers;
 using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Payroll;
 using VinayakaAgencies.Application.Printing;
+using VinayakaAgencies.Application.Security;
 using VinayakaAgencies.Application.Tds;
 using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
@@ -880,6 +881,40 @@ public sealed class CompanyProvisioningService(IUnitOfWork unitOfWork) : ICompan
                 .ConfigureAwait(false);
             await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <inheritdoc />
+    public async Task EnsureSecuritySeedAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        if (companyId == Guid.Empty)
+        {
+            throw new ArgumentException("CompanyId must not be empty.", nameof(companyId));
+        }
+
+        var company = await _unitOfWork.Repository<Company>()
+            .GetByIdAsync(companyId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (company is null)
+        {
+            throw new InvalidOperationException(
+                $"Company '{companyId}' does not exist, so there are no roles to seed into it.");
+        }
+
+        await using var transaction = await _unitOfWork
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        // The same helper first-account creation uses, so the Operator role cannot start with one
+        // set of grants on a fresh install and a different set on an upgraded one.
+        await SecuritySeed
+            .EnsureRolesAsync(_unitOfWork, companyId, cancellationToken)
+            .ConfigureAwait(false);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private sealed class LedgerByName : Specification<Ledger>
