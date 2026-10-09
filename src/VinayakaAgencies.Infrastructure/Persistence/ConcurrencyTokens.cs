@@ -14,18 +14,18 @@ namespace VinayakaAgencies.Infrastructure.Persistence;
 /// providers. A token the domain maintains behaves identically on each, so "unchanged" stays
 /// honest rather than meaning "unchanged except for the concurrency tests".
 /// <para>
-/// <b>Why <see cref="IAuditStamped"/> and not <c>Entity</c>.</b> That interface is already what a
-/// mutable entity implements, so declaring the token for it draws the line exactly where the model
-/// draws it. On <c>Entity</c> the token would also land on append-only types —
-/// <c>VoucherRevision</c>, <c>JournalLine</c>, <c>StockLedgerEntry</c> — where it is dead weight
-/// and, worse, implies those rows can be updated, which ADR-0002 forbids.
+/// <b>Why <see cref="IConcurrencyStamped"/> and not <c>Entity</c>.</b> Declaring the token for that
+/// interface draws the line exactly where the model draws it — <see cref="IAuditStamped"/> extends it,
+/// and <c>VoucherNumberSequence</c> implements it directly. On <c>Entity</c> the token would also land
+/// on the append-only types — <c>VoucherRevision</c>, <c>JournalLine</c>, <c>StockLedgerEntry</c> —
+/// where it is dead weight and, worse, implies those rows can be updated, which ADR-0002 forbids.
 /// </para>
 /// <para>
 /// <b>Why the token is a real property.</b> It was a shadow property first, and that broke every
 /// service which reads with <c>AsNoTracking</c> and then calls <c>Update</c> on the detached
 /// instance: a no-tracking read carries no shadow values, so re-attaching sent an all-zero original
 /// token, matched no row, and turned an ordinary save into a spurious lost-update.
-/// <c>GstRateScheduleTests</c> is what caught it. See <see cref="IAuditStamped.ConcurrencyToken"/>.
+/// <c>GstRateScheduleTests</c> is what caught it. See <see cref="IConcurrencyStamped"/>.
 /// </para>
 /// <para>
 /// <b>Existing rows.</b> The migration adds the column with an all-zero default, so every row
@@ -37,7 +37,7 @@ namespace VinayakaAgencies.Infrastructure.Persistence;
 internal static class ConcurrencyTokens
 {
     /// <summary>
-    /// Marks the token as the concurrency check on every <see cref="IAuditStamped"/> entity.
+    /// Marks the token as the concurrency check on every <see cref="IConcurrencyStamped"/> entity.
     /// </summary>
     /// <remarks>
     /// Must run after the per-entity configurations have been applied, or the model will not yet
@@ -49,13 +49,13 @@ internal static class ConcurrencyTokens
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes().ToList())
         {
-            if (entityType.ClrType is null || !typeof(IAuditStamped).IsAssignableFrom(entityType.ClrType))
+            if (entityType.ClrType is null || !typeof(IConcurrencyStamped).IsAssignableFrom(entityType.ClrType))
             {
                 continue;
             }
 
             modelBuilder.Entity(entityType.ClrType)
-                .Property(nameof(IAuditStamped.ConcurrencyToken))
+                .Property(nameof(IConcurrencyStamped.ConcurrencyToken))
                 .IsConcurrencyToken()
                 .IsRequired();
         }
@@ -73,7 +73,7 @@ internal static class ConcurrencyTokens
     {
         ArgumentNullException.ThrowIfNull(changeTracker);
 
-        foreach (var entry in changeTracker.Entries<IAuditStamped>())
+        foreach (var entry in changeTracker.Entries<IConcurrencyStamped>())
         {
             if (entry.State is not (EntityState.Added or EntityState.Modified))
             {

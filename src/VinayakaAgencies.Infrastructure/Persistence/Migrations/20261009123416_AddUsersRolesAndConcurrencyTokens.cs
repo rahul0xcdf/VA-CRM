@@ -34,6 +34,13 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<Guid>(
                 name: "ConcurrencyToken",
+                table: "VoucherNumberSequences",
+                type: "TEXT",
+                nullable: false,
+                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ConcurrencyToken",
                 table: "UnitsOfMeasure",
                 type: "TEXT",
                 nullable: false,
@@ -457,6 +464,10 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
             migrationBuilder.DropColumn(
                 name: "ConcurrencyToken",
                 table: "VoucherNumberSeries");
+
+            migrationBuilder.DropColumn(
+                name: "ConcurrencyToken",
+                table: "VoucherNumberSequences");
 
             migrationBuilder.DropColumn(
                 name: "ConcurrencyToken",

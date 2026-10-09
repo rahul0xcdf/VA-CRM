@@ -37,14 +37,14 @@ public sealed class ConcurrencyTokenTests
     [Fact]
     public async Task Model_Always_PutsAConcurrencyTokenOnEveryMutableEntity()
     {
-        // The rule is "every IAuditStamped entity", which is where the model already draws the line
-        // between a row that can be updated and one that cannot. A fixed list would rot; this
-        // cannot, because a new mutable entity is covered the moment it implements the interface.
+        // The rule is "every IConcurrencyStamped entity". IAuditStamped extends it, so every master is
+        // covered, and VoucherNumberSequence implements it directly because a counter needs the check
+        // without being a master anybody edits. A fixed list would rot; this cannot.
         var model = await ReadModelAsync();
 
         var missing = model.GetEntityTypes()
             .Where(entityType => entityType.ClrType is not null
-                && typeof(IAuditStamped).IsAssignableFrom(entityType.ClrType))
+                && typeof(IConcurrencyStamped).IsAssignableFrom(entityType.ClrType))
             .Where(entityType =>
             {
                 var property = entityType.FindProperty("ConcurrencyToken");
@@ -58,7 +58,7 @@ public sealed class ConcurrencyTokenTests
     }
 
     [Fact]
-    public async Task Model_Always_PutsNoConcurrencyTokenOnAnAppendOnlyEntity()
+    public async Task Model_Always_PutsNoConcurrencyTokenOnAnythingOutsideThatInterface()
     {
         // A token on an append-only row would be dead weight, and would imply those rows can be
         // updated — which ADR-0002 forbids for a posted revision or journal line.
@@ -66,7 +66,7 @@ public sealed class ConcurrencyTokenTests
 
         var offenders = model.GetEntityTypes()
             .Where(entityType => entityType.ClrType is not null
-                && !typeof(IAuditStamped).IsAssignableFrom(entityType.ClrType))
+                && !typeof(IConcurrencyStamped).IsAssignableFrom(entityType.ClrType))
             .Where(entityType => entityType.FindProperty("ConcurrencyToken") is not null)
             .Select(entityType => entityType.DisplayName())
             .ToList();
@@ -78,11 +78,15 @@ public sealed class ConcurrencyTokenTests
     public async Task Model_Always_CoversTheEntitiesThisPhaseCaresAboutMost()
     {
         // The interface rule above is the real guard. This names a handful explicitly so that a
-        // refactor which accidentally stopped an entity implementing IAuditStamped — and so passed
+        // refactor which accidentally stopped an entity implementing IConcurrencyStamped — and so passed
         // the rule by shrinking it — still fails here.
         var model = await ReadModelAsync();
 
-        foreach (var type in new[] { typeof(Ledger), typeof(Customer), typeof(Voucher), typeof(Company) })
+        foreach (var type in new[]
+        {
+            typeof(Ledger), typeof(Customer), typeof(Voucher), typeof(Company),
+            typeof(VoucherNumberSequence),
+        })
         {
             var property = model.FindEntityType(type)?.FindProperty("ConcurrencyToken");
 

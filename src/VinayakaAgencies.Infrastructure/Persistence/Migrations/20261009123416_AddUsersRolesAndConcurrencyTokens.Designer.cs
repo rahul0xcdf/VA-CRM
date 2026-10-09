@@ -11,7 +11,7 @@ using VinayakaAgencies.Infrastructure.Persistence;
 namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261009122604_AddUsersRolesAndConcurrencyTokens")]
+    [Migration("20261009123416_AddUsersRolesAndConcurrencyTokens")]
     partial class AddUsersRolesAndConcurrencyTokens
     {
         /// <inheritdoc />
@@ -511,6 +511,10 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("VinayakaAgencies.Domain.Accounting.VoucherNumberSequence", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("FinancialYearId")

@@ -10,11 +10,14 @@ namespace VinayakaAgencies.Domain.Accounting;
 /// number back (owner decision D2): reuse would let two documents share an invoice number, which is
 /// a GST problem, while a gap is merely something to explain.
 /// <para>
-/// Allocation is a read-then-increment, which is safe only because Phases 1–8 are single-user. Phase
-/// 9 must replace this with a database-level atomic allocation — flagged in the Phase 1 spec §7.2.
+/// Allocation is a read-then-increment. Through Phase 8 that was safe only because the product was
+/// single-user, which the Phase 1 spec §7.2 flagged. Phase 9 closes it two ways: the allocator takes
+/// a database-level lock on this row before reading it (<c>Accounting.LockVoucherNumberSequence</c>),
+/// and the row carries a concurrency token so a race that somehow slipped the lock is refused rather
+/// than handing two counters the same number.
 /// </para>
 /// </remarks>
-public sealed class VoucherNumberSequence : Entity
+public sealed class VoucherNumberSequence : Entity, IConcurrencyStamped
 {
     private VoucherNumberSequence()
     {
@@ -44,6 +47,9 @@ public sealed class VoucherNumberSequence : Entity
 
     public long LastAllocatedNumber { get; private set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Takes the next number. Never returns a value it has returned before.</summary>
     public long Allocate(long startNumber)
     {
@@ -53,14 +59,29 @@ public sealed class VoucherNumberSequence : Entity
     }
 
     /// <summary>
-    /// Raises the mark past a manually entered number so the automatic series cannot later collide
-    /// with it.
+    /// Raises the mark to <paramref name="number"/>, or leaves it alone if it is already higher.
     /// </summary>
-    public void ObserveManualNumber(long number)
+    /// <remarks>
+    /// How the allocator reconciles its tracked copy with what it read under the row lock. Waiting
+    /// for that lock is exactly the window in which the other counter allocated, so the in-memory
+    /// value can be behind by however many numbers it took — and re-reading through the repository
+    /// would hand back the same cached instance rather than the truth.
+    /// <para>
+    /// Never lowers the mark. A number that has been handed out is spent whatever happens next, so
+    /// moving the mark backwards is the one operation that could issue it twice.
+    /// </para>
+    /// </remarks>
+    public void AdvanceTo(long number)
     {
         if (number > LastAllocatedNumber)
         {
             LastAllocatedNumber = number;
         }
     }
+
+    /// <summary>
+    /// Raises the mark past a manually entered number so the automatic series cannot later collide
+    /// with it.
+    /// </summary>
+    public void ObserveManualNumber(long number) => AdvanceTo(number);
 }

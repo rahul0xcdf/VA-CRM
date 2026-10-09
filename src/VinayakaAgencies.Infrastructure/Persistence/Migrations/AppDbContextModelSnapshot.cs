@@ -510,6 +510,10 @@ namespace VinayakaAgencies.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("FinancialYearId")
                         .HasColumnType("TEXT");
 

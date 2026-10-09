@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using VinayakaAgencies.Domain.Abstractions;
+using VinayakaAgencies.Application.Accounting;
 using VinayakaAgencies.Infrastructure.Configuration;
 using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Infrastructure.Data;
@@ -77,6 +78,10 @@ public static class InfrastructureServiceCollectionExtensions
         // the same thing — that protects secrets we must replay to the IRP, this protects passwords
         // which must never be recoverable at all.
         services.TryAddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+
+        // Phase 9 §2: scoped, because it has to issue its lock on the same DbContext connection and
+        // inside the same transaction as the voucher being numbered. A singleton could not.
+        services.AddScoped<IVoucherNumberSequenceLock, VoucherNumberSequenceLock>();
 
         services.AddScoped<IDatabaseInitialiser, DatabaseInitialiser>();
 
