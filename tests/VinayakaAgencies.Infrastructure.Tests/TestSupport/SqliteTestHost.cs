@@ -34,7 +34,8 @@ public sealed class SqliteTestHost : IAsyncDisposable
         StubCurrentUser? currentUser = null,
         IIrpClient? irpClient = null,
         ICredentialProtector? credentialProtector = null,
-        Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? interceptor = null)
+        Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? interceptor = null,
+        bool applyMigrationsOnStartup = true)
     {
         // A directory per host, not a file per host in one shared directory. xUnit runs test classes
         // in parallel and several of them create databases; one run of the suite failed inside
@@ -56,7 +57,11 @@ public sealed class SqliteTestHost : IAsyncDisposable
             {
                 ["Database:Provider"] = "Sqlite",
                 ["Database:ConnectionString"] = $"Data Source={_databasePath}",
-                ["Database:ApplyMigrationsOnStartup"] = "true",
+                // True by default here, and the default is a deliberate difference from the product:
+                // the switch ships off from Phase 9 (§2) because several clients could race it, and a
+                // test host owns its own file with nothing else launching against it.
+                ["Database:ApplyMigrationsOnStartup"] =
+                    applyMigrationsOnStartup ? "true" : "false",
             })
             .Build();
 

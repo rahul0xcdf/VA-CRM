@@ -62,10 +62,39 @@ public partial class App : System.Windows.Application
             splash.ReportStatus("Preparing the company database…");
             _shellScope = _host.Services.CreateScope();
 
-            var applied = await _shellScope.ServiceProvider
-                .GetRequiredService<IDatabaseInitialiser>()
-                .InitialiseAsync()
-                .ConfigureAwait(true);
+            var initialiser = _shellScope.ServiceProvider.GetRequiredService<IDatabaseInitialiser>();
+
+            // Honours Database:ApplyMigrationsOnStartup, which defaults to off from Phase 9. On a
+            // single-user install that is switched on it migrates here exactly as before.
+            var applied = await initialiser.InitialiseAsync().ConfigureAwait(true);
+
+            // Phase 9 §2: with two or three clients, a stale schema is not something to fix quietly
+            // while they are all launching. If anything is still pending the upgrade becomes one
+            // operator's deliberate act, and the books stay shut until it has been done — running
+            // against a schema this build does not match is how a missing column becomes a crash
+            // halfway through billing.
+            var pending = await initialiser.GetPendingMigrationsAsync().ConfigureAwait(true);
+
+            if (pending.Count > 0)
+            {
+                splash.ReportStatus("A database upgrade is required…");
+
+                var upgradeViewModel = new SchemaUpgradeViewModel(initialiser, pending);
+                var upgradeWindow = new SchemaUpgradeWindow { DataContext = upgradeViewModel };
+
+                splash.Hide();
+                upgradeWindow.ShowDialog();
+                splash.Show();
+
+                if (!upgradeViewModel.IsUpToDate)
+                {
+                    splash.Close();
+                    Shutdown();
+                    return;
+                }
+
+                applied = pending;
+            }
 
             splash.ReportStatus(applied.Count == 0
                 ? "Schema is up to date."

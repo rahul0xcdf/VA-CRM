@@ -27,14 +27,20 @@ public sealed class DatabaseOptions
     public string DatabaseFileName { get; set; } = "motorpump.db";
 
     /// <summary>
-    /// Apply pending migrations during startup.
+    /// Apply pending migrations unattended during startup.
     /// </summary>
     /// <remarks>
-    /// Safe while the product is single-user (phase-0-foundations.md §2.4). Phase 9 must turn this
-    /// into an explicit, gated step: several clients racing to migrate the same SQL Server database
-    /// on launch is a corruption risk, not a convenience.
+    /// <b>Defaults to off from Phase 9</b>, where it shipped as on for Phases 0–8
+    /// (phase-0-foundations.md §2.4). The reason is §2: with two or three clients, several of them
+    /// racing to migrate one database as they launch is a corruption risk rather than a
+    /// convenience. Off means the host finds the pending migrations, names them, and asks one
+    /// operator to apply them with everybody else out.
+    /// <para>
+    /// Turning it back on is a deliberate single-user choice, which is what the test hosts do: the
+    /// Phase 1–8 suites each own their database file and nothing else is launching against it.
+    /// </para>
     /// </remarks>
-    public bool ApplyMigrationsOnStartup { get; set; } = true;
+    public bool ApplyMigrationsOnStartup { get; set; }
 }
 
 /// <summary>Known values for <see cref="DatabaseOptions.Provider"/>.</summary>

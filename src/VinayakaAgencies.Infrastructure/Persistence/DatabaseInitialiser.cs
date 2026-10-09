@@ -9,10 +9,11 @@ namespace VinayakaAgencies.Infrastructure.Persistence;
 /// Applies pending EF Core migrations to the company database.
 /// </summary>
 /// <remarks>
-/// Migrating on startup is safe only because the product is single-user through Phase 8
-/// (phase-0-foundations.md §2.4). Phase 9 must make this an explicit, gated step — several clients
-/// racing to migrate one SQL Server database as they launch is a corruption risk, and
-/// <see cref="DatabaseOptions.ApplyMigrationsOnStartup"/> is the switch that will turn it off.
+/// Migrating on startup was safe only because the product was single-user through Phase 8
+/// (phase-0-foundations.md §2.4). From Phase 9 it is an explicit, gated step — several clients
+/// racing to migrate one SQL Server database as they launch is a corruption risk. <see cref="InitialiseAsync"/>
+/// still honours <see cref="DatabaseOptions.ApplyMigrationsOnStartup"/>, which now defaults to off;
+/// <see cref="ApplyPendingMigrationsAsync"/> is the step one operator runs on purpose.
 /// </remarks>
 internal sealed partial class DatabaseInitialiser(
     AppDbContext context,
@@ -37,9 +38,19 @@ internal sealed partial class DatabaseInitialiser(
             return [];
         }
 
-        var pending = (await _context.Database
+        return await ApplyPendingMigrationsAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<string>> GetPendingMigrationsAsync(
+        CancellationToken cancellationToken = default) =>
+        (await _context.Database
             .GetPendingMigrationsAsync(cancellationToken)
             .ConfigureAwait(false)).ToList();
+
+    public async Task<IReadOnlyList<string>> ApplyPendingMigrationsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var pending = await GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false);
 
         if (pending.Count == 0)
         {
