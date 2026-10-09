@@ -78,6 +78,76 @@ public sealed class ScreenViewLoadTests
             "Entry.xaml must carry an implicit Style for LookupBox, or every lookup renders blank");
     }
 
+    /// <summary>
+    /// Every <see cref="Window"/> in the application must construct too.
+    /// </summary>
+    /// <remarks>
+    /// The sweep above walks the module catalogue, which is every screen and no window. The startup
+    /// windows — splash, first-run company, schema upgrade, sign-in — are in no module, so nothing
+    /// was constructing them: a missing <c>StaticResource</c> in one of those compiles, passes the
+    /// whole suite, and throws on launch before anybody can reach a screen at all.
+    /// <para>
+    /// That is not hypothetical. The Phase 9 schema-upgrade window shipped referencing a brush
+    /// called <c>BorderBrush</c>, which the theme does not define — it is <c>ControlBorderBrush</c>
+    /// — and the product died at startup with 1,117 tests green. Running the application is what
+    /// found it; this is what would have.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void EveryWindowInTheApplication_LoadsWithTheApplicationResources()
+    {
+        var failures = new List<string>();
+        var attempted = 0;
+
+        var windowTypes = typeof(App).Assembly
+            .GetTypes()
+            .Where(type => typeof(Window).IsAssignableFrom(type))
+            .Where(type => type is { IsAbstract: false, IsGenericTypeDefinition: false })
+            .Where(type => type.GetConstructor(Type.EmptyTypes) is not null)
+            .OrderBy(type => type.FullName, StringComparer.Ordinal)
+            .ToList();
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                EnsureApplicationWithThemes();
+
+                foreach (var windowType in windowTypes)
+                {
+                    attempted++;
+
+                    try
+                    {
+                        // Constructed, never shown: InitializeComponent is where a missing resource
+                        // throws, and showing a modal window in a test run would hang it.
+                        Activator.CreateInstance(windowType);
+                    }
+                    catch (Exception exception)
+                    {
+                        failures.Add($"{windowType.Name}: {Describe(exception)}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"could not prepare the WPF host: {Describe(exception)}");
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(TimeSpan.FromMinutes(2));
+
+        failures.ShouldBeEmpty(
+            "every window must be constructible; these threw: "
+            + string.Join(" | ", failures));
+
+        // A sweep of nothing finds nothing wrong.
+        attempted.ShouldBe(windowTypes.Count);
+        attempted.ShouldBeGreaterThanOrEqualTo(4);
+    }
+
     private static (int Attempted, List<string> Failures, bool LookupStyleFound) LoadAllViewsOnStaThread()
     {
         var failures = new List<string>();

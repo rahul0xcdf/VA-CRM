@@ -25,7 +25,7 @@
 
         <Border Grid.Row="1" Margin="0,16,0,0" Padding="12"
                 BorderThickness="1"
-                BorderBrush="{StaticResource BorderBrush}">
+                BorderBrush="{StaticResource ControlBorderBrush}">
             <ListBox ItemsSource="{Binding PendingMigrations}"
                      BorderThickness="0"
                      Background="Transparent"
@@ -37,12 +37,10 @@
                 <Button Content="Apply upgrade now"
                         Padding="18,7"
                         Command="{Binding ApplyCommand}" />
-/>
                 <Button Content="Close without upgrading"
                         Margin="12,0,0,0"
                         Padding="18,7"
-                        Command="{Binding QuitCommand}"
-/>
+                        Command="{Binding QuitCommand}" />
             </StackPanel>
 
             <TextBlock Margin="2,10,0,0" Text="{Binding Status}" TextWrapping="Wrap"

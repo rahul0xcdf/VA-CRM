@@ -1,3 +1,4 @@
+using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Common;
 using VinayakaAgencies.Domain.Security;
@@ -19,22 +20,26 @@ public sealed class UserAdminService : IUserAdminService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPermissionAuthority _permissions;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ICompanyContext _companyContext;
 
     public UserAdminService(
         IUnitOfWork unitOfWork,
         IPermissionAuthority permissions,
-        IPasswordHasher passwordHasher)
+        IPasswordHasher passwordHasher,
+        ICompanyContext companyContext)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
         _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
+        _companyContext = companyContext ?? throw new ArgumentNullException(nameof(companyContext));
     }
 
     public async Task<IReadOnlyList<AppUserSummary>> ListUsersAsync(
-        Guid companyId,
         CancellationToken cancellationToken = default)
     {
         await _permissions.EnsureAsync(PermissionKind.ManageUsers, cancellationToken).ConfigureAwait(false);
+
+        var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
 
         var users = await _unitOfWork.Repository<AppUser>()
             .ListAsync(new UsersOfCompany(companyId), cancellationToken)
@@ -49,10 +54,11 @@ public sealed class UserAdminService : IUserAdminService
     }
 
     public async Task<IReadOnlyList<AppRoleSummary>> ListRolesAsync(
-        Guid companyId,
         CancellationToken cancellationToken = default)
     {
         await _permissions.EnsureAsync(PermissionKind.ManageUsers, cancellationToken).ConfigureAwait(false);
+
+        var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
 
         var roles = await _unitOfWork.Repository<AppRole>()
             .ListAsync(new RolesOfCompany(companyId), cancellationToken)
@@ -78,11 +84,12 @@ public sealed class UserAdminService : IUserAdminService
 
         await EnsureUserNameFreeAsync(request.UserName, null, cancellationToken).ConfigureAwait(false);
 
-        var role = await RequireRoleAsync(request.RoleId, request.CompanyId, cancellationToken)
+        var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
+        var role = await RequireRoleAsync(request.RoleId, companyId, cancellationToken)
             .ConfigureAwait(false);
 
         var user = new AppUser(
-            request.CompanyId,
+            companyId,
             request.UserName,
             request.DisplayName,
             _passwordHasher.Hash(request.Password),
@@ -175,9 +182,10 @@ public sealed class UserAdminService : IUserAdminService
 
         await _permissions.EnsureAsync(PermissionKind.ManageUsers, cancellationToken).ConfigureAwait(false);
 
+        var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
         var roles = _unitOfWork.Repository<AppRole>();
         var existing = await roles
-            .ListAsync(new RolesOfCompany(request.CompanyId), cancellationToken)
+            .ListAsync(new RolesOfCompany(companyId), cancellationToken)
             .ConfigureAwait(false);
 
         var normalised = NameNormaliser.Normalise(request.Name);
@@ -193,7 +201,7 @@ public sealed class UserAdminService : IUserAdminService
 
         if (roleId is null)
         {
-            role = new AppRole(request.CompanyId, request.Name);
+            role = new AppRole(companyId, request.Name);
             role.SetDescription(request.Description);
             // A new role has nothing to drop, so the return is empty by construction.
             _ = role.ReplaceGrants(request.Grants);

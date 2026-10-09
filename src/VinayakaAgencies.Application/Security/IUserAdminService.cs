@@ -14,14 +14,14 @@ namespace VinayakaAgencies.Application.Security;
 public interface IUserAdminService
 {
     /// <summary>Lists the company's accounts with their role names.</summary>
-    Task<IReadOnlyList<AppUserSummary>> ListUsersAsync(
-        Guid companyId,
-        CancellationToken cancellationToken = default);
+    /// <remarks>
+    /// The company comes from <c>ICompanyContext</c> rather than a parameter, like every other
+    /// service in this layer: no caller should have to carry a company id it cannot get wrong.
+    /// </remarks>
+    Task<IReadOnlyList<AppUserSummary>> ListUsersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Lists the company's roles with their grants.</summary>
-    Task<IReadOnlyList<AppRoleSummary>> ListRolesAsync(
-        Guid companyId,
-        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<AppRoleSummary>> ListRolesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates an account, flagged to change its password at first sign-in.

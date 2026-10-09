@@ -124,7 +124,7 @@ public sealed class PermissionEnforcementTests
 
         var refusal = await host.InScopeAsync(async sp =>
             await Record.ExceptionAsync(() =>
-                sp.GetRequiredService<IUserAdminService>().ListUsersAsync(companyId)));
+                sp.GetRequiredService<IUserAdminService>().ListUsersAsync()));
 
         refusal.ShouldBeOfType<PermissionDeniedException>();
     }
@@ -206,7 +206,7 @@ public sealed class PermissionEnforcementTests
             .GetRequiredService<IUserAdminService>()
             .SaveRoleAsync(
                 operatorRoleId,
-                new SaveRoleRequest(companyId, "Operator", null, [PermissionKind.ViewReports])));
+                new SaveRoleRequest("Operator", null, [PermissionKind.ViewReports])));
 
         await SignInAsync(host, "counter", OperatorPassword);
 
@@ -227,7 +227,7 @@ public sealed class PermissionEnforcementTests
         var operatorRoleId = await CreateOperatorAsync(host, companyId);
         var operatorId = await host.InScopeAsync(async sp =>
         {
-            var users = await sp.GetRequiredService<IUserAdminService>().ListUsersAsync(companyId);
+            var users = await sp.GetRequiredService<IUserAdminService>().ListUsersAsync();
 
             return users.Single(user => user.UserName == "counter").Id;
         });
@@ -302,7 +302,7 @@ public sealed class PermissionEnforcementTests
 
         var operatorId = await host.InScopeAsync(async sp =>
         {
-            var users = await sp.GetRequiredService<IUserAdminService>().ListUsersAsync(companyId);
+            var users = await sp.GetRequiredService<IUserAdminService>().ListUsersAsync();
 
             return users.Single(user => user.UserName == "counter").Id;
         });
@@ -400,9 +400,9 @@ public sealed class PermissionEnforcementTests
             var admin = sp.GetRequiredService<IUserAdminService>();
             var custom = await admin.SaveRoleAsync(
                 null,
-                new SaveRoleRequest(companyId, "Office", null, [PermissionKind.ManageUsers]));
+                new SaveRoleRequest("Office", null, [PermissionKind.ManageUsers]));
 
-            var users = await admin.ListUsersAsync(companyId);
+            var users = await admin.ListUsersAsync();
             var owner = users.Single();
 
             await admin.UpdateUserAsync(new UpdateUserRequest(
@@ -410,7 +410,7 @@ public sealed class PermissionEnforcementTests
 
             return await Record.ExceptionAsync(() => admin.SaveRoleAsync(
                 custom.Id,
-                new SaveRoleRequest(companyId, "Office", null, [PermissionKind.ViewReports])));
+                new SaveRoleRequest("Office", null, [PermissionKind.ViewReports])));
         });
 
         refusal.ShouldBeOfType<InvalidOperationException>();
@@ -479,7 +479,7 @@ public sealed class PermissionEnforcementTests
 
         var created = await host.InScopeAsync(async sp =>
         {
-            var users = await sp.GetRequiredService<IUserAdminService>().ListUsersAsync(companyId);
+            var users = await sp.GetRequiredService<IUserAdminService>().ListUsersAsync();
 
             return users.Single(user => user.UserName == "counter");
         });
@@ -553,11 +553,11 @@ public sealed class PermissionEnforcementTests
         return await host.InScopeAsync(async sp =>
         {
             var admin = sp.GetRequiredService<IUserAdminService>();
-            var roles = await admin.ListRolesAsync(companyId);
+            var roles = await admin.ListRolesAsync();
             var operatorRole = roles.Single(role => role.IsSystem && !role.IsOwnerRole);
 
             await admin.CreateUserAsync(new CreateUserRequest(
-                companyId, "counter", "Counter", OperatorPassword, operatorRole.Id));
+                "counter", "Counter", OperatorPassword, operatorRole.Id));
 
             return operatorRole.Id;
         });

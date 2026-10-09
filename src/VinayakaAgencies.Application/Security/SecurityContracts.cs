@@ -65,7 +65,6 @@ public sealed record AppRoleSummary(
     bool IsOwnerRole,
     IReadOnlyList<PermissionKind> Grants);
 
-/// <param name="CompanyId">The company the account belongs to.</param>
 /// <param name="UserName">What the operator will type at the prompt; unique per company.</param>
 /// <param name="DisplayName">Shown on screen and stamped on the audit trail.</param>
 /// <param name="Password">
@@ -74,7 +73,6 @@ public sealed record AppRoleSummary(
 /// </param>
 /// <param name="RoleId">The role whose grants the account will carry.</param>
 public sealed record CreateUserRequest(
-    Guid CompanyId,
     string UserName,
     string DisplayName,
     string Password,
@@ -92,12 +90,10 @@ public sealed record UpdateUserRequest(
     Guid RoleId,
     bool IsActive);
 
-/// <param name="CompanyId">The company the role belongs to.</param>
 /// <param name="Name">Unique per company.</param>
 /// <param name="Description">Free text for the administration screen.</param>
 /// <param name="Grants">The permissions the role carries.</param>
 public sealed record SaveRoleRequest(
-    Guid CompanyId,
     string Name,
     string? Description,
     IReadOnlyList<PermissionKind> Grants);

@@ -1,0 +1,110 @@
+<UserControl x:Class="VinayakaAgencies.App.Views.RolesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="520" d:DesignWidth="860">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PageHeaderStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Roles" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="what each role may do — enforced in the services, not by hiding buttons"
+                           Margin="12,0,0,0" Style="{StaticResource PageHintText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource FilterBarStyle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Refresh" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <DataGrid Style="{StaticResource PageGrid}"
+                      ItemsSource="{Binding Roles}"
+                      SelectedItem="{Binding SelectedRole}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Role" Binding="{Binding Name}" Width="1.5*" />
+                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="3*" />
+                    <DataGridTextColumn Header="Permissions" Binding="{Binding Grants.Count}" Width="100"
+                                        ElementStyle="{StaticResource NumericCell}"
+                                        HeaderStyle="{StaticResource NumericColumnHeader}" />
+                    <DataGridCheckBoxColumn Header="Seeded" Binding="{Binding IsSystem}" Width="70" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Style="{StaticResource EmptyStateText}"
+                       Text="No roles. Owner and Operator are seeded at startup — press Refresh."
+                       Visibility="{Binding Roles.Count, Converter={StaticResource ZeroToVisibility}}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource EntryPanelStyle}">
+            <StackPanel>
+                <TextBlock Text="CREATE / ALTER" Style="{StaticResource EntryHeadingText}" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="180" Style="{StaticResource FieldBox}"
+                             Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Description" Style="{StaticResource FieldLabel}" />
+                    <TextBox Width="380" Style="{StaticResource FieldBox}"
+                             Text="{Binding EditDescription}" />
+                </StackPanel>
+
+                <!--
+                    An ItemsControl of live checkboxes rather than an editable DataGrid (ADR-0007).
+                    Disabled wholesale for the owner role, which holds everything by definition.
+                -->
+                <TextBlock Text="MAY DO" Style="{StaticResource EntryHeadingText}" Margin="0,10,0,0" />
+                <ItemsControl ItemsSource="{Binding Permissions}" Margin="0,2,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Width="210" Margin="0,3,12,3"
+                                      Content="{Binding Label}"
+                                      IsChecked="{Binding IsGranted, Mode=TwoWay}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsOwnerRoleSelected}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                </ItemsControl>
+
+                <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+                    <Button Content="New" Style="{StaticResource BandButton}" Command="{Binding NewCommand}" />
+                    <Button Content="Save" Style="{StaticResource BandButton}" Command="{Binding SaveCommand}" />
+                    <Border Width="1" Margin="4,2,12,2" Background="{StaticResource ControlBorderBrush}" />
+                    <Button Content="Delete" Style="{StaticResource BandButton}"
+                            ToolTip="Allowed only for a role the product did not seed and nobody is assigned to."
+                            Command="{Binding DeleteSelectedCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource PageStatusStyle}">
+            <TextBlock Text="{Binding Status}" Style="{StaticResource PageStatusText}" />
+        </Border>
+    </Grid>
+</UserControl>

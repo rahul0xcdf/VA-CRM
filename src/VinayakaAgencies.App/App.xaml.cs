@@ -11,6 +11,7 @@ using VinayakaAgencies.App.ViewModels;
 using VinayakaAgencies.App.Views;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
+using VinayakaAgencies.Application.Security;
 using VinayakaAgencies.Application.DependencyInjection;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.DependencyInjection;
@@ -171,6 +172,36 @@ public partial class App : System.Windows.Application
             // for an install that has not been secured yet.
             splash.ReportStatus("Preparing user roles…");
             await provisioning.EnsureSecuritySeedAsync(companyId).ConfigureAwait(true);
+
+            // Phase 9 §4a D2: the books open under a name. Non-negotiable #3 requires every change
+            // to be attributable, and a workgroup shop shares one Windows login per machine — so
+            // the identity has to come from an application account, and this is where it is asked
+            // for. On an install with no accounts the window offers to create the owner instead,
+            // because nothing is seeded: a shipped user name with a default password is a hole.
+            //
+            // Declining closes the product rather than opening it unattributed. Until the first
+            // account exists every permission is granted, so an owner who has not got round to
+            // this is exactly where Phase 8 left them.
+            splash.ReportStatus("Waiting for sign-in…");
+
+            var loginViewModel = new LoginViewModel(
+                _shellScope.ServiceProvider.GetRequiredService<ISignInService>(),
+                companyId);
+
+            await loginViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+            var loginWindow = new LoginWindow { DataContext = loginViewModel };
+
+            splash.Hide();
+            loginWindow.ShowDialog();
+            splash.Show();
+
+            if (!loginViewModel.IsSignedIn)
+            {
+                splash.Close();
+                Shutdown();
+                return;
+            }
 
             var shell = _shellScope.ServiceProvider.GetRequiredService<ShellWindow>();
 
