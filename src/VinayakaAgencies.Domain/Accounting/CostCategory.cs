@@ -50,6 +50,9 @@ public sealed class CostCategory : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void Rename(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

@@ -107,6 +107,9 @@ public sealed class SalaryStructureLine : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Whether this line governs a payroll run for the given month-end date.</summary>
     public bool Covers(DateOnly date) =>
         date >= EffectiveFrom && (!EffectiveTo.HasValue || date <= EffectiveTo.Value);

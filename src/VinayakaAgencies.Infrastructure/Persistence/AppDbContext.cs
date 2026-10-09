@@ -48,6 +48,10 @@ internal sealed class AppDbContext : DbContext
 
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Phase 9 §2: optimistic concurrency on every mutable entity. Declared after the
+        // configurations above, which is when the model knows every entity type it walks.
+        ConcurrencyTokens.Declare(modelBuilder);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -86,6 +90,11 @@ internal sealed class AppDbContext : DbContext
         GuardAgainstAuditLogTampering();
         StampCreationAndModification();
         await CaptureAuditTrailAsync(cancellationToken).ConfigureAwait(false);
+
+        // Last, deliberately: after the audit images have been taken. Stamping before capture would
+        // put a fresh token into every "after" image, so the edit log would show a change on every
+        // row that was merely re-saved — noise in the one record that has to stay readable.
+        ConcurrencyTokens.Stamp(ChangeTracker);
 
         return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken)
             .ConfigureAwait(false);

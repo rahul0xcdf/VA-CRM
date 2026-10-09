@@ -60,6 +60,9 @@ public sealed class SalesSettings : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void SetAllowPriceOverride(bool allowPriceOverride) =>
         AllowPriceOverride = allowPriceOverride;
 

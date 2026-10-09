@@ -101,6 +101,9 @@ public sealed class AppUser : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void SetUserName(string userName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userName);

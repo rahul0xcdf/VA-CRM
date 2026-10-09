@@ -93,6 +93,9 @@ public sealed class Company : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void Rename(string name, string legalName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

@@ -136,6 +136,9 @@ public sealed class EwayBill : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>True once Part-B carries enough detail for the mode chosen.</summary>
     public bool IsPartBComplete =>
         TransportMode is { } mode

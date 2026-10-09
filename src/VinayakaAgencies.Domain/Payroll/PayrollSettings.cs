@@ -68,6 +68,9 @@ public sealed class PayrollSettings : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>
     /// Whether a statute is in force, asked the way the computation asks it.
     /// </summary>

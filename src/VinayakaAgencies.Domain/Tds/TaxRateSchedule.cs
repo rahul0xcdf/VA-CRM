@@ -131,6 +131,9 @@ public sealed class TaxRateSchedule : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Whether this schedule governs payments made on the given business date.</summary>
     public bool Covers(DateOnly date) =>
         date >= EffectiveFrom && (!EffectiveTo.HasValue || date <= EffectiveTo.Value);

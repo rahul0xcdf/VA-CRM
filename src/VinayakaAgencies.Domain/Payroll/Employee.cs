@@ -100,6 +100,9 @@ public sealed class Employee : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Whether this person was on the payroll on the given date.</summary>
     public bool IsOnRollOn(DateOnly date) =>
         IsActive && date >= JoinedOn && (!LeftOn.HasValue || date <= LeftOn.Value);

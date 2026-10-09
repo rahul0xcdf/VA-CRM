@@ -55,6 +55,9 @@ public sealed class FinancialYear : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public bool Contains(DateOnly date) => date >= StartDate && date <= EndDate;
 
     public void Close() => IsClosed = true;

@@ -123,6 +123,9 @@ public sealed class EinvoiceRegistration : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>True once the portal has registered this document.</summary>
     public bool IsRegistered => Status is EinvoiceStatus.Generated;
 

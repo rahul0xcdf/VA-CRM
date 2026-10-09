@@ -63,6 +63,9 @@ public sealed class HsnSac : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void SetDescription(string? description) =>
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 

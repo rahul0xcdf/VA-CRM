@@ -88,6 +88,9 @@ public sealed class ExcelColumnMapping : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void Rename(string name) => SetName(name);
 
     public void SetSheet(string? sheetName) => SheetName = Trimmed(sheetName);

@@ -63,6 +63,9 @@ public sealed class CostCentre : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void SetMaterialisedPath(string? parentPath)
     {
         var prefix = string.IsNullOrEmpty(parentPath) ? "/" : parentPath;

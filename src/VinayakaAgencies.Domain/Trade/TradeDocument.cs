@@ -135,6 +135,9 @@ public sealed class TradeDocument : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Sales side: quotation through tax invoice. Purchase side otherwise.</summary>
     public bool SalesSide => IsSalesSide(Kind);
 

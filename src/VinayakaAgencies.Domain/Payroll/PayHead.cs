@@ -108,6 +108,9 @@ public sealed class PayHead : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>True for a head whose amount the statutory engine produces rather than the structure.</summary>
     public bool IsStatutory => Basis == PayComputationBasis.Statutory;
 

@@ -91,6 +91,9 @@ public sealed class AccountGroup : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Depth below the root, where a primary group is 1.</summary>
     public int Depth => string.IsNullOrEmpty(MaterialisedPath)
         ? 0

@@ -39,6 +39,9 @@ public sealed class InventorySettings : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void SetDefaultValuationMethod(ValuationMethod method) =>
         DefaultValuationMethod = method;
 }

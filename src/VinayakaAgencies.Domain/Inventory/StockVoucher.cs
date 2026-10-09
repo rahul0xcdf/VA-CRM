@@ -78,6 +78,9 @@ public sealed class StockVoucher : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>
     /// Adds one line, enforcing the direction the purpose allows and carrying the item's tracking
     /// flags so receipt-side batch/serial rules hold at construction.

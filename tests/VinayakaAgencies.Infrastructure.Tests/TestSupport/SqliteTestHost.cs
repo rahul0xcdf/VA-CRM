@@ -128,6 +128,16 @@ public sealed class SqliteTestHost : IAsyncDisposable
         await action(scope.ServiceProvider);
     }
 
+    /// <summary>
+    /// Opens a scope the caller holds, for tests that need two of them alive at the same time.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="InScopeAsync{T}"/> opens and closes one scope, which cannot express the shape a
+    /// concurrency test needs: two contexts that have each loaded the same row, before either has
+    /// saved. Dispose it, or the pooled SQLite connection keeps the file locked.
+    /// </remarks>
+    public AsyncServiceScope CreateScope() => _provider.CreateAsyncScope();
+
     /// <summary>Applies pending migrations, exactly as the application does at startup.</summary>
     public Task<IReadOnlyList<string>> MigrateAsync() =>
         InScopeAsync(sp => sp

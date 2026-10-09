@@ -90,6 +90,9 @@ public sealed class ProfessionalTaxSlab : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Whether this slab governs a payroll run for the given date.</summary>
     public bool Covers(DateOnly date) =>
         date >= EffectiveFrom && (!EffectiveTo.HasValue || date <= EffectiveTo.Value);

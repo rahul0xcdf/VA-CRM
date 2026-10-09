@@ -85,6 +85,9 @@ public sealed class Ledger : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void Rename(string name, string? alias = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

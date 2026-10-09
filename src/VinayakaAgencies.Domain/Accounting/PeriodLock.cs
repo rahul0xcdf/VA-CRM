@@ -43,6 +43,9 @@ public sealed class PeriodLock : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public bool IsLocked(DateOnly date) =>
         LockedThroughDate is { } through && date <= through;
 

@@ -72,6 +72,9 @@ public sealed class SalaryVoucher : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Total of every earning line across every employee.</summary>
     public long GrossEarningsMinor => Sum(PayHeadType.Earning);
 

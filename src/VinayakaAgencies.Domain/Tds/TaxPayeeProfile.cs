@@ -104,6 +104,9 @@ public sealed class TaxPayeeProfile : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>True when a PAN is on file, which decides whether the 206AA uplift applies.</summary>
     public bool HasPan => !string.IsNullOrWhiteSpace(Pan);
 

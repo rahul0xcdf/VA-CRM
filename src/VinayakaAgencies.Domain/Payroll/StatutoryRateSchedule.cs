@@ -124,6 +124,9 @@ public sealed class StatutoryRateSchedule : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Whether this row governs a payroll run for the given date.</summary>
     public bool Covers(DateOnly date) =>
         date >= EffectiveFrom && (!EffectiveTo.HasValue || date <= EffectiveTo.Value);

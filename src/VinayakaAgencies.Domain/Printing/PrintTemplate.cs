@@ -77,6 +77,9 @@ public sealed class PrintTemplate : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Renames the template; the normalised form follows for uniqueness.</summary>
     public void Rename(string name)
     {

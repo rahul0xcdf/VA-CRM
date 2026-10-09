@@ -103,6 +103,9 @@ public sealed class VoucherNumberSeries : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Renders a sequence number as the document number, e.g. <c>PMT/0007</c>.</summary>
     public string Format(long sequenceNumber)
     {

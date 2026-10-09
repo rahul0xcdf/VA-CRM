@@ -60,6 +60,9 @@ public sealed class VoucherType : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void SetDefaultSeries(Guid seriesId) => DefaultSeriesId = seriesId;
 
     public void Rename(string name)

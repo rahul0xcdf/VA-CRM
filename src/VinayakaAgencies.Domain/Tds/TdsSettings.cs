@@ -73,6 +73,9 @@ public sealed class TdsSettings : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void SetTdsPayableLedgerName(string ledgerName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ledgerName);

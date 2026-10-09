@@ -125,6 +125,9 @@ public sealed class LowerDeductionCertificate : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Whether this certificate authorises the rate for a payment on the given date.</summary>
     public bool Covers(DateOnly date) => IsActive && date >= ValidFrom && date <= ValidTo;
 

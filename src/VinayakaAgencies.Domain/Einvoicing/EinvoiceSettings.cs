@@ -81,6 +81,9 @@ public sealed class EinvoiceSettings : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>True when all four credentials have been supplied.</summary>
     public bool HasCredentials =>
         ProtectedClientId is { Length: > 0 }

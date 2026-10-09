@@ -134,6 +134,9 @@ public sealed class PaymentInstrument : Entity, IAuditStamped, IBelongsToAggrega
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>True for the one mode that has a printed layout (§4a D4).</summary>
     public bool IsPrintable => Mode == PaymentMode.Cheque;
 

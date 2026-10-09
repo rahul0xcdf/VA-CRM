@@ -35,10 +35,35 @@ internal sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
             _ => new Repository<TEntity>(_context));
     }
 
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _context.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            return await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // Translated here rather than left to the caller, because the Application and App
+            // layers must be able to handle a lost update and neither may reference EF Core
+            // (ADR-0001). Letting the EF type escape would mean the only way to catch this in a
+            // view model was to break the dependency rule.
+            throw ConcurrentUpdateException.For(NameOfContestedEntity(ex), ex);
+        }
+    }
+
+    /// <summary>Names the entity that lost the race, for a message saying what to reload.</summary>
+    /// <remarks>
+    /// EF reports every entry it could not save; the first is enough for a message, and a save that
+    /// contests several rows at once has one cause anyway. Falls back to a generic word rather than
+    /// throwing — a concurrency failure must not be replaced by a failure to describe it.
+    /// </remarks>
+    private static string NameOfContestedEntity(DbUpdateConcurrencyException exception)
+    {
+        var entry = exception.Entries.Count > 0 ? exception.Entries[0] : null;
+
+        return entry?.Entity.GetType().Name ?? "record";
     }
 
     public async Task<IUnitOfWorkTransaction> BeginTransactionAsync(

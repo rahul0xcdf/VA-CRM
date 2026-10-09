@@ -68,4 +68,7 @@ public sealed class Voucher : Entity, IAuditStamped
     public DateTimeOffset? ModifiedAtUtc { get; set; }
 
     public string? ModifiedBy { get; set; }
+
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
 }

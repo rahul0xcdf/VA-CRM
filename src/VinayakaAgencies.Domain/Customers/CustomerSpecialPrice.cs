@@ -85,6 +85,9 @@ public sealed class CustomerSpecialPrice : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>
     /// Re-points the line at a new basis and value. Exactly one of the two values must be supplied,
     /// matched to the basis; the other is cleared, so an edit can never leave both behind.

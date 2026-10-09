@@ -47,6 +47,9 @@ public sealed class GstSettings : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     public void SetRoundOffLedgerName(string? roundOffLedgerName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roundOffLedgerName);

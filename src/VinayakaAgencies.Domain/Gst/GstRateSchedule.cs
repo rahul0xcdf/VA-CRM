@@ -98,6 +98,9 @@ public sealed class GstRateSchedule : Entity, IAuditStamped
 
     public string? ModifiedBy { get; set; }
 
+    /// <inheritdoc />
+    public Guid ConcurrencyToken { get; set; }
+
     /// <summary>Whether this schedule governs supplies made on the given business date.</summary>
     public bool Covers(DateOnly date) =>
         date >= EffectiveFrom && (!EffectiveTo.HasValue || date <= EffectiveTo.Value);
