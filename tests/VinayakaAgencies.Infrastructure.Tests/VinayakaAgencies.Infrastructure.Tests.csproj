@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="JsonSchema.Net" Version="7.2.3" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
@@ -28,6 +29,14 @@
     <ProjectReference Include="..\..\src\VinayakaAgencies.Domain\VinayakaAgencies.Domain.csproj" />
     <ProjectReference Include="..\..\src\VinayakaAgencies.Application\VinayakaAgencies.Application.csproj" />
     <ProjectReference Include="..\..\src\VinayakaAgencies.Infrastructure\VinayakaAgencies.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!--
+    Return schemas the C5.1 tests validate against. A wildcard rather than named files so that
+    dropping the authoritative GSTN schema into this folder needs no csproj edit.
+  -->
+  <ItemGroup>
+    <Content Include="Gst\Schemas\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

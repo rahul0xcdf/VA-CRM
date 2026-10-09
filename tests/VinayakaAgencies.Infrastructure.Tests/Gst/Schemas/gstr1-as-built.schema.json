@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vinayaka-agencies.local/schemas/gstr1-as-built.schema.json",
+  "title": "GSTR-1 export — as built by Gstr1JsonExporter",
+  "description": "NOT the GSTN schema. This is a lock on the shape THIS codebase emits, so an accidental field rename, retype or omission in Gstr1JsonExporter fails a test instead of being discovered by the portal. Checkpoint C5.1 asks for validation against the authoritative GSTN schema, which is not in this repository (open-questions.md #23); when it arrives it goes in this folder as gstr1-gstn.schema.json and gets its own test. Field names marked CONFIRMED were matched against two independent published references to the GSTN payload during the C5.1 review; those marked UNVERIFIED are this codebase's own reading and are recorded in #23 as probably wrong.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "gstin", "fp", "gen_dt", "gtotals", "b2b", "b2c", "hsn", "docs"],
+  "properties": {
+    "version": {
+      "description": "The pinned GSTN schema version this file was written for (spec §2).",
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "gstin": {
+      "description": "CONFIRMED. The filer's own GSTIN, in the statutory 15-character form.",
+      "type": "string",
+      "pattern": "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]{3}$"
+    },
+    "fp": {
+      "description": "CONFIRMED. Filing period. April-based financial year as FY-begin year + FY-end two digits, e.g. 202627.",
+      "type": "string",
+      "pattern": "^[0-9]{6}$"
+    },
+    "gen_dt": {
+      "description": "UNVERIFIED (#23). Generation timestamp. Written as an ISO-8601 round-trip string; the portal's own gen_dt is a dd-mm-yyyy date.",
+      "type": "string",
+      "minLength": 1
+    },
+    "gtotals": {
+      "description": "UNVERIFIED (#23). Grand totals block. The portal carries gt / cur_gt (gross turnover) at this level instead.",
+      "$ref": "#/$defs/totals"
+    },
+    "b2b": {
+      "description": "CONFIRMED. Registered-buyer supplies, grouped by counterparty GSTIN.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/b2bBuyer" }
+    },
+    "b2c": {
+      "description": "UNVERIFIED (#23). Unregistered-buyer supplies, nested by place of supply. The portal's equivalent is a FLAT b2cs array, and inter-state B2C invoices above the invoice-wise threshold belong in a b2cl section this exporter does not emit at all.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/b2cBucket" }
+    },
+    "hsn": {
+      "description": "CONFIRMED (section name and the data array). Table 12 HSN summary.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data"],
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/hsnRow" }
+        }
+      }
+    },
+    "docs": {
+      "description": "Documents issued during the period.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inv"],
+      "properties": {
+        "inv": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/docIssue" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "amount": {
+      "description": "Rupees at two decimal places. Converted from integer minor units exactly once, in the exporter (ADR-0003).",
+      "type": "number"
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["txval", "iamt", "camt", "samt", "csamt"],
+      "properties": {
+        "txval": { "$ref": "#/$defs/amount" },
+        "iamt": { "$ref": "#/$defs/amount" },
+        "camt": { "$ref": "#/$defs/amount" },
+        "samt": { "$ref": "#/$defs/amount" },
+        "csamt": {
+          "description": "CONFIRMED as csamt. This was emitted as csft until the C5.1 review, which the portal would not have recognised — cess would have filed as nil.",
+          "$ref": "#/$defs/amount"
+        }
+      }
+    },
+    "b2bBuyer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ctin", "inv"],
+      "properties": {
+        "ctin": {
+          "description": "CONFIRMED. Counterparty GSTIN.",
+          "type": "string",
+          "pattern": "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]{3}$"
+        },
+        "inv": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/invoice" }
+        }
+      }
+    },
+    "invoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inum", "idt", "val", "pos", "rchrg", "itms"],
+      "properties": {
+        "inum": {
+          "description": "CONFIRMED. Invoice number as printed.",
+          "type": "string",
+          "minLength": 1
+        },
+        "idt": {
+          "description": "CONFIRMED. Invoice date, dd-mm-yyyy.",
+          "type": "string",
+          "pattern": "^[0-9]{2}-[0-9]{2}-[0-9]{4}$"
+        },
+        "val": { "$ref": "#/$defs/amount" },
+        "pos": {
+          "description": "CONFIRMED. Place-of-supply state code.",
+          "type": "string",
+          "pattern": "^[0-9]{2}$"
+        },
+        "rchrg": {
+          "description": "CONFIRMED. Reverse charge, Y or N.",
+          "type": "string",
+          "enum": ["Y", "N"]
+        },
+        "itms": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/invoiceItem" }
+        }
+      }
+    },
+    "invoiceItem": {
+      "description": "CONFIRMED. The portal nests each rate line's figures under itm_det alongside a 1-based num; this exporter wrote the figures flat until the C5.1 review.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "itm_det"],
+      "properties": {
+        "num": { "type": "integer", "minimum": 1 },
+        "itm_det": { "$ref": "#/$defs/rateLine" }
+      }
+    },
+    "rateLine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rt", "txval", "iamt", "camt", "samt", "csamt"],
+      "properties": {
+        "rt": {
+          "description": "CONFIRMED. Rate as a percentage, e.g. 18 for 18%.",
+          "type": "number",
+          "minimum": 0
+        },
+        "txval": { "$ref": "#/$defs/amount" },
+        "iamt": { "$ref": "#/$defs/amount" },
+        "camt": { "$ref": "#/$defs/amount" },
+        "samt": { "$ref": "#/$defs/amount" },
+        "csamt": { "$ref": "#/$defs/amount" }
+      }
+    },
+    "b2cBucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pos", "lines"],
+      "properties": {
+        "pos": { "type": "string", "pattern": "^[0-9]{2}$" },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/b2cLine" }
+        }
+      }
+    },
+    "b2cLine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rt", "cnt", "val", "txval", "iamt", "camt", "samt", "csamt"],
+      "properties": {
+        "rt": { "type": "number", "minimum": 0 },
+        "cnt": {
+          "description": "UNVERIFIED (#23). Invoice count. Not a field of the portal's b2cs section.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "val": { "$ref": "#/$defs/amount" },
+        "txval": { "$ref": "#/$defs/amount" },
+        "iamt": { "$ref": "#/$defs/amount" },
+        "camt": { "$ref": "#/$defs/amount" },
+        "samt": { "$ref": "#/$defs/amount" },
+        "csamt": { "$ref": "#/$defs/amount" }
+      }
+    },
+    "hsnRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "hsn_sc", "uqc", "qty", "txval", "iamt", "camt", "samt", "csamt", "sply_ty"],
+      "properties": {
+        "num": { "type": "integer", "minimum": 1 },
+        "hsn_sc": {
+          "description": "CONFIRMED as hsn_sc. Emitted as hsn until the C5.1 review.",
+          "type": "string",
+          "minLength": 1
+        },
+        "desc": {
+          "description": "Omitted entirely when the master carries no description.",
+          "type": "string"
+        },
+        "uqc": {
+          "description": "UNVERIFIED (#23). Unit quantity code — hardcoded to NOS, so an item sold in any other unit reports the wrong UQC.",
+          "type": "string",
+          "minLength": 1
+        },
+        "qty": { "type": "number" },
+        "txval": { "$ref": "#/$defs/amount" },
+        "iamt": { "$ref": "#/$defs/amount" },
+        "camt": { "$ref": "#/$defs/amount" },
+        "samt": { "$ref": "#/$defs/amount" },
+        "csamt": { "$ref": "#/$defs/amount" },
+        "sply_ty": {
+          "description": "UNVERIFIED (#23). The Table 12 B2B/B2C split this build writes.",
+          "type": "string",
+          "enum": ["b2b", "b2c"]
+        }
+      }
+    },
+    "docIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "from", "to", "tot", "cancel", "net"],
+      "properties": {
+        "num": { "type": "integer", "minimum": 1 },
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "tot": { "type": "integer", "minimum": 0 },
+        "cancel": { "type": "integer", "minimum": 0 },
+        "net": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

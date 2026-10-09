@@ -16,6 +16,19 @@ namespace VinayakaAgencies.Application.Gst;
 /// Before writing anything the exporter re-checks structural self-consistency: every section total,
 /// the grand totals and the books figures must agree to the minor unit, so a broken return fails at
 /// generation rather than at filing.
+/// <para>
+/// <b>Field names are confirmed only as far as C5.1 has been able to confirm them.</b> The cess
+/// amount is <c>csamt</c>, the HSN code is <c>hsn_sc</c>, and a B2B invoice's <c>itms</c> entries
+/// nest their figures under <c>num</c> + <c>itm_det</c> — all three were wrong here until the
+/// Phase 5 evidence review, and all three are now matched against two independent published
+/// references to the GSTN payload. What remains <b>unverified and probably still wrong</b> is
+/// recorded in <c>open-questions.md</c> #23: the B2C section shape (the portal's is a flat
+/// <c>b2cs</c> array, not this nested <c>b2c</c> one), the absent <c>b2cl</c> section for
+/// inter-state B2C invoices above the invoice-wise threshold, the top-level <c>gtotals</c> block
+/// (the portal carries <c>gt</c> / <c>cur_gt</c> instead) and the hardcoded <c>uqc</c>. Those
+/// change *what* is reported rather than how a field is spelled, so they need the authoritative
+/// GSTN schema and the owner's accountant, not a guess from here.
+/// </para>
 /// </remarks>
 public static class Gstr1JsonExporter
 {
@@ -137,14 +150,18 @@ public static class Gstr1JsonExporter
         ReverseCharge = invoice.IsReverseCharge ? "Y" : "N",
         Items = invoice.RateLines
             .OrderBy(line => line.RatePercentMinor)
-            .Select(line => new Gstr1JsonRateItem
+            .Select((line, index) => new Gstr1JsonInvoiceItem
             {
-                Rate = Percent(line.RatePercentMinor),
-                Taxable = Rupees(line.TaxableValueMinor),
-                Igst = Rupees(line.IgstMinor),
-                Cgst = Rupees(line.CgstMinor),
-                Sgst = Rupees(line.SgstMinor),
-                Cess = Rupees(line.CessMinor),
+                Num = index + 1,
+                Detail = new Gstr1JsonRateItem
+                {
+                    Rate = Percent(line.RatePercentMinor),
+                    Taxable = Rupees(line.TaxableValueMinor),
+                    Igst = Rupees(line.IgstMinor),
+                    Cgst = Rupees(line.CgstMinor),
+                    Sgst = Rupees(line.SgstMinor),
+                    Cess = Rupees(line.CessMinor),
+                },
             })
             .ToList(),
     };
@@ -229,7 +246,7 @@ public static class Gstr1JsonExporter
         [JsonPropertyName("samt")]
         public decimal Sgst { get; init; }
 
-        [JsonPropertyName("csft")]
+        [JsonPropertyName("csamt")]
         public decimal Cess { get; init; }
     }
 
@@ -260,7 +277,21 @@ public static class Gstr1JsonExporter
         public string ReverseCharge { get; init; } = "N";
 
         [JsonPropertyName("itms")]
-        public IReadOnlyList<Gstr1JsonRateItem> Items { get; init; } = [];
+        public IReadOnlyList<Gstr1JsonInvoiceItem> Items { get; init; } = [];
+    }
+
+    /// <summary>
+    /// One entry of a B2B invoice's <c>itms</c> array. The portal nests the figures one level
+    /// down, under <c>itm_det</c>, alongside a 1-based <c>num</c>; a flat rate object — which is
+    /// what this exporter wrote until the C5.1 review — is not the shape it accepts.
+    /// </summary>
+    private sealed class Gstr1JsonInvoiceItem
+    {
+        [JsonPropertyName("num")]
+        public int Num { get; init; }
+
+        [JsonPropertyName("itm_det")]
+        public Gstr1JsonRateItem Detail { get; init; } = new();
     }
 
     private sealed class Gstr1JsonRateItem
@@ -280,7 +311,7 @@ public static class Gstr1JsonExporter
         [JsonPropertyName("samt")]
         public decimal Sgst { get; init; }
 
-        [JsonPropertyName("csft")]
+        [JsonPropertyName("csamt")]
         public decimal Cess { get; init; }
     }
 
@@ -316,7 +347,7 @@ public static class Gstr1JsonExporter
         [JsonPropertyName("samt")]
         public decimal Sgst { get; init; }
 
-        [JsonPropertyName("csft")]
+        [JsonPropertyName("csamt")]
         public decimal Cess { get; init; }
     }
 
@@ -331,7 +362,7 @@ public static class Gstr1JsonExporter
         [JsonPropertyName("num")]
         public int Num { get; init; }
 
-        [JsonPropertyName("hsn")]
+        [JsonPropertyName("hsn_sc")]
         public string Code { get; init; } = string.Empty;
 
         [JsonPropertyName("desc")]
@@ -355,7 +386,7 @@ public static class Gstr1JsonExporter
         [JsonPropertyName("samt")]
         public decimal Sgst { get; init; }
 
-        [JsonPropertyName("csft")]
+        [JsonPropertyName("csamt")]
         public decimal Cess { get; init; }
 
         [JsonPropertyName("sply_ty")]

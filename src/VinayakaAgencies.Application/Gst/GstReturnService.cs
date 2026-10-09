@@ -144,16 +144,26 @@ public sealed class GstReturnService(
 
         var months = new List<Gstr9MonthRow>();
 
-        for (var month = fromDate; month <= toDate; month = month.AddMonths(1))
+        // Step whole calendar months from the first of the opening month, and clamp each window to
+        // the requested period at both ends. Stepping from `fromDate` itself instead left a hole
+        // whenever the period did not begin on the 1st: a start of 15 April put the second window
+        // at 15 May – 31 May, so an invoice dated 5 May belonged to no month and dropped out of
+        // both the monthly rows and the annual totals derived from them. The annual return is
+        // always a full financial year in practice, which is why it went unnoticed, but this is a
+        // public service method and the figures it returns are filed.
+        for (var month = new DateOnly(fromDate.Year, fromDate.Month, 1);
+             month <= toDate;
+             month = month.AddMonths(1))
         {
             var monthEnd = EndOfMonth(month);
+            var windowStart = month < fromDate ? fromDate : month;
             var windowEnd = monthEnd < toDate ? monthEnd : toDate;
 
             var monthSales = sales
-                .Where(row => InWindow(row.DocumentDate, month, windowEnd))
+                .Where(row => InWindow(row.DocumentDate, windowStart, windowEnd))
                 .ToList();
             var monthPurchases = purchases
-                .Where(row => InWindow(row.DocumentDate, month, windowEnd))
+                .Where(row => InWindow(row.DocumentDate, windowStart, windowEnd))
                 .ToList();
 
             var outward = ToTotals(monthSales);
