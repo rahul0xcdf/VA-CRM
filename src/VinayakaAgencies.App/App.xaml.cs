@@ -118,7 +118,8 @@ public partial class App : System.Windows.Application
 
                 var firstRunViewModel = new FirstRunCompanyViewModel(
                     _shellScope.ServiceProvider.GetRequiredService<ICompanyService>(),
-                    provisioning);
+                    provisioning,
+                    _shellScope.ServiceProvider.GetRequiredService<ISignInService>());
                 var firstRunWindow = new FirstRunCompanyWindow { DataContext = firstRunViewModel };
                 firstRunWindow.ShowDialog();
 
@@ -175,32 +176,34 @@ public partial class App : System.Windows.Application
 
             // Phase 9 §4a D2: the books open under a name. Non-negotiable #3 requires every change
             // to be attributable, and a workgroup shop shares one Windows login per machine — so
-            // the identity has to come from an application account, and this is where it is asked
-            // for. On an install with no accounts the window offers to create the owner instead,
-            // because nothing is seeded: a shipped user name with a default password is a hole.
+            // the identity has to come from an application account.
             //
-            // Declining closes the product rather than opening it unattributed. Until the first
-            // account exists every permission is granted, so an owner who has not got round to
-            // this is exactly where Phase 8 left them.
-            splash.ReportStatus("Waiting for sign-in…");
-
-            var loginViewModel = new LoginViewModel(
-                _shellScope.ServiceProvider.GetRequiredService<ISignInService>(),
-                companyId);
-
-            await loginViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
-
-            var loginWindow = new LoginWindow { DataContext = loginViewModel };
-
-            splash.Hide();
-            loginWindow.ShowDialog();
-            splash.Show();
-
-            if (!loginViewModel.IsSignedIn)
+            // Skipped when first-run has just created the owner account, which signs them in as it
+            // creates them: asking again immediately would read as the account not having been
+            // made. On an existing install this is where the account is asked for, and declining
+            // closes the product rather than opening the books unattributed.
+            if (!_shellScope.ServiceProvider.GetRequiredService<IUserSession>().IsSignedIn)
             {
-                splash.Close();
-                Shutdown();
-                return;
+                splash.ReportStatus("Waiting for sign-in…");
+
+                var loginViewModel = new LoginViewModel(
+                    _shellScope.ServiceProvider.GetRequiredService<ISignInService>(),
+                    companyId);
+
+                await loginViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+                var loginWindow = new LoginWindow { DataContext = loginViewModel };
+
+                splash.Hide();
+                loginWindow.ShowDialog();
+                splash.Show();
+
+                if (!loginViewModel.IsSignedIn)
+                {
+                    splash.Close();
+                    Shutdown();
+                    return;
+                }
             }
 
             var shell = _shellScope.ServiceProvider.GetRequiredService<ShellWindow>();

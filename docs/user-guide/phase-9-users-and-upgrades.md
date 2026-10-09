@@ -18,16 +18,15 @@ better than opening accounts the software cannot read properly. Write down what 
 
 ### 2. Create the owner account
 
-The sign-in window appears and offers to create the first account, because there isn't one yet.
+**On a brand-new install** the welcome window asks for the company and your account together, and
+makes both at once. Fill in the company details, then your user name, your name, and a password
+twice — eight characters or more.
 
-Enter a user name (what you will type to sign in), your name (what appears in the books against
-everything you do), and a password twice. Eight characters or more.
+**On an install you have been using** the sign-in window appears instead and offers to create the
+first account, because there is not one yet. Close it without creating one and the software closes
+too; there is no way into the books without an account.
 
 **There is no default account and no default password.** Nothing to change, nothing to forget.
-
-> **Until you create this account, everyone who opens the software can do everything.** That is how
-> the software behaved before this update, so nothing has got worse — but nothing has got better
-> either until you do this.
 
 ## Every time you open it afterwards
 

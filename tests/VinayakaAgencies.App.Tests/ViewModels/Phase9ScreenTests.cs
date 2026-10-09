@@ -247,6 +247,99 @@ public sealed class Phase9ScreenTests
                 .OrderBy(permission => permission));
     }
 
+    [Fact]
+    public async Task FirstRunCompanyViewModel_Create_LeavesTheInstallSecured()
+    {
+        // The bootstrap state — no accounts, so every permission granted to everybody — is now
+        // unreachable from a fresh install, because the owner account is created in the same step
+        // as the company rather than left to the next window.
+        await using var host = await RealDatabaseAppHost.StartAsync(provisionCompany: false);
+        var viewModel = NewFirstRun(host);
+
+        viewModel.TradingName = "Vinayaka Agencies";
+        viewModel.LegalName = "Vinayaka Agencies (Regd.)";
+        viewModel.SelectedState = viewModel.States.First(state => state.Code == "29");
+        viewModel.OwnerUserName = "owner";
+        viewModel.OwnerDisplayName = "The Owner";
+        viewModel.OwnerPassword = "owner-pass-2026";
+        viewModel.OwnerPasswordAgain = "owner-pass-2026";
+
+        await viewModel.CreateCommand.ExecuteAsync(null);
+
+        viewModel.CreatedCompanyId.ShouldNotBeNull(viewModel.Status);
+
+        // Signed in as it created them, so the startup path does not ask again.
+        var session = host.Services.GetRequiredService<IUserSession>();
+        session.IsSignedIn.ShouldBeTrue();
+        session.Current!.UserName.ShouldBe("owner");
+
+        // And the install is no longer in the state where everything is permitted.
+        var accountsExist = await host.Services.GetRequiredService<ISignInService>()
+            .AnyAccountsExistAsync();
+
+        accountsExist.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task FirstRunCompanyViewModel_Create_AssignsTheOwnerRole()
+    {
+        await using var host = await RealDatabaseAppHost.StartAsync(provisionCompany: false);
+        var viewModel = NewFirstRun(host);
+
+        viewModel.TradingName = "Vinayaka Agencies";
+        viewModel.LegalName = "Vinayaka Agencies (Regd.)";
+        viewModel.SelectedState = viewModel.States.First(state => state.Code == "29");
+        viewModel.OwnerUserName = "owner";
+        viewModel.OwnerPassword = "owner-pass-2026";
+        viewModel.OwnerPasswordAgain = "owner-pass-2026";
+
+        await viewModel.CreateCommand.ExecuteAsync(null);
+
+        viewModel.CreatedCompanyId.ShouldNotBeNull(viewModel.Status);
+
+        var roles = await host.Services.GetRequiredService<IUserAdminService>().ListRolesAsync();
+        var assigned = host.Services.GetRequiredService<IUserSession>().Current!.RoleId;
+
+        roles.Single(role => role.Id == assigned).IsOwnerRole.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("", "owner-pass-2026", "owner-pass-2026", "Choose the user name")]
+    [InlineData("owner", "short", "short", "at least")]
+    [InlineData("owner", "owner-pass-2026", "owner-pass-2027", "do not match")]
+    public async Task FirstRunCompanyViewModel_IncompleteAccount_CreatesNothingAtAll(
+        string userName,
+        string password,
+        string again,
+        string expected)
+    {
+        // Validated before the company is created, not after. A company that exists with no account
+        // is exactly the state this change is removing, so a bad password must not produce one.
+        await using var host = await RealDatabaseAppHost.StartAsync(provisionCompany: false);
+        var viewModel = NewFirstRun(host);
+
+        viewModel.TradingName = "Vinayaka Agencies";
+        viewModel.LegalName = "Vinayaka Agencies (Regd.)";
+        viewModel.SelectedState = viewModel.States.First(state => state.Code == "29");
+        viewModel.OwnerUserName = userName;
+        viewModel.OwnerPassword = password;
+        viewModel.OwnerPasswordAgain = again;
+
+        await viewModel.CreateCommand.ExecuteAsync(null);
+
+        viewModel.CreatedCompanyId.ShouldBeNull();
+        viewModel.Status.ShouldContain(expected);
+
+        var companies = await host.Services.GetRequiredService<ICompanyService>().CountAsync();
+        companies.ShouldBe(0);
+    }
+
+    private static FirstRunCompanyViewModel NewFirstRun(RealDatabaseAppHost host) =>
+        new(
+            host.Services.GetRequiredService<ICompanyService>(),
+            host.Services.GetRequiredService<ICompanyProvisioningService>(),
+            host.Services.GetRequiredService<ISignInService>());
+
     private static LoginViewModel NewLogin(RealDatabaseAppHost host) =>
         new(host.Services.GetRequiredService<ISignInService>(), host.CompanyId);
 

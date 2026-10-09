@@ -249,12 +249,15 @@ with India GST/TDS compliance as a core requirement.
   (#24): a `ConcurrencyToken` on every `IConcurrencyStamped` entity surfaces a lost update as
   `ConcurrentUpdateException` with the first write intact, and `IVoucherNumberSequenceLock` reads the
   high-water mark under a row lock held by the voucher's own transaction. **C9.4 not met.**
-  **An install with no accounts grants every permission to everybody** — the bootstrap state, why
-  the Phase 1–8 suites are untouched, and the one state in which none of this protects anything; it
-  is asserted explicitly rather than left implicit. Startup now **gates the schema upgrade**
+  **`IPermissionAuthority` grants everything while a company has no accounts** — the bootstrap state,
+  which has to exist (the first account could not otherwise be created) and is why the Phase 1–8
+  suites are untouched. **The product can no longer sit in it** (§4b B7): first-run creates the owner
+  account alongside the company, validating the account fields before the company so a mistyped
+  password leaves no books behind, and an upgraded install cannot open the shell without a session.
+  Startup now **gates the schema upgrade**
   (`ApplyMigrationsOnStartup` defaults off) and **asks for a sign-in** before opening the books;
   Users and Roles are two new screens under an Administration group.
-  §4b records six changes beyond spec, §4c records the stop. **C9.4 was stopped rather than
+  §4b records seven changes beyond spec, §4c records the stop. **C9.4 was stopped rather than
   half-built**: there is no SQL Server, LocalDB or Docker on this machine (#24), and a second
   provider's migrations need their own project — a solution-level change for the owner to approve.
   What was delivered instead answers §2's own question, and `SqlServerPortabilityTests` keeps the
@@ -274,8 +277,7 @@ with India GST/TDS compliance as a core requirement.
   `phase-9-users-and-upgrades.md`. Evidence at `specs/evidence/phase-9-evidence.md`.
   Remaining before sign-off: a SQL Server instance (#24), owner walkthrough of the four new windows
   and screenshots, owner confirmation of the Operator grant list and the eight-character password
-  floor, and a decision on whether first-run should insist on an account rather than allowing the
-  unsecured state.
+  floor.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,

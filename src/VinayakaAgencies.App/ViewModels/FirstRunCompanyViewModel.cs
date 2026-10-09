@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VinayakaAgencies.Application.Companies;
+using VinayakaAgencies.Application.Security;
 
 namespace VinayakaAgencies.App.ViewModels;
 
@@ -22,13 +23,16 @@ public sealed partial class FirstRunCompanyViewModel : ObservableObject
 
     private readonly ICompanyService _companies;
     private readonly ICompanyProvisioningService _provisioning;
+    private readonly ISignInService _signIn;
 
     public FirstRunCompanyViewModel(
         ICompanyService companies,
-        ICompanyProvisioningService provisioning)
+        ICompanyProvisioningService provisioning,
+        ISignInService signIn)
     {
         _companies = companies ?? throw new ArgumentNullException(nameof(companies));
         _provisioning = provisioning ?? throw new ArgumentNullException(nameof(provisioning));
+        _signIn = signIn ?? throw new ArgumentNullException(nameof(signIn));
     }
 
     /// <summary>Raised when the company exists and is fully provisioned; the window closes on it.</summary>
@@ -49,6 +53,25 @@ public sealed partial class FirstRunCompanyViewModel : ObservableObject
 
     [ObservableProperty]
     private string _gstin = string.Empty;
+
+    /// <summary>The owner account created alongside the company.</summary>
+    /// <remarks>
+    /// Collected here, not left to the sign-in window, so that a brand-new install is never in the
+    /// unsecured state at all: until an account exists every permission is granted to everybody
+    /// (see <see cref="Domain.Abstractions.IPermissionAuthority"/>), and an install that has books
+    /// but no account is an install where that is true of real data.
+    /// </remarks>
+    [ObservableProperty]
+    private string _ownerUserName = string.Empty;
+
+    [ObservableProperty]
+    private string _ownerDisplayName = string.Empty;
+
+    [ObservableProperty]
+    private string _ownerPassword = string.Empty;
+
+    [ObservableProperty]
+    private string _ownerPasswordAgain = string.Empty;
 
     [ObservableProperty]
     private bool _isBusy;
@@ -113,6 +136,33 @@ public sealed partial class FirstRunCompanyViewModel : ObservableObject
             Status = "Preparing user roles…";
             await _provisioning.EnsureSecuritySeedAsync(company.Id, cancellationToken).ConfigureAwait(true);
 
+            // Same step as the company, deliberately. An install that has books and no account is
+            // an install where every permission is granted to everybody, and leaving this to the
+            // sign-in window would make that a state a fresh install can sit in.
+            Status = "Creating the owner account…";
+
+            var signedIn = await _signIn
+                .CreateFirstAccountAsync(
+                    company.Id,
+                    OwnerUserName.Trim(),
+                    string.IsNullOrWhiteSpace(OwnerDisplayName)
+                        ? OwnerUserName.Trim()
+                        : OwnerDisplayName.Trim(),
+                    OwnerPassword,
+                    cancellationToken)
+                .ConfigureAwait(true);
+
+            if (!signedIn.Succeeded)
+            {
+                // The company and its seeds are already committed, so this is not a rollback — the
+                // operator is sent to the sign-in window, which will ask for the account again.
+                Status = signedIn.Message;
+                return;
+            }
+
+            OwnerPassword = string.Empty;
+            OwnerPasswordAgain = string.Empty;
+
             CreatedCompanyId = company.Id;
             Status = $"{company.Name} is ready. Opening…";
 
@@ -143,6 +193,23 @@ public sealed partial class FirstRunCompanyViewModel : ObservableObject
         if (SelectedState is null)
         {
             return "Pick the state the business is registered in.";
+        }
+
+        if (string.IsNullOrWhiteSpace(OwnerUserName))
+        {
+            return "Choose the user name you will sign in with.";
+        }
+
+        var passwordProblems = PasswordPolicy.Validate(OwnerPassword);
+
+        if (passwordProblems.Count > 0)
+        {
+            return string.Join(" ", passwordProblems);
+        }
+
+        if (!string.Equals(OwnerPassword, OwnerPasswordAgain, StringComparison.Ordinal))
+        {
+            return "The two passwords do not match.";
         }
 
         if (!string.IsNullOrWhiteSpace(Gstin))

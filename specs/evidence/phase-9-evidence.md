@@ -12,7 +12,7 @@ Spec: `specs/phase-9-multiuser.md` (Approved 9 Oct 2026). Filed 9 Oct 2026.
 | # | Criterion | Result | Evidence |
 |---|---|---|---|
 | C9.1 | Two clients transact concurrently without data corruption or lost updates | **Partially met** | The mechanism is proved: `ConcurrencyTokenTests` — a token on every mutable entity and on nothing else, rotating on every write; two scopes editing the row they both loaded end with the second refused and **the first write surviving**; and a scope saving the same entity twice is not mistaken for a conflict. Two scopes on one SQLite file is a real second connection with its own change tracker. Not proved as written — "two clients" against SQL Server Express needs an instance (#24) |
-| C9.2 | Permission rules are enforced server-side, not just hidden in the UI | **Met** | `PermissionEnforcementTests` (19) and `Phase9ScreenTests` (11). Every `IUserAdminService` member, voucher post/alter/cancel, and the sales price override are gated in the service. The Users screen is reachable from the Alt+G palette whoever is signed in, so the Gateway hiding it was never the protection |
+| C9.2 | Permission rules are enforced server-side, not just hidden in the UI | **Met** | `PermissionEnforcementTests` (19) and `Phase9ScreenTests` (16). Every `IUserAdminService` member, voucher post/alter/cancel, and the sales price override are gated in the service. The Users screen is reachable from the Alt+G palette whoever is signed in, so the Gateway hiding it was never the protection |
 | C9.3 | Concurrent invoice creation from two clients produces no duplicate or skipped voucher numbers | **Partially met** | `VoucherNumberAllocationTests` — consecutive numbers with no gap, per-financial-year counting, a genuine eight-way race on one database file issuing no number twice, and the stale-counter case a single-user build could never show. Not proved as written, same reason as C9.1 |
 | C9.4 | All Phase 1–8 test suites pass unchanged against SQL Server Express | **Not met** | The provider is not written. §4 below, and `phase-9-multiuser.md` §4c |
 | C9.5 | A permission-denied action is refused when invoked directly at the service layer, bypassing the UI | **Met** | `CancelAsync_OperatorSignedIn_IsRefusedByTheServiceNotTheScreen` — an Operator calls `IVoucherPostingService.CancelAsync` straight off the container with no window in the process. The voucher id is deliberately one that does not exist, so a `PermissionDeniedException` rather than a "no such voucher" proves the gate runs *before* the service reads anything |
@@ -25,24 +25,24 @@ Spec: `specs/phase-9-multiuser.md` (Approved 9 Oct 2026). Filed 9 Oct 2026.
 .\build.ps1
 === Done (build + test succeeded) ===
 
-VinayakaAgencies.App.Tests             190 passed, 0 failed
+VinayakaAgencies.App.Tests             195 passed, 0 failed
 VinayakaAgencies.Application.Tests     114 passed, 0 failed
 VinayakaAgencies.Domain.Tests          485 passed, 0 failed
 VinayakaAgencies.Infrastructure.Tests  332 passed, 0 failed
                                      -----
-                                     1,121 passed, 0 failed, 0 skipped
+                                     1,126 passed, 0 failed, 0 skipped
 ```
 
 Build: 0 warnings, 0 errors. Warnings are errors in this solution, so that is a hard gate rather
 than a tidy result.
 
-**71 of those tests are new**, in seven classes:
+**76 of those tests are new**, in seven classes:
 
 | Class | Tests | Carries |
 |---|---|---|
 | `PermissionEnforcementTests` | 19 | C9.2, C9.5 |
 | `Pbkdf2PasswordHasherTests` | 13 | §4a D2 |
-| `Phase9ScreenTests` | 11 | C9.2 from the screen's side |
+| `Phase9ScreenTests` | 16 | C9.2 from the screen's side, and first-run leaving the install secured |
 | `ConcurrencyTokenTests` | 8 | C9.1 |
 | `VoucherNumberAllocationTests` | 8 | C9.3 |
 | `GatedMigrationTests` | 6 | §2's gated upgrade |
@@ -67,21 +67,29 @@ Everything else passes untouched, which is the point of the bootstrap rule in §
 
 ---
 
-## 3. The bootstrap rule, and why it is in the evidence
+## 3. The bootstrap rule, and what was done about it
 
-**An install with no accounts grants every permission to everybody.**
+**`IPermissionAuthority` grants every permission to everybody while the company has no accounts.**
 
-This is the single most important thing for the owner to understand about this phase, so it is
+The rule has to exist. Enforcement must begin somewhere, and refusing everything before the first
+account exists would mean the first account could never be created. It is also why 1,050 Phase 1–8
+tests are unaffected — their databases have no users, so they behave exactly as before. It is
 asserted explicitly (`HasPermissionAsync_NoAccountsExist_GrantsEverything`) rather than left as an
 accident of the implementation.
 
-It exists because enforcement has to begin somewhere: refusing everything before the first account
-exists would mean the first account could never be created. It is also why 1,050 Phase 1–8 tests are
-unaffected — their databases have no users, so they behave exactly as before.
+As first filed, this evidence named it as a state the owner should decide about: an install could
+have real books and no accounts, and Phase 9's security would be inert. **That is now closed**
+(§4b B7, on the owner's instruction):
 
-It is equally the one state in which none of this protects anything. Until the owner creates the
-first account at the sign-in window, Phase 9's security is inert. That is not a defect, but it is
-a fact the walkthrough should confirm out loud.
+- **A fresh install** collects the owner account in the first-run window alongside the company and
+  creates both in the same step. The account fields are validated *before* the company, so a
+  mistyped password cannot leave books behind with nothing guarding them
+  (`FirstRunCompanyViewModel_IncompleteAccount_CreatesNothingAtAll` asserts no company is created).
+- **An install upgraded from Phase 8** meets the sign-in window, which offers to create the owner
+  account and will not open the shell without a session. Declining closes the product.
+
+So the unsecured window is a few seconds during provisioning, not a state an install can ship in.
+The rule itself is untouched, which is what keeps the earlier suites honest.
 
 ---
 
@@ -243,6 +251,7 @@ phase, plus Users and Roles) against a real migrated database.
    with.
 4. **Owner confirmation of the password policy** — eight characters minimum, no composition rule.
    One constant and a message; stated rather than specified.
-5. **The bootstrap rule, said out loud** (§3). Until the first account exists, this phase enforces
-   nothing. The owner should decide at walkthrough whether that is acceptable as a shipping state or
-   whether first-run should insist.
+5. ~~**The bootstrap rule, said out loud** (§3).~~ **Closed 9 Oct 2026 on the owner's instruction.**
+   First-run now creates the owner account with the company, and an upgraded install cannot open the
+   shell without one — see §3 and §4b B7. Worth seeing in the walkthrough rather than signing off on
+   paper: the first-run window is the one screen that only ever appears once.

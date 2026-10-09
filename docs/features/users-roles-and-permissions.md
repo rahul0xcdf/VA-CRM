@@ -19,18 +19,33 @@ authoritative.
 
 ## The user workflow
 
-### First launch after the upgrade
+### A brand-new install
 
-The books open under a name, so the sign-in window appears before the shell. On an install with no
-accounts it offers to create the **owner account** instead of asking for credentials nobody has.
+The first-run window asks for the company **and the owner account in the same step**, and creates
+both together. A fresh install therefore never exists in the state where nobody has signed in.
 
-**Nothing is seeded.** No user name, no default password. A shipped `admin`/`admin` that somebody
-has to remember to change is how products end up with one nobody changed.
+The account fields are validated **before** the company is created, so a mistyped password does not
+leave books behind with no account to guard them.
 
-Until that first account exists, **every permission is granted to everybody**. That is deliberate:
-enforcement has to begin somewhere, and refusing everything before the first account would mean the
-first account could never be created. It is also exactly how Phase 8 behaved, so an owner who has
-not got round to this loses nothing — and gains nothing either, which is the point of doing it.
+### An install upgraded from Phase 8
+
+It already has books and no accounts, so the sign-in window appears before the shell and offers to
+create the owner account. Declining closes the product — there is no path to the books without a
+session.
+
+**Nothing is seeded in either case.** No user name, no default password. A shipped `admin`/`admin`
+that somebody has to remember to change is how products end up with one nobody changed.
+
+### The unsecured state
+
+`IPermissionAuthority` grants **every permission to everybody** while the company has no accounts.
+That rule has to exist — enforcement must begin somewhere, and refusing everything before the first
+account would mean the first account could never be created. It is also why the Phase 1–8 suites are
+unaffected by this phase.
+
+What changed is that **the product can no longer sit in it**: first-run creates the account with the
+company, and an upgraded install cannot open the shell without one. The rule is now a window of a
+few seconds during provisioning rather than a state an install can ship in.
 
 ### Signing in
 
@@ -127,7 +142,7 @@ the Roles screen without a release. Worth confirming at walkthrough.
 
 ## Verification
 
-- `PermissionEnforcementTests` — 20 tests through the real composition against a real database, with
+- `PermissionEnforcementTests` — 19 tests through the real composition against a real database, with
   no window in the process. The headline is C9.5: an Operator calling
   `IVoucherPostingService.CancelAsync` straight off the container is refused, and the voucher id is
   deliberately one that does not exist, so a `PermissionDeniedException` rather than a "no such
@@ -136,7 +151,9 @@ the Roles screen without a release. Worth confirming at walkthrough.
   parameters, nothing resembling the password in the stored value, and eight malformed stored values
   that must fail the sign-in rather than throw.
 - `Phase9ScreenTests` — the three login states, the refusal shown on the Users screen rather than
-  swallowed, the owner role's grants locked, and a role's grants round-tripping.
+  swallowed, the owner role's grants locked, a role's grants round-tripping, and first-run leaving
+  the install secured: the owner account created with the company, assigned the owner role, and a
+  mistyped password creating no company at all.
 - `EveryWindowInTheApplication_LoadsWithTheApplicationResources` — added here because no module
   lists a startup window, so nothing was constructing one. It caught two defects in this phase's own
   work.

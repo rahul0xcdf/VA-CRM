@@ -182,6 +182,22 @@ Written first taking a `companyId` per call, then changed to `ICompanyContext` l
 service in the Application layer. §10's reasoning applies unchanged: no service should be handed a
 company id through every method signature.
 
+### B7 — first-run creates the owner account with the company
+
+Added after the phase was first filed, on the owner's instruction, because the evidence's §3 named a
+state nobody had decided to accept: an install with books and no accounts grants every permission to
+everybody.
+
+The rule in `IPermissionAuthority` is unchanged and has to be — enforcement must begin somewhere,
+and refusing everything before the first account exists would mean the first account could never be
+created. It is also what keeps the Phase 1–8 suites unaffected. What changed is that **the product
+can no longer sit in that state**: the first-run window collects the owner account alongside the
+company and creates both in the same step, validating the account fields *before* the company so a
+mistyped password cannot leave books behind with nothing guarding them. An install upgraded from
+Phase 8 still meets the sign-in window, which will not open the shell without a session.
+
+So the window is now a few seconds during provisioning rather than a state an install can ship in.
+
 ## 4c. Not delivered
 
 ### The SQL Server Express provider itself — C9.4

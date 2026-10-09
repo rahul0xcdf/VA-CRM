@@ -37,7 +37,10 @@ internal sealed class RealDatabaseAppHost : IAsyncDisposable
 
     public Guid CompanyId { get; private set; }
 
-    public static async Task<RealDatabaseAppHost> StartAsync()
+    /// <param name="provisionCompany">
+    /// False for the tests that drive first-run itself, which needs an install with no books at all.
+    /// </param>
+    public static async Task<RealDatabaseAppHost> StartAsync(bool provisionCompany = true)
     {
         var databasePath = Path.Combine(
             Path.GetTempPath(),
@@ -67,7 +70,10 @@ internal sealed class RealDatabaseAppHost : IAsyncDisposable
             .GetRequiredService<IDatabaseInitialiser>()
             .InitialiseAsync());
 
-        await host.ProvisionCompanyAsync();
+        if (provisionCompany)
+        {
+            await host.ProvisionCompanyAsync();
+        }
 
         return host;
     }
