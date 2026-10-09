@@ -198,19 +198,26 @@ internal sealed class AccountingSqliteStatements : ISqlStatementSource
                     JOIN AccountGroups g ON g.Id = l.AccountGroupId
                     WHERE g.Nature IN ('Income', 'Expense')
                 )
+                -- Amounts leave here in the raw signed convention — debit positive, credit
+                -- negative — exactly as JournalLines holds them. Turning a liability's credit
+                -- balance into the positive figure a reader expects is presentation, and it is
+                -- done once, in the report service's mapper. This query used to flip the sign too,
+                -- and the two flips cancelled: every liability line on the balance sheet came out
+                -- with the wrong sign and the sheet only balanced when both sides were zero.
                 SELECT l.Id AS LedgerId,
                        l.Name AS LedgerName,
                        g.Name AS AccountGroupName,
                        g.Nature AS Nature,
-                       CASE WHEN g.Nature = 'Liability'
-                            THEN -COALESCE(p.BalanceMinor, 0)
-                            ELSE COALESCE(p.BalanceMinor, 0)
-                       END AS AmountMinor
+                       COALESCE(p.BalanceMinor, 0) AS AmountMinor
                 FROM Ledgers l
                 JOIN AccountGroups g ON g.Id = l.AccountGroupId
                 LEFT JOIN Position p ON p.Lid = l.Id
                 WHERE l.CompanyId = @CompanyId
                   AND g.Nature IN ('Asset', 'Liability')
+                  -- The Profit & Loss A/c ledger is excluded here and injected below instead.
+                  -- Its figure is derived (§8.4), which is why it is the one ledger barred from
+                  -- manual posting; including it listed it twice, at 0.00 and at its real value.
+                  AND l.AllowsManualPosting = 1
 
                 UNION ALL
 
@@ -218,7 +225,9 @@ internal sealed class AccountingSqliteStatements : ISqlStatementSource
                        'Profit & Loss A/c',
                        'Capital Account',
                        CASE WHEN np.ProfitMinor >= 0 THEN 'Liability' ELSE 'Asset' END,
-                       CASE WHEN np.ProfitMinor >= 0 THEN np.ProfitMinor ELSE -np.ProfitMinor END
+                       -- Signed like every row above: a profit is a credit on the liabilities
+                       -- side, a loss a debit on the assets side. One expression covers both.
+                       -np.ProfitMinor
                 FROM NetProfit np
                 ORDER BY 3, 2;
                 """,

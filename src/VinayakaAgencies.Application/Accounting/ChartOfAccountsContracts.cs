@@ -107,4 +107,32 @@ public interface IChartOfAccountsService
         Guid id,
         string newName,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Re-parents a group and rebuilds the materialised path of it and every descendant, in one
+    /// unit of work (spec §4.2, checkpoint C1.14).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="AccountGroup.MoveTo"/> and <see cref="AccountGroup.SetMaterialisedPath"/> have
+    /// always documented that the caller must rebuild the affected subtree's paths in the same
+    /// transaction — and until this method there was no caller at all, so the obligation was
+    /// unfulfilled and C1.14's invariant was untestable through the application. The path is what
+    /// every balance roll-up range-scans, so a subtree left with stale paths reads its balances
+    /// from the wrong branch of the chart.
+    /// <para>
+    /// Refused when the group is a system group, when the destination is the group itself or one of
+    /// its own descendants, when the destination's <see cref="AccountGroup.Nature"/> differs (that
+    /// would move balances between the P&amp;L and the balance sheet silently), when a sibling of
+    /// the destination already carries the name, or when the move would nest deeper than
+    /// <see cref="AccountGroup.MaxDepth"/>.
+    /// </para>
+    /// <para>
+    /// No screen calls this yet; Phase 1 specifies no re-parent UI. It exists so the invariant has
+    /// an implementation to be asserted against rather than a comment asking for one.
+    /// </para>
+    /// </remarks>
+    Task<AccountGroupSummary> MoveGroupAsync(
+        Guid id,
+        Guid newParentGroupId,
+        CancellationToken cancellationToken = default);
 }

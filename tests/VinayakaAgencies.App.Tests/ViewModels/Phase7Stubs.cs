@@ -316,6 +316,12 @@ internal sealed class StubChartOfAccountsService : IChartOfAccountsService
         string newName,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
+
+    public Task<AccountGroupSummary> MoveGroupAsync(
+        Guid id,
+        Guid newParentGroupId,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
 }
 
 internal sealed class StubPrintTemplateService : IPrintTemplateService

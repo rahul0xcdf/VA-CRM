@@ -466,6 +466,217 @@ public sealed class PostingWorkflowTests
     }
 
     [Fact]
+    public async Task Post_ContraBetweenCashAndBank_IsAccepted()
+    {
+        await using var host = new SqliteTestHost();
+        await host.MigrateAsync();
+        var books = await ArrangeBooksAsync(host);
+        var bankLedgerId = await AddBankLedgerAsync(host);
+
+        var posted = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IVoucherPostingService>()
+            .PostAsync(new PostVoucherRequest(
+                books.ContraTypeId,
+                InFy2026,
+                [
+                    new PostVoucherLine(bankLedgerId, Debit: 25_000m, Credit: 0m),
+                    new PostVoucherLine(books.CashLedgerId, Debit: 0m, Credit: 25_000m),
+                ],
+                Narration: "Counter cash deposited into the current account")));
+
+        // The regression for the defect the C1.5 fixture found: the Contra rule matched its seeded
+        // group names against the upper-cased NameNormalised column with an ordinal comparison, so
+        // nothing was ever "cash or bank" and a plain cash-to-bank deposit — the single commonest
+        // Contra there is — was refused. Post_ContraToNonCashLedger_IsRefused above passed
+        // throughout, because a rule that refuses everything also refuses what it should.
+        posted.Status.ShouldBe(VoucherStatus.Posted);
+        posted.Number.ShouldBe("CTR/0001");
+        posted.TotalDebit.ShouldBe(25_000m);
+
+        var trialBalance = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IAccountingReportService>()
+            .GetTrialBalanceAsync(new DateOnly(2026, 4, 30)));
+
+        trialBalance.IsBalanced.ShouldBeTrue();
+        trialBalance.Rows.Single(row => row.LedgerName == BankLedgerName).Debit.ShouldBe(25_000m);
+    }
+
+    [Fact]
+    public async Task EditLog_ForAnAccountGroup_ShowsBeforeAndAfterImagesOfARenameAndAMove()
+    {
+        await using var host = new SqliteTestHost();
+        await host.MigrateAsync();
+        var books = await ArrangeBooksAsync(host);
+
+        var chart = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IChartOfAccountsService>()
+            .CreateGroupAsync(new CreateAccountGroupRequest("Depot Overheads", books.ElectricityGroupId)));
+
+        await host.InScopeAsync(sp => sp
+            .GetRequiredService<IChartOfAccountsService>()
+            .RenameGroupAsync(chart.Id, "Depot & Yard Overheads"));
+
+        // C1.3 asks for the account-**group** case explicitly, alongside the voucher and the
+        // ledger. It runs through the same SaveChanges interceptor, but "the same code path" is an
+        // argument rather than evidence, and MCA Rule 3(1) covers every master.
+        var history = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IAuditLogReader>()
+            .ListForEntityAsync(nameof(AccountGroup), chart.Id.ToString("D")));
+
+        history.ShouldNotBeEmpty();
+        history.ShouldContain(row => row.Action == AuditAction.Create);
+
+        var rename = history.Last(row => row.Action == AuditAction.Update);
+
+        rename.BeforeJson!.ShouldContain("Depot Overheads");
+        rename.AfterJson!.ShouldContain("Depot & Yard Overheads");
+        rename.UserName.ShouldNotBeNullOrEmpty();
+        rename.OccurredAtUtc.ShouldNotBe(default);
+        rename.ChangedProperties.ShouldNotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task Alter_PostedVoucher_IssuesTheSupersedingUpdateBeforeTheSuccessorInsert()
+    {
+        var recorder = new SqlCommandRecorder();
+
+        await using var host = new SqliteTestHost(interceptor: recorder);
+        await host.MigrateAsync();
+        var books = await ArrangeBooksAsync(host);
+
+        var posted = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IVoucherPostingService>()
+            .PostAsync(BalancedPayment(books, 500m)));
+
+        // Only the alteration's own SQL is of interest; the arrangement above is noise.
+        recorder.Clear();
+
+        await host.InScopeAsync(sp => sp
+            .GetRequiredService<IVoucherPostingService>()
+            .AlterAsync(new AlterVoucherRequest(
+                posted.VoucherId,
+                InFy2026,
+                BalancedPayment(books, 650m).Lines,
+                ChangeReason: "Counter recount")));
+
+        // C1.18. The outcome-level assertions in Alter_PostedVoucher_WritesAppendOnlyHistory would
+        // still pass if these two statements swapped places, but between an insert that claims the
+        // number and an update that releases it there would be a window with two live revisions on
+        // one number — and the filtered unique index would reject the insert outright. This is the
+        // test that survives an EF Core upgrade reordering commands, or someone collapsing spec
+        // §8.2's two saves into one.
+        var supersedes = recorder.PositionsMatching(
+            "UPDATE", "\"VoucherRevisions\"", "SupersededByRevisionId");
+        var inserts = recorder.PositionsMatching("INSERT", "\"VoucherRevisions\"");
+
+        // Named so a failure says which statements *were* emitted; without it the message is just
+        // "should not be empty", which tells the next reader nothing about what changed.
+        var seen = string.Join(" | ", recorder.Commands.Select(command => Summarise(command.CommandText)));
+
+        supersedes.ShouldNotBeEmpty(
+            $"the alteration must supersede the previous revision; saw: {seen}");
+        inserts.ShouldNotBeEmpty(
+            $"the alteration must insert a successor revision; saw: {seen}");
+
+        supersedes[0].ShouldBeLessThan(
+            inserts[0],
+            "the superseding UPDATE must be issued before the successor INSERT (ADR-0002)");
+
+        // …and both reach the database on one transaction, so a failure between them cannot leave
+        // a voucher with no current revision.
+        var commands = recorder.Commands;
+        var supersedeTransaction = commands[supersedes[0]].TransactionId;
+        var insertTransaction = commands[inserts[0]].TransactionId;
+
+        supersedeTransaction.ShouldNotBeNull("the superseding UPDATE must run inside a transaction");
+        insertTransaction.ShouldBe(
+            supersedeTransaction,
+            "supersede and insert must share one transaction");
+    }
+
+    [Fact]
+    public async Task BalanceSheet_WithABalanceOnEachSide_ShowsLiabilitiesPositiveAndBalances()
+    {
+        await using var host = new SqliteTestHost();
+        await host.MigrateAsync();
+        var books = await ArrangeBooksAsync(host);
+
+        var creditorGroupId = await GroupIdByNameAsync(host, "Sundry Creditors");
+
+        var creditor = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IChartOfAccountsService>()
+            .CreateLedgerAsync(new CreateLedgerRequest("Crompton Greaves Ltd", creditorGroupId)));
+
+        var purchases = await host.InScopeAsync(async sp =>
+        {
+            var ledgers = await sp.GetRequiredService<IUnitOfWork>().Repository<Ledger>().ListAsync();
+
+            return ledgers.Single(ledger => ledger.Name == "Purchases").Id;
+        });
+
+        // Stock bought on credit: the only voucher needed to put a real figure on each side.
+        await host.InScopeAsync(sp => sp
+            .GetRequiredService<IVoucherPostingService>()
+            .PostAsync(new PostVoucherRequest(
+                books.PaymentTypeId,
+                InFy2026,
+                [
+                    new PostVoucherLine(purchases, Debit: 40_000m, Credit: 0m),
+                    new PostVoucherLine(creditor.Id, Debit: 0m, Credit: 40_000m),
+                ],
+                Narration: "Pumps bought on credit")));
+
+        var balanceSheet = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IAccountingReportService>()
+            .GetBalanceSheetAsync(new DateOnly(2026, 4, 30)));
+
+        // The regression for the double-negated liability side. Both the query and the report
+        // mapper used to flip a liability's sign, so the two cancelled: a creditor the business
+        // owes ₹40,000 to showed as -40,000.00, and the sheet balanced only when both sides were
+        // zero — which is the one case Post_BalancedPayment_UpdatesEveryDerivedStatement happens
+        // to produce, so nothing failed.
+        balanceSheet.Liabilities
+            .Single(row => row.LedgerName == "Crompton Greaves Ltd")
+            .Amount.ShouldBe(40_000m);
+
+        // The loss sits on the assets side as a positive figure, the same side and sign as before.
+        balanceSheet.Assets
+            .Single(row => row.LedgerName == "Profit & Loss A/c")
+            .Amount.ShouldBe(40_000m);
+
+        // And it appears once. The derived ledger used to be listed by the query as well as
+        // injected, giving two rows of the same name.
+        balanceSheet.Assets
+            .Concat(balanceSheet.Liabilities)
+            .Count(row => row.LedgerName == "Profit & Loss A/c")
+            .ShouldBe(1);
+
+        balanceSheet.TotalAssets.ShouldBe(balanceSheet.TotalLiabilities);
+        balanceSheet.IsBalanced.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ListBankLedgers_ForALedgerUnderBankAccounts_ReturnsIt()
+    {
+        await using var host = new SqliteTestHost();
+        await host.MigrateAsync();
+        var books = await ArrangeBooksAsync(host);
+        await AddBankLedgerAsync(host);
+
+        var banks = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IChartOfAccountsService>()
+            .ListBankLedgersAsync());
+
+        // Same root cause as the Contra defect, and the reason it mattered more: this list feeds
+        // the bank-reconciliation screen's picker, so reconciliation — a §2 deliverable — had no
+        // account to reconcile against on any install.
+        banks.Select(bank => bank.Name).ShouldContain(BankLedgerName);
+
+        // Cash is deliberately not a bank: it is not reconciled against a statement.
+        banks.ShouldNotContain(bank => bank.Id == books.CashLedgerId);
+    }
+
+    [Fact]
     public async Task Post_ToInactiveOrDerivedLedger_IsRefused()
     {
         await using var host = new SqliteTestHost();
@@ -614,6 +825,28 @@ public sealed class PostingWorkflowTests
             cashLedgerId,
             electricity.Id,
             indirectExpensesGroupId);
+    }
+
+    /// <summary>One SQL statement on one line, clipped, for an assertion message.</summary>
+    private static string Summarise(string commandText)
+    {
+        var flattened = commandText.ReplaceLineEndings(" ");
+
+        return flattened.Length <= 120 ? flattened : flattened[..120];
+    }
+
+    private const string BankLedgerName = "Karnataka Bank — Current A/c";
+
+    /// <summary>A ledger under the seeded "Bank Accounts" group, for the two bank tests.</summary>
+    private static async Task<Guid> AddBankLedgerAsync(SqliteTestHost host)
+    {
+        var bankGroupId = await GroupIdByNameAsync(host, "Bank Accounts");
+
+        var bank = await host.InScopeAsync(sp => sp
+            .GetRequiredService<IChartOfAccountsService>()
+            .CreateLedgerAsync(new CreateLedgerRequest(BankLedgerName, bankGroupId)));
+
+        return bank.Id;
     }
 
     private static async Task<Guid> GroupIdByNameAsync(SqliteTestHost host, string groupName) =>

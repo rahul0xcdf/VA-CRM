@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using VinayakaAgencies.Application.Reporting;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.Tests.TestSupport;
 
@@ -43,6 +44,33 @@ public sealed class SqlStatementSourceTests
 
             return Task.CompletedTask;
         });
+    }
+
+    [Fact]
+    public async Task Dialect_ResolvesEveryKeyTheAccountingReportsDeclare()
+    {
+        // C1.11's second half. AccountingQueryKeys.All exists for exactly this walk — its own
+        // remark says so — but nothing walked it until now, so a key declared in the Application
+        // layer and never given SQL would have thrown the first time an owner opened that report.
+        // It is also the test that keeps the Phase 9 SQL Server dialect honest: a key only SQLite
+        // implements must fail the build, not the migration.
+        await using var host = new SqliteTestHost();
+
+        var unresolved = await host.InScopeAsync(sp =>
+        {
+            var dialect = sp.GetRequiredService<ISqlDialect>();
+
+            return Task.FromResult(AccountingQueryKeys.All
+                .Where(key => !dialect.CanResolve(key))
+                .Select(key => key.Name)
+                .ToList());
+        });
+
+        unresolved.ShouldBeEmpty(
+            "every key in AccountingQueryKeys.All must have SQL in every registered dialect; "
+            + $"missing: {string.Join(", ", unresolved)}");
+
+        AccountingQueryKeys.All.ShouldNotBeEmpty();
     }
 
     [Fact]

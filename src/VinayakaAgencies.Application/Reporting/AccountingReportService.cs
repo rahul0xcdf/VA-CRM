@@ -310,7 +310,9 @@ public sealed class AccountingReportService(
         var nature = ToEnum<AccountNature>(row.Nature);
 
         // The statement shows both sides positive-normal: an asset's debit balance as-is, a
-        // liability's credit balance flipped from its negative signed sum.
+        // liability's credit balance flipped from its negative signed sum. This is the only place
+        // the flip happens — the query hands over raw signed minor units — so a second provider's
+        // dialect cannot disagree with this one about the sign of a creditor.
         var amount = nature == AccountNature.Liability ? -row.AmountMinor : row.AmountMinor;
 
         return new BalanceSheetRow(

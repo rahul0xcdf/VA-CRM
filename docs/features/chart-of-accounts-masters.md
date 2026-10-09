@@ -16,8 +16,10 @@ deletion/re-parenting; deactivation is always available and preserves history.
 2. To add a group: type a name, pick its parent, press **Add group**. Nature is inherited from the
    parent, never chosen.
 3. To rename: select a row, type the new name, press **Rename selected**.
-4. Open **Masters → Ledgers**. Search by name/alias or filter by group; double-click a row to load
-   it into the editor.
+4. Open **Masters → Ledgers**, press *Refresh*. Search by name/alias or filter by group;
+   double-click a row to load it into the editor. (The *Refresh* control was missing entirely until
+   Oct 2026 — `RefreshCommand` was bound to nothing, so the list could never populate and the empty
+   state misleadingly read "No ledger matches this filter". See `phase-1-evidence.md` §6.5.)
 5. Create with **New** (needs a unique name within the company), change with **Save changes**,
    retire with **Deactivate**, restore with **Reactivate**, remove with **Delete** — deletion only
    succeeds when nothing was ever posted to the ledger.
@@ -32,7 +34,17 @@ deletion/re-parenting; deactivation is always available and preserves history.
 - Every write goes through `IUnitOfWork.SaveChangesAsync`, so each change lands in the edit log with
   full before/after images (spec §11).
 - Bank ledgers are *derived* (`ListBankLedgersAsync`) from group paths of `Bank Accounts` /
-  `Bank OD A/c` — never stored.
+  `Bank OD A/c` — never stored. Those group names are matched **through `NameNormaliser`**; a
+  display-cased ordinal comparison matches nothing and silently empties the list.
+- **`MoveGroupAsync` is the only sanctioned way to re-parent a group**, and it rebuilds the
+  materialised path of the moved node and every descendant in the same unit of work. `MoveTo` and
+  `SetMaterialisedPath` on the entity do *not* do this on their own — both say so, and for a long
+  time nothing honoured them. Never call `MoveTo` directly from a new caller; the path is what
+  every balance roll-up range-scans, so a stale subtree rolls up under its old parent with no error
+  anywhere. A move across natures is refused outright: it would relocate balances between the P&L
+  and the balance sheet without a voucher being posted.
+- No screen re-parents a group. Phase 1 specifies no such UI; the service method exists so the
+  invariant (C1.14) has an implementation to be asserted against.
 
 ## Verification
 

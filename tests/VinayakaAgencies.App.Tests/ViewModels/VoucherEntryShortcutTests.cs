@@ -376,6 +376,12 @@ public sealed class VoucherEntryShortcutTests
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException("These tests never rename a group.");
 
+        public Task<AccountGroupSummary> MoveGroupAsync(
+            Guid id,
+            Guid newParentGroupId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("These tests never re-parent a group.");
+
         private LedgerSummary Ledger(string name) =>
             new(Guid.NewGuid(), name, null, _groupId, "Indirect Expenses",
                 AccountNature.Expense, false, true, true, null);

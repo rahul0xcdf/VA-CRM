@@ -54,6 +54,15 @@ public static class InfrastructureServiceCollectionExtensions
             builder.UseSqlite(
                 SqliteConnectionStringResolver.Resolve(options),
                 sqlite => sqlite.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+
+            // Diagnostics only, and nothing registers an IInterceptor in the product — so this is
+            // a no-op at runtime. It exists because checkpoint C1.18 requires the emitted SQL of
+            // an alteration to be observable through a DbCommandInterceptor, and the test must
+            // watch *this* composition rather than a context assembled beside it. Note the comment
+            // above: this is not a way to add audit behaviour, which stays in SaveChangesAsync
+            // with required constructor parameters precisely so it cannot be unregistered.
+            builder.AddInterceptors(provider.GetServices<Microsoft.EntityFrameworkCore
+                .Diagnostics.IInterceptor>());
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();

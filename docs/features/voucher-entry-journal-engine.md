@@ -41,8 +41,15 @@ surface verbatim in the status line.
 
 ## Verification
 
-- `PostingWorkflowTests` (14 tests): balanced post updates TB/day-book/P&L/BS; one-minor-unit
+- `PostingWorkflowTests` (17 tests): balanced post updates TB/day-book/P&L/BS; one-minor-unit
   imbalance rejected with no number consumed; append-only alteration asserted byte-level; cancel
   keeps number; FY counter restarts; manual override advances high-water and blocks duplicates;
-  period lock refuses postings and date moves into lock; Contra restricted; chain intact.
+  period lock refuses postings and date moves into lock; Contra restricted **and a valid
+  cash-to-bank Contra accepted**; chain intact.
+- The Contra pair matters as a pair. `Post_ContraToNonCashLedger_IsRefused` was for a long time the
+  only Contra test, and it passed while the rule rejected *every* Contra voucher: the seeded group
+  names were matched case-sensitively against the upper-cased `NameNormalised` column, so nothing
+  was ever "cash or bank" (`phase-1-evidence.md` §6.2). A rule that refuses everything also refuses
+  what it should — a negative test alone cannot tell the two apart.
+  `Post_ContraBetweenCashAndBank_IsAccepted` is the other half.
 - Manual smoke: posted payment `PMT/0001`, altered it, cancelled it; day book flagged correctly.

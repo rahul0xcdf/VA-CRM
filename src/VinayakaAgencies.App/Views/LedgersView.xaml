@@ -37,6 +37,12 @@
 
                 <CheckBox Content="Show inactive" Style="{StaticResource FieldCheck}"
                           IsChecked="{Binding IncludeInactive}" />
+
+                <!-- Without this the screen has no way to ask for its own list: RefreshCommand had
+                     no binding here, no action-bar button and no internal caller, so the ledger
+                     list was permanently empty while the empty-state message blamed the filter. -->
+                <Button Content="Refresh" Style="{StaticResource BandButton}"
+                        Command="{Binding RefreshCommand}" />
             </StackPanel>
         </Border>
 

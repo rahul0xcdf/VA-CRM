@@ -33,7 +33,8 @@ public sealed class SqliteTestHost : IAsyncDisposable
         FixedClock? clock = null,
         StubCurrentUser? currentUser = null,
         IIrpClient? irpClient = null,
-        ICredentialProtector? credentialProtector = null)
+        ICredentialProtector? credentialProtector = null,
+        Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? interceptor = null)
     {
         // A directory per host, not a file per host in one shared directory. xUnit runs test classes
         // in parallel and several of them create databases; one run of the suite failed inside
@@ -66,6 +67,14 @@ public sealed class SqliteTestHost : IAsyncDisposable
         // giving the audit-stamp assertions a clock and a user they control.
         services.TryAddSingleton<IClock>(Clock);
         services.TryAddSingleton<ICurrentUser>(CurrentUser);
+
+        // Registered before AddInfrastructure so the DbContext built there picks it up. EF Core 8
+        // discovers IInterceptor registrations in the application service provider by itself, which
+        // is what lets C1.18 watch the real composition's SQL rather than a context built aside.
+        if (interceptor is not null)
+        {
+            services.AddSingleton(interceptor);
+        }
 
         services.AddApplication();
         services.AddInfrastructure(configuration);

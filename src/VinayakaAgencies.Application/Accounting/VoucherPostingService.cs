@@ -28,8 +28,15 @@ public sealed class VoucherPostingService(
     IVoucherNumberAllocator numberAllocator) : IVoucherPostingService
 {
     /// <summary>The seeded groups whose subtree defines "cash or bank" for the Contra rule.</summary>
-    private static readonly string[] CashAndBankGroupNames =
-        ["Cash-in-Hand", "Bank Accounts", "Bank OD A/c"];
+    /// <remarks>
+    /// Held already-normalised, because <c>AccountGroup.NameNormalised</c> is what they are matched
+    /// against and <see cref="NameNormaliser"/> upper-cases it. Comparing the display casing
+    /// ordinally — as this did until it was caught by the C1.5 fixture — matches no group at all,
+    /// which silently made every Contra voucher invalid rather than restricting it to cash and bank.
+    /// </remarks>
+    private static readonly HashSet<string> CashAndBankGroupNames = new(
+        new[] { "Cash-in-Hand", "Bank Accounts", "Bank OD A/c" }.Select(NameNormaliser.Normalise),
+        StringComparer.Ordinal);
 
     private readonly IUnitOfWork _unitOfWork = unitOfWork
         ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -475,7 +482,7 @@ public sealed class VoucherPostingService(
         var groupsById = groups.ToDictionary(group => group.Id);
 
         var cashAndBankPaths = groups
-            .Where(group => CashAndBankGroupNames.Contains(group.NameNormalised, StringComparer.Ordinal))
+            .Where(group => CashAndBankGroupNames.Contains(group.NameNormalised))
             .Select(group => group.MaterialisedPath)
             .ToList();
 

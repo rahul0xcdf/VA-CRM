@@ -25,7 +25,15 @@ public sealed class ChartOfAccountsService(
         ?? throw new ArgumentNullException(nameof(companyContext));
 
     /// <summary>The seeded bank groups whose subtree defines "bank ledger" for reconciliation.</summary>
-    private static readonly string[] BankRootGroupNames = ["Bank Accounts", "Bank OD A/c"];
+    /// <remarks>
+    /// Normalised for the same reason as the Contra rule's set in <see cref="VoucherPostingService"/>,
+    /// and it carried the same defect: matched ordinally against the upper-cased
+    /// <c>NameNormalised</c>, the display casing never matched, so this method returned no bank
+    /// ledgers at all and the reconciliation screen had nothing to offer.
+    /// </remarks>
+    private static readonly HashSet<string> BankRootGroupNames = new(
+        new[] { "Bank Accounts", "Bank OD A/c" }.Select(NameNormaliser.Normalise),
+        StringComparer.Ordinal);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<AccountGroupSummary>> ListGroupsAsync(
@@ -74,7 +82,7 @@ public sealed class ChartOfAccountsService(
 
         // The same derivation the Contra rule uses, narrowed to banks: cash is not reconciled.
         var bankRootPaths = groupsById.Values
-            .Where(group => BankRootGroupNames.Contains(group.NameNormalised, StringComparer.Ordinal))
+            .Where(group => BankRootGroupNames.Contains(group.NameNormalised))
             .Select(group => group.MaterialisedPath)
             .ToList();
 
@@ -311,6 +319,104 @@ public sealed class ChartOfAccountsService(
         return ToSummary(group);
     }
 
+    /// <inheritdoc />
+    public async Task<AccountGroupSummary> MoveGroupAsync(
+        Guid id,
+        Guid newParentGroupId,
+        CancellationToken cancellationToken = default)
+    {
+        var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
+
+        // Tracked, unlike every other read in this service: the whole subtree below the moved node
+        // is about to be rewritten, and a no-tracking projection would discard the rewrite.
+        var groups = await _unitOfWork.Repository<AccountGroup>()
+            .ListAsync(new TrackedGroupsOfCompany(companyId), cancellationToken)
+            .ConfigureAwait(false);
+
+        var byId = groups.ToDictionary(candidate => candidate.Id);
+
+        if (!byId.TryGetValue(id, out var group))
+        {
+            throw new InvalidOperationException($"Account group '{id}' does not exist.");
+        }
+
+        if (!byId.TryGetValue(newParentGroupId, out var parent))
+        {
+            throw new InvalidOperationException($"Account group '{newParentGroupId}' does not exist.");
+        }
+
+        // A node inside the moved subtree cannot become its parent: the subtree would be cut off
+        // from the chart entirely, and the rebuild below would not terminate.
+        if (parent.MaterialisedPath.StartsWith(group.MaterialisedPath, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                parent.Id == group.Id
+                    ? "A group cannot be its own parent."
+                    : $"'{parent.Name}' sits inside '{group.Name}', so it cannot become its parent.");
+        }
+
+        if (parent.Nature != group.Nature)
+        {
+            throw new InvalidOperationException(
+                $"'{group.Name}' is {group.Nature} and '{parent.Name}' is {parent.Nature}. Moving a "
+                + "group across natures would move its balances between the profit & loss account "
+                + "and the balance sheet without a single voucher being touched. Create a group "
+                + "under the intended nature and move the ledgers instead.");
+        }
+
+        if (groups.Any(candidate =>
+                candidate.Id != group.Id
+                && candidate.ParentGroupId == parent.Id
+                && string.Equals(candidate.NameNormalised, group.NameNormalised, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"A group named '{group.Name}' already exists under '{parent.Name}'.");
+        }
+
+        group.MoveTo(parent.Id);
+
+        // The obligation AccountGroup.MoveTo and SetMaterialisedPath both document and nothing
+        // used to discharge (C1.14). Depth-first from the moved node so every child recomputes
+        // against its parent's *new* path, all inside this one unit of work.
+        var childrenByParent = groups
+            .Where(candidate => candidate.ParentGroupId is not null)
+            .GroupBy(candidate => candidate.ParentGroupId!.Value)
+            .ToDictionary(children => children.Key, children => children.ToList());
+
+        RebuildSubtreePaths(group, parent.MaterialisedPath, childrenByParent);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return ToSummary(group);
+    }
+
+    /// <summary>
+    /// Recomputes <paramref name="group"/>'s path and then every descendant's, top down.
+    /// </summary>
+    /// <remarks>
+    /// Recursion is bounded by <see cref="AccountGroup.MaxDepth"/>, and a cycle is impossible
+    /// because the caller refuses a destination inside the subtree. If the move would breach the
+    /// depth limit, <see cref="AccountGroup.SetMaterialisedPath"/> throws here — before
+    /// <c>SaveChangesAsync</c>, so nothing is persisted.
+    /// </remarks>
+    private static void RebuildSubtreePaths(
+        AccountGroup group,
+        string? parentPath,
+        IReadOnlyDictionary<Guid, List<AccountGroup>> childrenByParent)
+    {
+        group.SetMaterialisedPath(parentPath);
+
+        if (!childrenByParent.TryGetValue(group.Id, out var children))
+        {
+            return;
+        }
+
+        foreach (var child in children)
+        {
+            RebuildSubtreePaths(child, group.MaterialisedPath, childrenByParent);
+        }
+    }
+
     private async Task<Ledger> RequireOwnLedgerAsync(Guid id, CancellationToken cancellationToken)
     {
         var companyId = await _companyContext.EnsureCompanyAsync(cancellationToken).ConfigureAwait(false);
@@ -433,6 +539,16 @@ public sealed class ChartOfAccountsService(
             Where(group => group.CompanyId == companyId);
             ApplyNoTracking();
         }
+    }
+
+    /// <summary>
+    /// Company-scoped groups, <b>tracked</b> — deliberately without <c>ApplyNoTracking</c>, unlike
+    /// its sibling above, because <see cref="MoveGroupAsync"/> rewrites what it returns.
+    /// </summary>
+    private sealed class TrackedGroupsOfCompany : Specification<AccountGroup>
+    {
+        public TrackedGroupsOfCompany(Guid companyId) =>
+            Where(group => group.CompanyId == companyId);
     }
 
     private sealed class ChildGroupsOf : Specification<AccountGroup>

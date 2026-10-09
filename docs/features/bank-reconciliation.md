@@ -26,7 +26,17 @@ added, changed and removed, each change edit-logged. Statement import/auto-match
 - Known consequence, by design: marks pin a specific `JournalLine`; alteration creates new lines, so
   items reappear uncleared.
 
+- `ListBankLedgersAsync` derives "is a bank ledger" from the group's position in the chart — at or
+  under Bank Accounts / Bank OD A/c — and matches those group names **through
+  `NameNormaliser.Normalise`**. It previously compared the display casing ordinally against the
+  upper-cased `NameNormalised` column, so it always returned an empty list and this screen's
+  account picker could never populate on any install (`phase-1-evidence.md` §6.3). Cash is
+  deliberately not a bank: it is not reconciled against a statement.
+
 ## Verification
 
-- Covered indirectly by the posting suite (statement query exercised via service tests through the
-  same SQL path) and manual smoke: marked/unmarked lines against a posted receipt.
+- `PostingWorkflowTests.ListBankLedgers_ForALedgerUnderBankAccounts_ReturnsIt` — a ledger created
+  under Bank Accounts is returned, and Cash is not. This is the only direct test of the picker;
+  until it existed the screen was unreachable and nothing failed.
+- Otherwise covered indirectly by the posting suite (statement query exercised via service tests
+  through the same SQL path) and manual smoke: marked/unmarked lines against a posted receipt.
