@@ -8,11 +8,45 @@ with India GST/TDS compliance as a core requirement.
 ## Development status
 
 - **Phase 0 — complete.** Solution, DI, logging, SQLite/EF Core, repository/UoW, migrations, shell.
-- **Phase 1 (accounting core) — implemented and verified.** Chart of accounts masters, the journal
-  engine (post/alter/cancel), numbering + gaps, derived reports (day book/TB/P&L/BS with drill-down),
+- **Phase 1 (accounting core) — implemented; evidence filed 5 Oct 2026 at
+  `specs/evidence/phase-1-evidence.md`.** Chart of accounts masters, the journal engine
+  (post/alter/cancel), numbering + gaps, derived reports (day book/TB/P&L/BS with drill-down),
   manual bank reconciliation, edit-log viewer with chain verification, all ten spec §2 screens.
-  Remaining before Phase 1 sign-off: owner review of seed ledgers / numbering prefixes (§16 defaults),
-  the ≥500-voucher stress evidence, and screenshots for `specs/evidence/phase-1-evidence.md`.
+  **The ≥500-voucher stress evidence is done** — `RandomisedLedgerFixture` posts 523 randomised
+  vouchers across 15 ledgers of five natures, four voucher types and every date in FY 2026-27
+  through `IVoucherPostingService`, carrying C1.5/C1.6/C1.7/C1.16/C1.19; set `VA_EVIDENCE_DIR` and
+  the run writes the three statements out. **All twenty criteria are now met.** Eight were short of
+  a test §14 names and nobody wrote: C1.4's defences (d)/(e)
+  (`AuditTrailCannotBeDisabledGuardTests` — non-negotiable #3 is now guarded by the build), C1.11
+  (the `AccountingQueryKeys.All` dialect walk its own comment had been asking for since Phase 1,
+  plus an upper-case-`SELECT` scan), C1.13, C1.15 (by reflection, so "double-counts" in a comment
+  cannot trip it), C1.16 (triggers dropped, a middle row rewritten, verification naming it as the
+  first break), C1.18, C1.19 and C1.14. **C1.18** needed `AddInfrastructure` to pass registered
+  `IInterceptor`s to the `DbContext` — a no-op in the product, which registers none; the audit
+  trail deliberately still does **not** use that seam, staying in `SaveChangesAsync` with required
+  constructor parameters so it cannot be unregistered.
+  **Five pre-existing defects** (evidence §6), three of them found only by assembling the real
+  thing. Beyond the balance-sheet / Contra / bank-ledger trio: **C1.14 could not be written because
+  no service re-parented a group at all** — `MoveTo` and `SetMaterialisedPath` each documented that
+  the caller must rebuild the subtree's paths, and there was no caller, so the first one added
+  later would have inherited a roll-up-corrupting trap; `MoveGroupAsync` now discharges it (refuses
+  a destination inside the subtree, a system group, a name clash, excess depth, and a move across
+  natures). And **the Ledgers screen could never show a ledger**: `RefreshCommand` had no XAML
+  binding, no shortcut-bar entry and no internal caller — zero references — so the list was
+  unreachable while the empty state blamed a filter the operator had not set. Fixed with a
+  *Refresh* control; `ScreenLoadReachabilityTests` is the guard.
+  **Three pre-existing Phase 1 defects were found by that fixture and fixed** (evidence §6):
+  the balance sheet negated every liability **twice** — once in `BalanceSheetAsOf`, once in
+  `MapBalanceSheetRow` — so liability lines showed inverted and `IsBalanced` could only be true when
+  both sides were zero, which is exactly what the one existing test produced; the Contra rule and
+  `ListBankLedgersAsync` both matched display-cased group names against the upper-cased
+  `NameNormalised` column case-sensitively, so **every Contra voucher was refused** and the bank
+  reconciliation screen's account picker was **always empty**. Sign normalisation now happens only
+  in the mapper — the Phase 9 dialect must keep SQL free of it.
+  Remaining before Phase 1 sign-off: owner review of seed ledgers / numbering prefixes (§16
+  defaults), screenshots, the two §15 artefacts still missing (a voucher's create→alter→cancel
+  edit-log extract, and the numbering-gap report after a manual override), and open-questions.md
+  #17.
 - **Phase 2 (inventory) — implemented and verified.** Spec approved 22 Aug 2026 with amendments
   recorded in §2a (simplified name/code item master per owner decision, FIFO default valuation,
   warn on negative stock). Stock groups / godowns / units / items / kits masters, the unified stock
@@ -23,8 +57,11 @@ with India GST/TDS compliance as a core requirement.
   account, reorder alerts + aging buckets, and the ≥5,000-SKU item lookup (C2.6, amended to
   name/code search). Quantities and values persist as scaled integer minor units throughout
   (ADR-0003 extended to stock); every model guard test still holds (no decimal-on-TEXT columns, no
-  cascades, enums by name). Remaining before Phase 2 sign-off: owner walkthrough of the five
-  Inventory screens and screenshots for `specs/evidence/phase-2-evidence.md`.
+  cascades, enums by name). **Evidence filed 5 Oct 2026 at `specs/evidence/phase-2-evidence.md`;
+  all six criteria met.** One scope note recorded there: C2.1's reconciliation is asserted after a
+  receipt, an issue and a transfer, not over a multi-year book — nothing suggests it would fail, it
+  simply has not been run at that volume. Remaining before Phase 2 sign-off: owner walkthrough of
+  the five Inventory screens and screenshots.
 - **Phase 3 (sales & purchase pipeline) — implemented and verified by tests.** Spec approved
   22 Aug 2026 with decisions recorded in §4a (invoice-direct norm with data-only challans; one
   numbering series per company per document kind reusing §7 machinery; A4 full-page print with
@@ -67,8 +104,30 @@ with India GST/TDS compliance as a core requirement.
   module jumps, all existing views migrated onto the theme, four new GST screens built on it,
   and the shortcut map at `docs/user-guide/keyboard-shortcuts.md`. Feature docs:
   `gst-computation-and-rates.md`, `gst-returns-and-json-export.md`, `tally-style-ui-foundation.md`.
-  Remaining before Phase 5 sign-off: owner walkthrough of the four GST screens + reworked shell,
-  screenshots for `specs/evidence/phase-5-evidence.md`.
+  **Evidence filed 5 Oct 2026 at `specs/evidence/phase-5-evidence.md`: C5.2–C5.5 met, C5.1
+  partially met.** C5.1 asks the GSTR-1 JSON to *validate against the current GSTN schema*; the
+  schema sits behind the authenticated GSTN developer portal and is **not in the repository** —
+  tracked as **open-questions.md #23**, same shape as #10 and #22. Pursuing it was worth it:
+  reviewing the export against two independent published references to the GSTN payload found
+  **three real encoding defects** — cess written as `csft` instead of `csamt` (**every cess amount
+  would have filed as nil**), the HSN code as `hsn` instead of `hsn_sc`, and a B2B invoice's rate
+  figures flat on `itms` instead of nested under `num` + `itm_det`. All fixed. **Four divergences
+  are known and deliberately not guessed at** (#23): the B2C section shape (the portal's is a flat
+  `b2cs`, not our nested `b2c`), the absent `b2cl` section, the `gtotals` block (portal: `gt` /
+  `cur_gt`) and the `uqc` hardcoded to `NOS` — these change *what* is reported, so they need the
+  schema and the owner's CA. The emitted shape is now **locked by a real JSON Schema evaluator**
+  (`JsonSchema.Net`, MIT) against `Gst/Schemas/gstr1-as-built.schema.json`, with
+  `Gstr1SchemaValidationTests` proving the schema bites so the validation cannot become theatre;
+  drop the real schema in that folder as `gstr1-gstn.schema.json` to close C5.1.
+  **GSTR-9 was shipped with no test at all and is now covered** — and writing it found a fourth
+  defect: `BuildGstr9Async` stepped its month window from `fromDate`, so any period not starting on
+  the 1st left a hole and **silently dropped the invoices in it** (₹1,200 reported as ₹500). Not
+  reachable from the screen, which passes the FY start, but live on a public service method whose
+  output is filed. Fixed; the windows now tile the period exactly.
+  The ADR-0005 shell this spec describes was superseded by ADR-0006/0007, so walk the GST screens
+  on the current shell.
+  Remaining before Phase 5 sign-off: the GSTN schema / offline-utility dry run (#23), owner
+  walkthrough of the four GST screens, and screenshots.
 - **Phase 6 (e-invoicing & e-way bill) — implemented and verified by tests; three checkpoints blocked
   on credentials.** Spec approved 17 Sep 2026; decisions in §4a (direct to NIC, no GSP; turnover
   applicability as a data flag, never inferred; standard NIC Part-B field set; **sandbox credentials
@@ -201,6 +260,12 @@ here as the working agreement. Every development session must:
 3. Create/update one small workflow document per implemented feature under `docs/features/`
    (feature, user workflow, developer notes, verification).
 4. Keep this file's status section current; do not duplicate instruction files.
+5. **Run the product, not only the suite.** Three of the defects found on 5 Oct 2026 were invisible
+   to 1,000+ passing tests because the code was correct and *unreachable* — a service wired into
+   nothing, a domain contract no caller honoured, a command no control bound.
+   `EveryScreenAgainstARealDatabaseTests` resolves and loads all 41 screens against a real migrated
+   database, and `ScreenLoadReachabilityTests` asserts each screen has some path to its own load;
+   both exist because unit tests reach code directly and so never ask whether anything else does.
 
 ## Non-negotiables
 
