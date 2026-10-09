@@ -233,6 +233,49 @@ with India GST/TDS compliance as a core requirement.
   `excel-import-export.md`. Evidence at `specs/evidence/phase-8-evidence.md`. Remaining before
   sign-off: the real Tally export file (#22), the exchange with the accountant, owner walkthrough of
   the three screens, and screenshots.
+- **Phase 9 (multi-user / LAN) — four of five checkpoints met; the SQL Server provider was
+  deliberately not written.** Spec approved 9 Oct 2026; decisions in §4a (**2–3 counters**;
+  **application accounts, not Windows auth**, because non-negotiable #3 needs a per-person name and
+  a workgroup shop shares one Windows login per machine; SQL Server Express on the **main billing
+  PC**, which makes whoever runs it the backup custodian; **Owner and Operator only**, as data rows,
+  superseding Phase 4's `Sales.AllowPriceOverride` stand-in). `open-questions.md` #4 closed by
+  circumstance — Phases 1–8 shipped single-user, so the pull-forward it guarded never came due.
+  **C9.2 and C9.5 met**: `PermissionKind` grants held by `AppRole` rows, checked by
+  `IPermissionAuthority` in the services — voucher post/alter/cancel, every `IUserAdminService`
+  member, and the price override (which now needs the Sales setting **and** the permission, so an
+  upgrade is behaviour-identical). C9.5's test calls `CancelAsync` straight off the container with a
+  voucher id that does not exist, so denial-before-work is what is proved. **C9.1 and C9.3
+  partially met** — the mechanisms are proved and the "two SQL Server clients" wording is not
+  (#24): a `ConcurrencyToken` on every `IConcurrencyStamped` entity surfaces a lost update as
+  `ConcurrentUpdateException` with the first write intact, and `IVoucherNumberSequenceLock` reads the
+  high-water mark under a row lock held by the voucher's own transaction. **C9.4 not met.**
+  **An install with no accounts grants every permission to everybody** — the bootstrap state, why
+  the Phase 1–8 suites are untouched, and the one state in which none of this protects anything; it
+  is asserted explicitly rather than left implicit. Startup now **gates the schema upgrade**
+  (`ApplyMigrationsOnStartup` defaults off) and **asks for a sign-in** before opening the books;
+  Users and Roles are two new screens under an Administration group.
+  §4b records six changes beyond spec, §4c records the stop. **C9.4 was stopped rather than
+  half-built**: there is no SQL Server, LocalDB or Docker on this machine (#24), and a second
+  provider's migrations need their own project — a solution-level change for the owner to approve.
+  What was delivered instead answers §2's own question, and `SqlServerPortabilityTests` keeps the
+  answer true: the SQLite-only surface is **eight occurrences across four construct kinds**
+  (`||`, `LIMIT`, `substr()`, `length()`) in ~700 lines of reporting SQL, with none of the
+  constructs lacking a mechanical T-SQL equivalent present. **ADR-0001's dialect layer held — this
+  is a provider swap, not a rewrite, and there is no Phase 0 defect to record.**
+  **Four defects found and fixed**: the concurrency token written as an EF shadow property broke
+  every `AsNoTracking`-then-`Update` service (caught by `GstRateScheduleTests`, the test Phase 7
+  added — its second save); a `Cascade` on role grants (caught by
+  `Model_ConfiguresEveryRelationshipAsRestrict`, which is stated "without exception" and was right);
+  and **two startup defects that 1,117 green tests could not see** — a `BorderBrush` the theme does
+  not define and a stray `/>`, which killed the product at launch because
+  `ScreenViewLoadTests` sweeps the module catalogue and **no module lists a startup window**.
+  `EveryWindowInTheApplication_LoadsWithTheApplicationResources` now constructs every one.
+  Feature docs: `users-roles-and-permissions.md`, `concurrency-and-schema-upgrades.md`. User guide:
+  `phase-9-users-and-upgrades.md`. Evidence at `specs/evidence/phase-9-evidence.md`.
+  Remaining before sign-off: a SQL Server instance (#24), owner walkthrough of the four new windows
+  and screenshots, owner confirmation of the Operator grant list and the eight-character password
+  floor, and a decision on whether first-run should insist on an account rather than allowing the
+  unsecured state.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
@@ -241,13 +284,15 @@ with India GST/TDS compliance as a core requirement.
   Phase 6 additions: `einvoice-irn-and-qr.md`, `eway-bill.md`.
   Phase 7 additions: `tds-tcs-engine.md`, `banking-and-cheque-printing.md`,
   `payroll-statutory-basics.md`. Phase 8 additions: `tally-interchange.md`,
-  `excel-import-export.md`.
+  `excel-import-export.md`. Phase 9 additions: `users-roles-and-permissions.md`,
+  `concurrency-and-schema-upgrades.md`.
   UI: `tally-style-ui-foundation.md` (shell, ADR-0005/0006) and `tally-entry-patterns.md`
   (inside the screens, ADR-0007 — read this before building any new screen).
   **End-user guides** (how to run the features from the screen) live in
   `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`; Phase 4:
   `phase-4-customers-and-pricing.md`; Phase 6: `phase-6-einvoice-and-eway-bill.md`;
-  Phase 7: `phase-7-tds-payroll-and-banking.md`; Phase 8: `phase-8-interoperability.md`.
+  Phase 7: `phase-7-tds-payroll-and-banking.md`; Phase 8: `phase-8-interoperability.md`;
+  Phase 9: `phase-9-users-and-upgrades.md`.
 
 ## Development workflow (replaces the removed Claude hooks)
 

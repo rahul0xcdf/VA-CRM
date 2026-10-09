@@ -128,3 +128,83 @@ change behaviour on upgrade, but the permission is now the authority.
 ## 4b. Changes beyond spec
 
 Recorded here as they are made, per the working agreement.
+
+### B1 — `IConcurrencyStamped` split out of `IAuditStamped`
+
+§2 asks for "optimistic concurrency tokens on every mutable entity". `IAuditStamped` is what the
+model already uses to mean mutable, so that is where the token went — until `VoucherNumberSequence`
+needed one too. That row is a counter the posting path bumps, not a master anybody edits; giving it
+`Created*`/`Modified*` columns in order to obtain a token would have been schema for the sake of a
+type hierarchy. So the token lives on a third interface that `IAuditStamped` extends and the
+sequence implements directly. The guard tests assert both halves — every `IConcurrencyStamped`
+entity has the token configured, and nothing outside that interface has the property — so the line
+stays where the model draws it rather than where a list says it should be.
+
+### B2 — the token is a real property, not an EF shadow property
+
+Written as a shadow property first, which was wrong in a way worth recording because it looked
+right: no entity class had to be edited, and the tests passed. It broke every service that reads
+with `AsNoTracking` and then calls `Update` on the detached instance — a no-tracking read carries no
+shadow values, so re-attaching sent an all-zero original token, matched no row, and turned an
+ordinary save into a spurious lost-update. `GstRateScheduleTests` caught it. The reasoning is on the
+interface member so the next person does not retry it.
+
+### B3 — `IVoucherNumberSequenceLock`, a port rather than a query key
+
+The lock §2 requires has to be held by the connection writing the voucher, until that transaction
+commits. The Dapper reporting path opens its own connection, so a lock taken through
+`ISqlQueryExecutor` would be released immediately and protect nothing — and on SQLite would
+deadlock against the transaction it was meant to guard. It is therefore satisfied in Infrastructure,
+with its statement as a constant there rather than behind `ISqlDialect`: ADR-0001 routes *reporting*
+SQL through the dialect, and this is a persistence primitive in the one layer allowed to know a
+connection exists. The statement is identical on both providers, so a dialect entry would be a seam
+with nothing on either side of it.
+
+### B4 — `ApplyMigrationsOnStartup` now defaults to off
+
+It shipped as on for Phases 0–8. §2 requires the upgrade to become explicit, and a default that has
+to be overridden to be safe is not explicit. `InitialiseAsync` still honours the switch, so a
+single-user install that turns it on behaves exactly as before — which is also what keeps the
+Phase 1–8 suites unchanged, since each owns its own database file.
+
+### B5 — a login window and two administration screens
+
+§2 names users, roles and permissions without saying where they are entered. Without a sign-in
+window none of it is reachable: `IUserSession` would always be empty, the bootstrap rule would grant
+everything for ever, and `IUserAdminService` would have no caller. That is the defect class the
+5 Oct 2026 batch was about, so the screens are part of the phase rather than a follow-up.
+`PasswordBoxBinding` was added with them, because Phase 6's plain `TextBox` for the IRP secret is
+defensible for a field typed once at install and not for a login prompt at a shop counter.
+
+### B6 — `IUserAdminService` resolves its own company
+
+Written first taking a `companyId` per call, then changed to `ICompanyContext` like every other
+service in the Application layer. §10's reasoning applies unchanged: no service should be handed a
+company id through every method signature.
+
+## 4c. Not delivered
+
+### The SQL Server Express provider itself — C9.4
+
+**Deliberately stopped rather than half-built**, and the reason is `open-questions.md` #24: this
+machine has no SQL Server, no LocalDB and no Docker. Writing seven hundred lines of T-SQL that
+cannot be executed, plus a migration set that cannot be applied, and filing it as implemented is
+precisely what non-negotiable #7 exists to prevent. Done properly it also needs the SQL Server
+migrations in their own project, since `MigrationsAssembly` points at an assembly — a structural
+change the owner should approve rather than find already made.
+
+What was delivered instead is the measurement §2 actually asks for. The spec says the swap "should
+be a provider swap plus a migration set, not a rewrite. If it turns out to be a rewrite, that is a
+Phase 0 defect worth recording as an ADR." It is not a rewrite, and that is now a tested fact rather
+than an expectation: `SqlServerPortabilityTests` pins the SQLite-only surface at **eight occurrences
+across four construct kinds** — `||` concatenation, `LIMIT`, `substr()`, `length()` — in roughly
+seven hundred lines of reporting SQL, each with a one-line T-SQL equivalent recorded beside it. It
+also asserts that none of the constructs *without* a mechanical equivalent are present (`strftime`,
+`julianday`, `IFNULL`, `GROUP_CONCAT`, `printf`, `typeof`, `datetime`), because one of those
+appearing would change the shape of the port rather than its size.
+
+**The Phase 0 abstraction held.** ADR-0001's dialect layer did what it was written for.
+
+**What remains:** a SQL Server Express instance, an initial migration generated against it, the four
+constructs translated, and the Phase 1–8 suites run on it. C9.1 and C9.3 are also only fully proved
+there, since SQLite's locking is not SQL Server's.
