@@ -278,6 +278,48 @@ with India GST/TDS compliance as a core requirement.
   Remaining before sign-off: a SQL Server instance (#24), owner walkthrough of the four new windows
   and screenshots, owner confirmation of the Operator grant list and the eight-character password
   floor.
+- **Phase 10 (hardening & packaging) — three of six checkpoints met; the other three need a machine
+  this repository does not have.** Spec approved 14 Oct 2026 on the owner's instruction, with the
+  installer named as the thing they wanted first; decisions in §4a (backups to local disk with an
+  optional second destination, **30** retained and **never the last one**; **no cloud backup** —
+  `project.md` §1 keeps it out of v1; response budgets 300 ms for the billing item lookup and
+  1.5–2 s for the reports; **unsigned installer** with the signing step wired, because an OV
+  certificate does not remove the day-one SmartScreen warning either; **the database deliberately
+  not encrypted**, with the recovery reasoning written out and BitLocker recommended instead;
+  **MSI via WiX v5 carrying a self-contained publish**, so a fresh machine needs no .NET runtime and
+  no internet; and **company data moved to `%ProgramData%`**).
+  **C10.1, C10.5 and C10.6 met. C10.2 not met; C10.3/C10.4 partially met** — installing, upgrading
+  and uninstalling a per-machine MSI are actions on a computer, and the MSI's structure is verified
+  instead (`installer/verify-installer.ps1` asserts nineteen facts about the built package without
+  installing it). **Nothing in this phase adds a migration** (§4b B0).
+  **A pre-existing Phase 0 data-loss defect was found and fixed** (§4b-1): the database sat under
+  `%LOCALAPPDATA%`, which is **per Windows user**, so a counter PC with two Windows accounts would
+  have kept **two separate sets of books** — and neither would have looked broken, because the second
+  user would simply have been walked through first-run company creation. The per-machine install this
+  phase adds is what makes it reachable. Company data now lives machine-wide with an explicit `Users`
+  ACL, and `LegacyDataRelocator` moves an existing install's books across on first launch, refusing
+  to merge when it finds a database in both places.
+  **C10.6's fingerprint had to be redesigned**: the trial balance is financial-year scoped, so the
+  obvious "as on a far-future date" reading yields an *empty* statement — a fingerprint that would
+  match itself after any restore whatsoever and carry no information. It now renders one trial
+  balance per financial year on record. **Two defects in this phase's own code were caught by its own
+  tests**: a pooled SQLite handle kept the snapshot file locked, and `PRAGMA integrity_check` threw
+  on a corrupt archive instead of reporting it (a verifier that throws is not a verifier).
+  Backups are verified ZIPs carrying the database snapshot (SQLite's online backup API — a file copy
+  of a live WAL database is not a backup), the logo and local settings; print templates are rows, so
+  the snapshot already holds them. Restore verifies first, refuses an archive from a newer schema,
+  takes a safety copy before replacing, and is armed-then-confirmed on screen. The Phase 6 C6.6
+  credential scan now covers backup archives and diagnostics bundles, and the bundle resolves the
+  stored secrets so Phase 6's **value** pass runs too. Three unhandled-fault handlers where Phases
+  0–9 had one. Feature docs: `backup-and-restore.md`, `installer-and-packaging.md`,
+  `diagnostics-and-crash-reporting.md`. User guide: `phase-10-install-and-backup.md`. Evidence at
+  `specs/evidence/phase-10-evidence.md`.
+  Remaining before sign-off: a fresh Windows machine for C10.2/C10.3/C10.4, the two-Windows-account
+  check that proves the D7 fix, owner walkthrough of the Backup & Restore screen and screenshots, and
+  owner confirmation of the retention count, the response budgets and the decision not to encrypt the
+  database. **Note for the owner's "other device" request:** this phase delivers a standalone install
+  plus a verified way to move books between machines. Sharing *one* set of books between two counters
+  is Phase 9's C9.4, deliberately stopped (#24) — a separate conversation.
 - **Feature docs live in `docs/features/<feature>.md`** — update them whenever you change a feature.
   Phase 2 additions: `inventory-masters.md`, `stock-journal-and-ledger.md`,
   `stock-valuation-and-reports.md`. Phase 3 additions: `sales-purchase-pipeline.md`,
@@ -287,14 +329,15 @@ with India GST/TDS compliance as a core requirement.
   Phase 7 additions: `tds-tcs-engine.md`, `banking-and-cheque-printing.md`,
   `payroll-statutory-basics.md`. Phase 8 additions: `tally-interchange.md`,
   `excel-import-export.md`. Phase 9 additions: `users-roles-and-permissions.md`,
-  `concurrency-and-schema-upgrades.md`.
+  `concurrency-and-schema-upgrades.md`. Phase 10 additions: `backup-and-restore.md`,
+  `installer-and-packaging.md`, `diagnostics-and-crash-reporting.md`.
   UI: `tally-style-ui-foundation.md` (shell, ADR-0005/0006) and `tally-entry-patterns.md`
   (inside the screens, ADR-0007 — read this before building any new screen).
   **End-user guides** (how to run the features from the screen) live in
   `docs/user-guide/` — Phase 3: `phase-3-sales-and-purchase.md`; Phase 4:
   `phase-4-customers-and-pricing.md`; Phase 6: `phase-6-einvoice-and-eway-bill.md`;
   Phase 7: `phase-7-tds-payroll-and-banking.md`; Phase 8: `phase-8-interoperability.md`;
-  Phase 9: `phase-9-users-and-upgrades.md`.
+  Phase 9: `phase-9-users-and-upgrades.md`; Phase 10: `phase-10-install-and-backup.md`.
 
 ## Development workflow (replaces the removed Claude hooks)
 

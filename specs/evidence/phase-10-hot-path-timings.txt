@@ -1,0 +1,10 @@
+Phase 10 C10.5 - hot-path response times
+========================================
+
+Dataset: 5000 items, 6000 vouchers across 3 financial years,
+         24 customers, 150 stocked items. Seed 20261014.
+
+Customer statement (three years)   median     43 ms   (runs: 42, 43, 43, 48, 50)
+Day book (one month)               median      7 ms   (runs: 7, 7, 7, 9, 9)
+Item lookup during billing         median      1 ms   (runs: 0, 0, 1, 1, 1)
+Trial balance (year)               median     34 ms   (runs: 31, 33, 34, 34, 36)
