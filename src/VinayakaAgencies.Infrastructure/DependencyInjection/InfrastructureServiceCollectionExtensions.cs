@@ -8,8 +8,10 @@ using VinayakaAgencies.Infrastructure.Configuration;
 using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Infrastructure.Data;
 using VinayakaAgencies.Application.Interop;
+using VinayakaAgencies.Application.Maintenance;
 using VinayakaAgencies.Infrastructure.Einvoicing;
 using VinayakaAgencies.Infrastructure.Interop;
+using VinayakaAgencies.Infrastructure.Maintenance;
 using VinayakaAgencies.Infrastructure.Persistence;
 using VinayakaAgencies.Infrastructure.Security;
 
@@ -54,7 +56,9 @@ public static class InfrastructureServiceCollectionExtensions
                 Microsoft.Extensions.Options.IOptions<DatabaseOptions>>().Value;
 
             builder.UseSqlite(
-                SqliteConnectionStringResolver.Resolve(options),
+                SqliteConnectionStringResolver.Resolve(
+                    options,
+                    provider.GetRequiredService<IAppDataPaths>()),
                 sqlite => sqlite.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
 
             // Diagnostics only, and nothing registers an IInterceptor in the product — so this is
@@ -120,6 +124,22 @@ public static class InfrastructureServiceCollectionExtensions
         // between calls: each opens the file it is handed and closes it again.
         services.TryAddSingleton<IWorkbookReader, ClosedXmlWorkbookReader>();
         services.TryAddSingleton<IWorkbookWriter, ClosedXmlWorkbookWriter>();
+
+        // Phase 10 hardening: the provider half of backup and restore. Scoped, because it takes
+        // the snapshot from the same configured database this context is bound to — and because
+        // a plain file copy of a live SQLite database with a write-ahead log is not a backup.
+        services.AddOptions<BackupOptions>()
+            .Bind(configuration.GetSection(BackupOptions.SectionName));
+
+        // Unwrapped to a plain POCO on the way out. The application layer carries only
+        // DependencyInjection.Abstractions by design — no service there takes an IOptions<T> — so
+        // configuration is bound here, where the configuration system already lives, and handed
+        // across the boundary as the settings object itself.
+        services.AddScoped(provider => provider
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<BackupOptions>>()
+            .Value);
+
+        services.AddScoped<IBackupArchiveStore, SqliteBackupArchiveStore>();
 
         return services;
     }

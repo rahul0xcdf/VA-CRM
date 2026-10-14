@@ -5,6 +5,7 @@ using VinayakaAgencies.Application.Companies;
 using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Inventory;
+using VinayakaAgencies.Application.Maintenance;
 using VinayakaAgencies.Application.Trade;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Domain.Accounting;
@@ -278,6 +279,95 @@ public sealed class EinvoiceWorkflowTests
 
         SensitiveText.ContainsAny(databaseText, AllSecrets).ShouldBeFalse(
             "a NIC credential reached the database in plaintext");
+    }
+
+    [Fact]
+    public async Task StoredCredentials_NeverAppearInABackupArchive()
+    {
+        // phase-10-hardening.md §4a D5 extends C6.6's scan to cover backups. The reason is simple:
+        // an encrypted secret that gets copied into an archive in the clear is not an encrypted
+        // secret, and the archive is the artefact most likely to leave the premises — onto a USB
+        // stick, a network share, or an email to whoever is helping.
+        var portal = new RecordedIrpServer();
+        await using var host = NewHost(portal);
+        var world = await ArrangeAsync(host);
+
+        await host.InScopeAsync(sp =>
+            sp.GetRequiredService<IEinvoiceService>().GenerateAsync(world.InvoiceId));
+
+        var summary = await host.InScopeAsync(sp =>
+            sp.GetRequiredService<IBackupService>().CreateAsync("test — C6.6 extended to backups"));
+
+        summary.IsVerified.ShouldBeTrue();
+
+        foreach (var (entryName, text) in ReadArchiveAsText(summary.FilePath))
+        {
+            SensitiveText.ContainsAny(text, AllSecrets).ShouldBeFalse(
+                $"a NIC credential reached '{entryName}' inside the backup archive in plaintext");
+        }
+    }
+
+    [Fact]
+    public async Task StoredCredentials_NeverAppearInADiagnosticsBundle()
+    {
+        // The other artefact that deliberately leaves the premises (§2's last bullet). It carries
+        // logs and the operator's own settings file, either of which could quote a secret back.
+        var portal = new RecordedIrpServer();
+        await using var host = NewHost(portal);
+        var world = await ArrangeAsync(host);
+
+        await host.InScopeAsync(sp =>
+            sp.GetRequiredService<IEinvoiceService>().GenerateAsync(world.InvoiceId));
+
+        // A settings file holding a secret under a credential-ish key: exactly what the operator
+        // might have pasted in, and what the key-based pass has to catch on the way out.
+        await File.WriteAllTextAsync(
+            host.Paths.LocalSettingsPath,
+            "{\"Nic\":{\"ClientSecret\":\"" + ClientSecret
+            + "\",\"Password\":\"" + EinvoiceTestWorld.PortalPassword + "\"}}");
+
+        // And a log line with the secret in plain prose under no key at all — the shape an error
+        // message quoting a credential back actually takes. Only the value pass catches this, so
+        // this is the half of the scrub that the bundle's own secret resolution buys: with the
+        // key-based pass alone, this line would leave the premises intact.
+        Directory.CreateDirectory(host.Paths.LogDirectory);
+        await File.WriteAllTextAsync(
+            Path.Combine(host.Paths.LogDirectory, "log-20261014.txt"),
+            "2026-10-14 09:15:00 [ERR] The portal rejected the call; it echoed back "
+            + EinvoiceTestWorld.PortalPassword + " in the detail field.");
+
+        var bundle = await host.InScopeAsync(sp =>
+            sp.GetRequiredService<IDiagnosticsBundleService>().CreateAsync("a test collected this"));
+
+        bundle.RedactedEntryCount.ShouldBeGreaterThan(0);
+
+        foreach (var (entryName, text) in ReadArchiveAsText(bundle.FilePath))
+        {
+            SensitiveText.ContainsAny(text, AllSecrets).ShouldBeFalse(
+                $"a NIC credential reached '{entryName}' inside the diagnostics bundle in plaintext");
+        }
+    }
+
+    /// <summary>
+    /// Every entry of a ZIP read as text, so a scan can look at all of it rather than at the
+    /// entries somebody remembered to name.
+    /// </summary>
+    /// <remarks>
+    /// Latin-1 rather than UTF-8: the point is to search bytes, and a decoder that substituted
+    /// replacement characters for the non-text parts of a SQLite page could break a secret in half
+    /// and hide it from the search.
+    /// </remarks>
+    private static IEnumerable<(string EntryName, string Text)> ReadArchiveAsText(string archivePath)
+    {
+        using var archive = System.IO.Compression.ZipFile.OpenRead(archivePath);
+
+        foreach (var entry in archive.Entries)
+        {
+            using var stream = entry.Open();
+            using var reader = new StreamReader(stream, System.Text.Encoding.Latin1);
+
+            yield return (entry.FullName, reader.ReadToEnd());
+        }
     }
 
     [Fact]

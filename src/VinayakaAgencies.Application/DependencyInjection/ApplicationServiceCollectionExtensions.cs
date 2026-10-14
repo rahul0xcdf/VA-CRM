@@ -10,6 +10,7 @@ using VinayakaAgencies.Application.Einvoicing;
 using VinayakaAgencies.Application.Gst;
 using VinayakaAgencies.Application.Interop;
 using VinayakaAgencies.Application.Inventory;
+using VinayakaAgencies.Application.Maintenance;
 using VinayakaAgencies.Application.Payroll;
 using VinayakaAgencies.Application.Printing;
 using VinayakaAgencies.Application.Reporting;
@@ -31,6 +32,13 @@ public static class ApplicationServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddSingleton<IClock, SystemClock>();
+
+        // Phase 10 §4a D7: one place answers where company data lives. Registered first because the
+        // SQLite resolver asks for it while the DbContext is being configured — and because the
+        // relocator has to have run before anything opens the database.
+        services.TryAddSingleton<IAppDataPaths, AppDataPaths>();
+        services.TryAddSingleton<LegacyDataRelocator>();
+
         services.TryAddSingleton<IUserSession, UserSession>();
 
         // Phase 9 §4a D2: the audit trail has to name the application account, not the Windows
@@ -135,6 +143,14 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IPermissionAuthority, PermissionAuthority>();
         services.AddScoped<ISignInService, SignInService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
+
+        // Phase 10 hardening: backup, restore, the fingerprint C10.6 compares across one, and
+        // the diagnostics bundle an owner can actually send. Scoped, because the fingerprint
+        // reads the books through the reporting services and the archive store holds the
+        // DbContext whose connection the snapshot is taken from.
+        services.AddScoped<IBookFingerprintService, BookFingerprintService>();
+        services.AddScoped<IBackupService, BackupService>();
+        services.AddScoped<IDiagnosticsBundleService, DiagnosticsBundleService>();
 
         return services;
     }

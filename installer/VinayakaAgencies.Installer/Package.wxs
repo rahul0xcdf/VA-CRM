@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  The Vinayaka Agencies installer (phase-10-hardening.md §2, checkpoints C10.2, C10.3, C10.4).
+
+  Three decisions from §4a shape this file, and each of them is the answer to a way an installer
+  can lose somebody's books:
+
+    D6  A per-machine MSI carrying a self-contained publish, so there is no .NET runtime
+        prerequisite to download on a fresh machine with no internet.
+    D7  Company data lives in %ProgramData%, machine-wide, with an explicit ACL. Without the ACL,
+        the default ProgramData permissions let a second Windows account create files but not write
+        to files the first account created — which would be a counter PC that works for one person
+        and fails for the next.
+    C10.4  Uninstall must leave company data and backups intact. The data folder is therefore
+        Permanent, and nothing under it is ever an installed file: the database is created by the
+        application at run time, so the MSI has no record of it to remove.
+-->
+
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package
+      Name="Vinayaka Agencies"
+      Manufacturer="Vinayaka Agencies"
+      Version="$(var.AppProductVersion)"
+      UpgradeCode="2D3FFA18-851E-41F2-967B-E33458FE88E7"
+      Scope="perMachine"
+      Compressed="yes"
+      Language="1033">
+
+    <!--
+      C10.3: an upgrade install over the previous version preserves all company data.
+
+      AllowSameVersionUpgrades lets a rebuilt 0.1.0 replace an installed 0.1.0, which is what
+      actually happens during development and during a hotfix. Scheduling afterInstallInitialize
+      removes the old files before the new ones land, so no stale assembly can survive an upgrade
+      and be loaded beside a new one.
+
+      Nothing here touches %ProgramData%. That is the whole mechanism by which the books survive:
+      the installer has never owned them.
+    -->
+    <MajorUpgrade
+        AllowSameVersionUpgrades="yes"
+        Schedule="afterInstallInitialize"
+        DowngradeErrorMessage="A newer version of Vinayaka Agencies is already installed on this computer. Uninstall it first if you really mean to go back to an older one — and take a backup before you do." />
+
+    <!-- One embedded cab: the output is a single .msi file somebody can carry on a USB stick. -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Shown in Settings > Apps, so an owner can tell what they have and who to call. -->
+    <Property Id="ARPCOMMENTS" Value="Accounting, billing and inventory for a motor and pump trading business." />
+    <Property Id="ARPCONTACT" Value="Vinayaka Agencies" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <!--
+      The wizard. WixUI_InstallDir rather than WixUI_Minimal so the install location is visible and
+      changeable: this machine may not have room on C:, and finding that out after the fact is worse
+      than one extra page.
+    -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <Feature Id="Main" Title="Vinayaka Agencies" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentGroupRef Id="ApplicationShortcuts" />
+      <ComponentGroupRef Id="CompanyDataFolder" />
+    </Feature>
+
+    <!-- ===== where things go ===== -->
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Vinayaka Agencies" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="DataFolder" Name="VinayakaAgencies">
+        <Directory Id="DataBackupFolder" Name="backups" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AppShortcutFolder" Name="Vinayaka Agencies" />
+    </StandardDirectory>
+
+    <!-- Referenced by the desktop shortcut below; declared so the linker knows the folder. -->
+    <StandardDirectory Id="DesktopFolder" />
+
+    <!-- ===== the application ===== -->
+
+    <!--
+      Harvested from the publish directory at build time rather than listed file by file. A
+      self-contained WPF publish is several hundred files, and a hand-maintained manifest of those
+      is a list that silently goes stale the first time a package reference changes — shipping an
+      installer missing one DLL that only one screen needs.
+    -->
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      <!--
+        The executable is excluded here because it is authored by hand below. Everything else - the
+        runtime, the dependencies, appsettings.json, the Assets folder - is harvested.
+      -->
+      <Files Include="$(var.AppPublishDir)**">
+        <Exclude Files="$(var.AppPublishDir)VinayakaAgencies.App.exe" />
+      </Files>
+    </ComponentGroup>
+
+    <!--
+      Both shortcuts live in the same component as the executable they point at, and the executable
+      is its own key path. That is not tidiness, it is the only arrangement Windows Installer's own
+      validation accepts for a per-machine package, and the reason is worth recording because the
+      first draft of this file got it wrong three different ways.
+
+      A shortcut placed in a component of its own needs a key path. Under a perMachine package the
+      Start Menu and Desktop folders resolve to the All Users profile, but ICE38, ICE43 and ICE57
+      cannot prove that statically: they see a component writing into a profile directory, and they
+      require its key path to be under HKCU - which a per-machine installer must not write, because
+      HKCU during an elevated install is the administrator's hive and not the operator's.
+
+      Hanging the shortcuts off the executable's component dissolves the problem: the key path is a
+      file in Program Files, unambiguously per-machine, and a repair that restores the executable
+      restores its shortcuts with it.
+    -->
+    <ComponentGroup Id="ApplicationShortcuts" Directory="INSTALLFOLDER">
+      <Component Id="ApplicationExecutable" Guid="DB74D490-FA05-416B-A96E-7AA775E1412F">
+        <File
+            Id="VinayakaAgenciesAppExe"
+            Source="$(var.AppPublishDir)VinayakaAgencies.App.exe"
+            Name="VinayakaAgencies.App.exe"
+            KeyPath="yes" />
+
+        <Shortcut
+            Id="StartMenuEntry"
+            Directory="AppShortcutFolder"
+            Name="Vinayaka Agencies"
+            Description="Accounting, billing and inventory"
+            WorkingDirectory="INSTALLFOLDER"
+            Advertise="no" />
+
+        <Shortcut
+            Id="DesktopEntry"
+            Directory="DesktopFolder"
+            Name="Vinayaka Agencies"
+            Description="Accounting, billing and inventory"
+            WorkingDirectory="INSTALLFOLDER"
+            Advertise="no" />
+
+        <!-- The Start Menu subfolder is ours, so it goes when we go. -->
+        <RemoveFolder Id="RemoveAppShortcutFolder" Directory="AppShortcutFolder" On="uninstall" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- ===== the shared data folder (D7) ===== -->
+
+    <ComponentGroup Id="CompanyDataFolder">
+      <!--
+        Permanent, and that is the C10.4 mechanism rather than a precaution. Marking the component
+        permanent tells Windows Installer not to reverse this component's actions on uninstall, so
+        the folder and everything the application put in it — database, backups, logo, settings —
+        survive. An uninstall that took the books with it would be a far worse defect than any this
+        phase set out to fix.
+
+        NeverOverwrite as well, so a repair or a reinstall cannot reset the ACL out from under a
+        working install.
+      -->
+      <Component Id="CompanyData" Directory="DataFolder"
+                 Guid="6956F26C-48CB-4E0F-8B11-67D8A63F4663"
+                 Permanent="yes" NeverOverwrite="yes">
+        <CreateFolder>
+          <!--
+            §4a D7. %ProgramData%'s default ACL gives Users "create files" but not "modify" on files
+            another account created — so without this, the first Windows account to run the program
+            would own motorpump.db and the second would be unable to post a voucher into it. The
+            grant is on the folder and inherits to what the application creates inside it.
+
+            Deliberately granted to Users rather than Everyone: Everyone would include the Guest
+            account, and these are the company's books.
+          -->
+          <util:PermissionEx
+              User="Users"
+              GenericRead="yes"
+              GenericWrite="yes"
+              GenericExecute="yes"
+              Delete="yes"
+              ReadAttributes="yes"
+              WriteAttributes="yes"
+              ReadExtendedAttributes="yes"
+              WriteExtendedAttributes="yes"
+              CreateChild="yes"
+              DeleteChild="yes"
+              Traverse="yes" />
+        </CreateFolder>
+      </Component>
+
+      <Component Id="CompanyBackups" Directory="DataBackupFolder"
+                 Guid="3D275CED-4529-4F6A-A69D-20881E59562C"
+                 Permanent="yes" NeverOverwrite="yes">
+        <CreateFolder>
+          <util:PermissionEx
+              User="Users"
+              GenericRead="yes"
+              GenericWrite="yes"
+              GenericExecute="yes"
+              Delete="yes"
+              ReadAttributes="yes"
+              WriteAttributes="yes"
+              ReadExtendedAttributes="yes"
+              WriteExtendedAttributes="yes"
+              CreateChild="yes"
+              DeleteChild="yes"
+              Traverse="yes" />
+        </CreateFolder>
+      </Component>
+    </ComponentGroup>
+
+  </Package>
+</Wix>

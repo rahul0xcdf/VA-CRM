@@ -1,0 +1,76 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+
+  <!--
+    phase-10-hardening.md §4a D6: an MSI built by WiX v5 through the ordinary `dotnet build`, so the
+    installer is a project in this repository that restores from NuGet like everything else, rather
+    than a tool somebody has to install and a GUI somebody has to remember how to drive.
+
+    This project deliberately does NOT reference the application project. It packages a *published*
+    directory, because the thing being installed is a self-contained publish (D6) and a project
+    reference would give the framework-dependent build output instead. `installer\build-installer.ps1`
+    runs the publish and then this build, in that order.
+  -->
+
+  <PropertyGroup>
+    <OutputName>VinayakaAgencies-Setup</OutputName>
+    <OutputType>Package</OutputType>
+
+    <!-- x64 only: the app is published win-x64 and installs under Program Files, not Program Files (x86). -->
+    <InstallerPlatform>x64</InstallerPlatform>
+
+    <!--
+      Four ICE checks are suppressed. Each is listed with its reason, because suppressing a
+      validation check is the sort of thing that should have to be justified in writing.
+
+      ICE61 - fires because Package.wxs sets MajorUpgrade/@AllowSameVersionUpgrades, which by
+        definition makes the upgrade range's maximum equal to the current version: the exact
+        condition ICE61 reports. WiX's own documentation says to suppress it when using that
+        attribute. The attribute is worth keeping, because without it reinstalling 0.1.0 over an
+        installed 0.1.0 fails with "already installed" and the owner has to uninstall first - during
+        early use both the common case and the one most likely to be attempted in a hurry.
+
+      ICE38, ICE43, ICE57 - all three are about components that place data in a *user profile*, and
+        all three demand a key path under HKCU. They are written for per-user installs. This package
+        is Scope="perMachine", so its Start Menu and Desktop shortcuts land in the All Users profile
+        and its correct key path is the executable in Program Files; HKCU during an elevated install
+        is the administrator's hive, not the operator's, so following the advice literally would be
+        the actual defect. ICE validation runs before ALLUSERS is resolved and cannot see this.
+
+      Everything else still runs, and that matters: ICE57 and ICE90 each caught a real mistake in
+      the first draft of Package.wxs (an ambiguous HKMU key path, and a shortcut hung off an
+      ALL-CAPS public-property directory), and ICE38/43/57 are suppressed only after the shortcuts
+      were restructured onto the executable's own component - not instead of restructuring them.
+    -->
+    <SuppressIces>ICE38;ICE43;ICE57;ICE61</SuppressIces>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      Where the self-contained publish was written. Overridable from the command line so a CI build
+      can point at its own staging directory; the default matches build-installer.ps1.
+    -->
+    <AppPublishDir Condition="'$(AppPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\win-x64\</AppPublishDir>
+
+    <!--
+      Product version. Kept in step with Directory.Build.props by build-installer.ps1, which reads it
+      from there rather than letting the two drift: an MSI whose version does not advance will not
+      upgrade an existing install, which is exactly the failure C10.3 is about.
+    -->
+    <AppProductVersion Condition="'$(AppProductVersion)' == ''">0.1.0</AppProductVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefineConstants>AppPublishDir=$(AppPublishDir);AppProductVersion=$(AppProductVersion)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- util: PermissionEx, which is what grants every Windows account on the machine write access
+         to the shared company data folder (§4a D7). -->
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+
+    <!-- ui: the Next/Next/Install wizard. A silent MSI would be smaller and would also mean the
+         owner has no way to see or change where it is going. -->
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+</Project>

@@ -11,9 +11,11 @@ using VinayakaAgencies.App.ViewModels;
 using VinayakaAgencies.App.Views;
 using VinayakaAgencies.Application.Common;
 using VinayakaAgencies.Application.Companies;
+using VinayakaAgencies.Application.Maintenance;
 using VinayakaAgencies.Application.Security;
 using VinayakaAgencies.Application.DependencyInjection;
 using VinayakaAgencies.Domain.Abstractions;
+using VinayakaAgencies.Infrastructure.Configuration;
 using VinayakaAgencies.Infrastructure.DependencyInjection;
 using VinayakaAgencies.Infrastructure.Persistence;
 using Serilog;
@@ -59,6 +61,15 @@ public partial class App : System.Windows.Application
             splash.Show();
 
             var startedAt = DateTimeOffset.UtcNow;
+
+            // Phase 10 §4a D7, and it has to happen here — before anything opens the database.
+            // Phases 0–9 kept the books under %LOCALAPPDATA%, which is per Windows user; they now
+            // live machine-wide. Without this move an upgraded install would find no database at
+            // the new location, and a missing database is indistinguishable from a fresh install:
+            // the owner would be walked through first-run company creation with their real books
+            // sitting untouched in a folder nothing reads any more.
+            splash.ReportStatus("Checking where the company data lives…");
+            RelocateCompanyDataIfNeeded();
 
             splash.ReportStatus("Preparing the company database…");
             _shellScope = _host.Services.CreateScope();
@@ -248,8 +259,144 @@ public partial class App : System.Windows.Application
         }
     }
 
+    /// <summary>
+    /// Moves a pre-Phase-10 install's company data to the machine-wide location, once.
+    /// </summary>
+    /// <remarks>
+    /// Resolved from the host rather than constructed, so the relocator and the SQLite resolver are
+    /// looking at the same <see cref="IAppDataPaths"/> and the same configured file name. An
+    /// ambiguous outcome — a database at both locations — is logged as a warning and the startup
+    /// continues against the machine-wide copy, which is what <c>LegacyDataRelocator</c> leaves in
+    /// place; it is not this method's business to choose between two sets of books.
+    /// </remarks>
+    private void RelocateCompanyDataIfNeeded()
+    {
+        if (_host is null)
+        {
+            return;
+        }
+
+        var options = _host.Services
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
+            .Value;
+
+        // A deployment that pinned an explicit connection string has chosen its own location, and
+        // moving files out from under it would be the opposite of helpful.
+        if (!string.IsNullOrWhiteSpace(options.ConnectionString))
+        {
+            Log.Information(
+                "Database:ConnectionString is set explicitly, so the Phase 10 data relocation is skipped.");
+            return;
+        }
+
+        var relocation = _host.Services
+            .GetRequiredService<LegacyDataRelocator>()
+            .Relocate(string.IsNullOrWhiteSpace(options.DatabaseFileName)
+                ? "motorpump.db"
+                : options.DatabaseFileName);
+
+        switch (relocation.Outcome)
+        {
+            case LegacyDataRelocationOutcome.Relocated:
+                Log.Information(
+                    "Company data relocated: {Explanation} Entries: {Entries}",
+                    relocation.Explanation,
+                    string.Join(", ", relocation.MovedEntries));
+                break;
+
+            case LegacyDataRelocationOutcome.AmbiguousLeftAlone:
+                Log.Warning("Company data was not relocated. {Explanation}", relocation.Explanation);
+                break;
+
+            default:
+                Log.Debug("No company data relocation needed. {Explanation}", relocation.Explanation);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Writes a crash report beside the logs, for the next diagnostics bundle to carry.
+    /// </summary>
+    /// <remarks>
+    /// Synchronous by necessity: every caller is a last-chance handler on a process that is about
+    /// to die, and an awaited continuation would not be reached. Failures are swallowed and logged
+    /// — a fault while recording a fault must not replace the original in the log.
+    /// </remarks>
+    private void RecordCrash(string source, Exception exception)
+    {
+        try
+        {
+            if (_host is null)
+            {
+                return;
+            }
+
+            using var scope = _host.Services.CreateScope();
+
+            var path = scope.ServiceProvider
+                .GetRequiredService<IDiagnosticsBundleService>()
+                .RecordCrashAsync(source, exception)
+                .GetAwaiter()
+                .GetResult();
+
+            Log.Information("Crash report written to {Path}.", path);
+        }
+        catch (Exception recordingFailure) when (recordingFailure is not OutOfMemoryException)
+        {
+            Log.Error(recordingFailure, "Could not write a crash report for the {Source} fault.", source);
+        }
+    }
+
+    /// <summary>
+    /// Takes the shutdown backup of §4a D1, if it is switched on.
+    /// </summary>
+    /// <remarks>
+    /// Clean shutdown is the one moment the books are known to be quiet and the operator known to
+    /// be finished, which is why it is the default. It is best-effort: a failure here is logged and
+    /// the application still closes, because refusing to exit would be a worse bug than a missed
+    /// backup, and the next launch will say how old the newest archive is.
+    /// </remarks>
+    private void BackupOnShutdownIfConfigured()
+    {
+        if (_host is null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var scope = _host.Services.CreateScope();
+
+            if (!scope.ServiceProvider.GetRequiredService<BackupOptions>().BackupOnShutdown)
+            {
+                return;
+            }
+
+            var summary = scope.ServiceProvider
+                .GetRequiredService<IBackupService>()
+                .CreateAsync("on shutdown")
+                .GetAwaiter()
+                .GetResult();
+
+            Log.Information(
+                "Shutdown backup written to {Path} (verified: {Verified}).",
+                summary.FilePath,
+                summary.IsVerified);
+        }
+        catch (Exception ex) when (ex is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or ObjectDisposedException)
+        {
+            Log.Warning(ex, "The shutdown backup did not complete. The application is still closing.");
+        }
+    }
+
     protected override async void OnExit(ExitEventArgs e)
     {
+        // Before the scope goes: the backup needs a working service provider.
+        BackupOnShutdownIfConfigured();
+
         _shellScope?.Dispose();
 
         if (_host is not null)
@@ -289,7 +436,14 @@ public partial class App : System.Windows.Application
         builder.Services.AddScoped<ShellViewModel>();
         builder.Services.AddScoped<ShellWindow>();
 
+        // Three handlers, because there are three ways an unhandled fault reaches the top and only
+        // one of them was covered before Phase 10. The UI thread is the common case; a background
+        // thread bypasses the dispatcher entirely; and a faulted Task nobody awaited surfaces later
+        // still, at a garbage collection, with no stack that points anywhere useful unless it is
+        // captured here.
         DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         return builder.Build();
     }
@@ -304,10 +458,11 @@ public partial class App : System.Windows.Application
     /// </remarks>
     private static void ConfigureLogging(IConfiguration configuration)
     {
-        var logDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "VinayakaAgencies",
-            "logs");
+        // Through IAppDataPaths from Phase 10, rather than building the path here a second time.
+        // Phases 0–9 derived it independently in two places — here and in the SQLite resolver — and
+        // §4a D7 then moved one of them. Two derivations of the same location is how a diagnostics
+        // bundle ends up collecting logs from a directory nothing writes to.
+        var logDirectory = new AppDataPaths().LogDirectory;
 
         Directory.CreateDirectory(logDirectory);
 
@@ -336,11 +491,46 @@ public partial class App : System.Windows.Application
     /// writing a half-posted voucher from Phase 1 onward, and a crash with a logged cause is a far
     /// better outcome than corrupt books.
     /// </remarks>
-    private static void OnDispatcherUnhandledException(
+    private void OnDispatcherUnhandledException(
         object sender,
         DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Fatal(e.Exception, "Unhandled exception on the UI thread.");
+        RecordCrash("UI thread", e.Exception);
         Log.CloseAndFlush();
+    }
+
+    /// <summary>
+    /// A fault on a thread the dispatcher does not own. The process is already going down.
+    /// </summary>
+    private void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is not Exception exception)
+        {
+            Log.Fatal("A non-exception object was thrown and left unhandled: {Object}", e.ExceptionObject);
+            Log.CloseAndFlush();
+            return;
+        }
+
+        Log.Fatal(exception, "Unhandled exception on a background thread. Terminating: {IsTerminating}", e.IsTerminating);
+        RecordCrash("background thread", exception);
+        Log.CloseAndFlush();
+    }
+
+    /// <summary>
+    /// A faulted <see cref="Task"/> nobody awaited.
+    /// </summary>
+    /// <remarks>
+    /// Observed and logged, then marked observed so it does not also take the process down. This is
+    /// the one unhandled fault that is <i>not</i> fatal by default, and swallowing it silently is
+    /// how a failed background save becomes a mystery. Deliberately different from the two handlers
+    /// above, which let the process die: nothing here is known to be mid-write.
+    /// </remarks>
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Log.Error(e.Exception, "A background task faulted and nobody observed it.");
+        RecordCrash("unobserved task", e.Exception);
+
+        e.SetObserved();
     }
 }

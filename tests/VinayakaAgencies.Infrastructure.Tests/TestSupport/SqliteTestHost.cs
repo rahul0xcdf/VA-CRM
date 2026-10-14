@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using VinayakaAgencies.Application.DependencyInjection;
 using VinayakaAgencies.Application.Einvoicing;
+using VinayakaAgencies.Application.Maintenance;
 using VinayakaAgencies.Domain.Abstractions;
 using VinayakaAgencies.Infrastructure.DependencyInjection;
 
@@ -52,6 +53,14 @@ public sealed class SqliteTestHost : IAsyncDisposable
         Clock = clock ?? new FixedClock();
         CurrentUser = currentUser ?? new StubCurrentUser();
 
+        // Phase 10 §4a D7: the data root is this host's own directory, so backups land beside this
+        // host's database exactly as they do in the product (§4a D1) — and so no test can write to
+        // the real %ProgramData%, which on a developer machine needs elevation and on a build agent
+        // would be shared between concurrent runs.
+        Paths = new AppDataPaths(
+            Path.GetDirectoryName(_databasePath)!,
+            Path.Combine(Path.GetDirectoryName(_databasePath)!, "legacy"));
+
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -72,6 +81,7 @@ public sealed class SqliteTestHost : IAsyncDisposable
         // giving the audit-stamp assertions a clock and a user they control.
         services.TryAddSingleton<IClock>(Clock);
         services.TryAddSingleton<ICurrentUser>(CurrentUser);
+        services.TryAddSingleton<IAppDataPaths>(Paths);
 
         // Registered before AddInfrastructure so the DbContext built there picks it up. EF Core 8
         // discovers IInterceptor registrations in the application service provider by itself, which
@@ -105,6 +115,9 @@ public sealed class SqliteTestHost : IAsyncDisposable
     public FixedClock Clock { get; }
 
     public StubCurrentUser CurrentUser { get; }
+
+    /// <summary>Where this host keeps its data root, backups included (§4a D1/D7).</summary>
+    public IAppDataPaths Paths { get; }
 
     public string DatabasePath => _databasePath;
 
